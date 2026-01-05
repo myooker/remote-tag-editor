@@ -64,34 +64,34 @@ namespace FLAC {
     }
 
     // Single-valued key function to edit key's value
-    crow::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWith) {
+    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWith) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
-            CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
-            return {500, "The file is not valid"};
+            CROW_LOG_ERROR << "(FLAC::" << __func__ << ") " << path.c_str() << " is not valid";
+            return { path, "The file is not valid", 500 };
         }
         if (!file.hasXiphComment()) {
-            CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " does not have Xiph Comments";
-            return {500, "The file does not have Xiph Comments"};
+            CROW_LOG_ERROR << "(FLAC::" << __func__ << ") " << path.c_str() << " does not have Xiph Comments";
+            return { path, "The file does not have Xiph Comments", 500 };
         }
 
         auto *tag = file.xiphComment();
         tag->addField(fieldType, replaceWith);
         file.save();
-        CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
-        return {200, "OK"};
+        CROW_LOG_INFO << "(FLAC::" << __func__ << ") " << path.c_str() << " saved!";
+        return { path };
     }
 
     // If a key is multi-valued then we will use this overloaded function
-    crow::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
-            CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
-            return {500, "The file is not valid"};
+            CROW_LOG_ERROR << "(FLAC::" << __func__ << ") " << path.c_str() << " is not valid";
+            return { path, "The file is not valid", 500 };
         }
         if (!file.hasXiphComment()) {
-            CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " does not have Xiph Comments";
-            return {500, "Does not have Xiph Comments"};
+            CROW_LOG_ERROR << "(FLAC::" << __func__ << ") " << path.c_str() << " does not have Xiph Comments";
+            return { path, "The file does not have Xiph Comments", 500 };
         }
         auto *tag = file.xiphComment();
         const auto filedType_it = tag->fieldListMap().find(fieldType);
@@ -103,8 +103,8 @@ namespace FLAC {
         if (filedType_it != tag->fieldListMap().end()) {
             oldValues = filedType_it->second;
         } else {
-            CROW_LOG_ERROR << "(" << __func__ << ") " << fieldType.c_str() << " was not found in " << path.c_str();
-            return { 500, fieldType + "was not found in the file" };
+            CROW_LOG_ERROR << "(FLAC::" << __func__ << ") " << fieldType.c_str() << " was not found in " << path.c_str();
+            return { path, fieldType + " was not found" , 500 };
         }
 
         // Here we're edit values
@@ -120,11 +120,11 @@ namespace FLAC {
         tag->removeFields(fieldType);
         for (const auto &a : newValues) {
             tag->addField(fieldType, a.toCString(), false);
-            CROW_LOG_INFO << "(" << __func__ << ") " << fieldType << " of " << path.c_str() << " has changed to " << a.toCString();
+            CROW_LOG_INFO << "(FLAC::" << __func__ << ") " << fieldType << " of " << path.c_str() << " has changed to " << a.toCString();
         }
         file.save();
-        CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!\n";
+        CROW_LOG_INFO << "(FLAC::" << __func__ << ") " << path.c_str() << " saved!\n";
 
-        return {200, "OK"};
+        return { path };
     }
 }

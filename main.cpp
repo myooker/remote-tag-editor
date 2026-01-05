@@ -10,6 +10,7 @@
 #include <crow.h>
 #include <crow/middlewares/cors.h>
 
+#include "program.h"
 #include "FLAC/flac.h"
 #include "MPEG/mpeg.h"
 
@@ -18,32 +19,20 @@ using ordered_json = nlohmann::ordered_json;
 
 namespace fs = std::filesystem;
 
-enum DIR_DEPTH {
-    ARTIST = 1,
-    ARTIST_AND_ALBUMS = 2,
-    ALL = 100,
-};
-
-namespace program {
-    constexpr std::string_view version { "Alpha 1.0.0" };
-    constexpr std::string_view name { "web-tag-editor" };
-    struct settings {
-        std::string mountpoint { "/home/myooker/music2" };
-        std::string testFlacFile { "/home/myooker/music2/01 Shadow Wizard Money Gang, Cynthoni - Psychic Unhealing.flac" };
-        std::string testMp3File { "/home/myooker/music2/A.L.I.S.O.N - Seagulls.mp3"};
-        [[nodiscard]] bool isExist() const {
-            const fs::path p { mountpoint };
-            return !fs::exists(p);
-        }
-    };
-}
-
 std::string fileExtensionToType(const std::string &ext) {
     const std::unordered_map<std::string, std::string> extensionsMap {
         {".mp3", "music"},
         {".flac", "music"},
         {".m4a", "music"},
         {".ogg", "music"},
+        {".aac", "music"},
+        {".ogg", "music"},
+        {".wma", "music"},
+        {".m4a", "music"},
+        {".wav", "music"},
+        {".aif", "music"},
+        {".aiff", "music"},
+        {".alac", "music"},
         {".jpg", "picture"},
         {".jpeg", "picture"},
         {".png", "picture"}
@@ -70,12 +59,11 @@ int typeOrder(const std::string &type) {
     }
 }
 
-json listTags(const std::string &path) {
+json listTags(const fs::path &path) {
     const std::function flac { &FLAC::listMusicTags };
     const std::function mpeg { &MPEG::listMusicTags };
 
-    const std::filesystem::path tempPath(path);
-    const auto ext = tempPath.extension().string();
+    const auto ext = path.extension().string();
 
     CROW_LOG_DEBUG << "( " << __func__ << " )" << " File Extension: " << ext;
 
@@ -91,7 +79,54 @@ json listTags(const std::string &path) {
     return j;
 }
 
-ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth = DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
+std::string getExtension(const std::string &path) {
+    CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
+    const fs::path i { path };
+    CROW_LOG_DEBUG << "(" << __func__ << ") returning " << i.extension();
+    return i.extension();
+}
+
+std::vector<program::response> editMusicTags(const ordered_json &body) {
+    std::vector<program::filePath> path {};
+    std::vector<program::response> response {};
+    const std::string fieldType { body.value("tagType", "none") };
+    const std::string replaceWith { body.value("replaceWith", "none") };
+    const std::string replaceWhat { body.value("replaceWhat", "none") };
+
+    for (const auto &entry : body["path"]) {
+        CROW_LOG_DEBUG << "(" << __func__ << ") filling up std::vector path...";
+        path.emplace_back(entry, getExtension(entry));
+    }
+
+    for (std::size_t i {}; i < path.size(); i++) {
+        if (path[i].extension == ".flac") {
+            CROW_LOG_DEBUG << "(" << __func__ << ") "<< path[i].path << " is .flac";
+            if (replaceWhat != "none") {
+                CROW_LOG_DEBUG << "(" << __func__ << ") found replaceWhat inside";
+                response.push_back(FLAC::editMusicTags(
+                    path[i].path, fieldType, replaceWhat, replaceWith
+                ));
+            } else {
+                CROW_LOG_DEBUG << "(" << __func__ << ") replaceWhat is not found inside";
+                response.push_back(FLAC::editMusicTags(
+                    path[i].path, fieldType, replaceWith
+                ));
+            }
+        } else if (path[i].extension == ".mp3") {
+            CROW_LOG_DEBUG << "(" << __func__ << ") " << path[i].path << " is .mp3";
+            response.emplace_back(path[i].path, ".mp3 is not supported", 500);
+            CROW_LOG_ERROR << "(" << __func__ << ") .mp3 is not supported";
+        } else {
+            CROW_LOG_DEBUG << "(" << __func__ << ") " << path[i].path << " is " << path[i].extension;
+            response.emplace_back(path[i].path, path[i].extension + " is not supported", 500);
+            CROW_LOG_ERROR << "(" << __func__ << ") " << path[i].extension << " is not supported";
+        }
+    }
+
+    return response;
+}
+
+ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
     ordered_json rootTree = json::object();
     const fs::path root { basePath };
     rootTree["name"] = root.filename().lexically_normal().string();
@@ -169,19 +204,15 @@ int main (int argc, char **argv) {
     CROW_ROUTE(app, "/api/edittag").methods("POST"_method)
     ([&](const crow::request &req) {
         const ordered_json body = json::parse(req.body);
-        const fs::path fspath { body["path"] };
-        const std::string fileExtension { fspath.extension() };
-
-        if (fileExtension == ".mp3") {
-            CROW_LOG_ERROR << fileExtension << " is not supported";
-            return crow::response { 500, "Not supported" };
+        const std::vector responses { editMusicTags(body) };
+        for (const auto &r : responses) {
+            if (r.status == 200) {
+                continue;
+            } else {
+                return crow::response { 207 };
+            }
         }
-
-        if (const auto it = body.find("replaceWhat"); it != body.end()) {
-            return FLAC::editMusicTags(body["path"], body["tagType"], body["replaceWhat"], body["replaceWith"]);
-        } else {
-            return FLAC::editMusicTags(body["path"], body["tagType"], body["replaceWith"]);
-        }
+        return crow::response { 200 };
     });
 
     CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
@@ -297,6 +328,23 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/tag").methods("GET"_method)
     ([&](const crow::request &req) {
+        // ordered_json body {};
+        // fs::path filePath {};
+        // try {
+        //     body = json::parse(req.body);
+        //     filePath = body.value("path", "none");
+        // } catch (std::exception &e) {
+        //     CROW_LOG_ERROR << "(api/tag) " << e.what();
+        //     CROW_LOG_ERROR << "(api/tag) " << "Could not parse JSON (is it empty?)";
+        //     return crow::response { 500, "Error: Could not parse JSON object"};
+        // }
+        //
+        // CROW_LOG_INFO << "(api/tag) Requested filepath: " << filePath;
+        // const json tags = listTags(filePath);
+        //
+        // crow::response response(tags.dump());
+        // response.set_header("Content-Type", "application/json");
+        // return response;
         const char* p = req.url_params.get("path");
         if (!p) {
             return crow::response(400, "missing path param");
@@ -341,15 +389,15 @@ int main (int argc, char **argv) {
         if (requestPath.ends_with('/')) {
             requestPath.pop_back();
         }
-        CROW_LOG_DEBUG << "[/api/list] Building tree for: " << requestPath;
-        const auto directoryTree = buildMainDirectoryTree(requestPath, DIR_DEPTH::ARTIST);
+        CROW_LOG_DEBUG << "(api/list) Building tree for: " << requestPath;
+        const auto directoryTree = buildMainDirectoryTree(requestPath, program::DIR_DEPTH::ARTIST);
         crow::response response(directoryTree.dump());
         response.set_header("Content-Type", "application/json");
 
         return response;
     });
 
-    app.loglevel(crow::LogLevel::WARNING);
+    app.loglevel(crow::LogLevel::DEBUG);
     app.port(18080).multithreaded().run();
 
     return 0;

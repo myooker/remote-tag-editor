@@ -13,7 +13,8 @@ add_executable(web_tag_editor main.cpp
         FLAC/flac.cpp
         FLAC/flac.h
         MPEG/mpeg.cpp
-        MPEG/mpeg.h)
+        MPEG/mpeg.h
+        program.h)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})

@@ -13,13 +13,14 @@
 #include <unordered_set>
 #include <crow/http_response.h>
 #include <nlohmann/json.hpp>
+#include "../program.h"
 
 namespace FLAC {
     nlohmann::json listMusicTags(const std::string &path);
     crow::response removeMusicTag(const std::string &path, const std::string &fieldType);
     crow::response addMusicTag(const std::string &path, const std::string &fieldType, const std::string &value);
-    crow::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWith);
-    crow::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith);
+    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWith);
+    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith);
 }
 
 #endif //WEB_TAG_EDITOR_FLAC_H
