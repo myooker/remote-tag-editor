@@ -15,8 +15,9 @@ namespace program {
 
     struct settings {
         std::string mountpoint { "/home/myooker/music2" };
-        std::string testFlacFile { "/home/myooker/music2/01 Shadow Wizard Money Gang, Cynthoni - Psychic Unhealing.flac" };
-        std::string testMp3File { "/home/myooker/music2/A.L.I.S.O.N - Seagulls.mp3"};
+        // std::string mountpoint { "/media/music2" };
+        // std::string testFlacFile { "/home/myooker/music2/01 Shadow Wizard Money Gang, Cynthoni - Psychic Unhealing.flac" };
+        // std::string testMp3File { "/home/myooker/music2/A.L.I.S.O.N - Seagulls.mp3"};
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);

@@ -65,7 +65,7 @@ json listTags(const fs::path &path) {
 
     const auto ext = path.extension().string();
 
-    CROW_LOG_DEBUG << "( " << __func__ << " )" << " File Extension: " << ext;
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " File Extension: " << ext;
 
     if (ext == ".mp3") {
         return mpeg(path);
@@ -397,7 +397,7 @@ int main (int argc, char **argv) {
         return response;
     });
 
-    app.loglevel(crow::LogLevel::DEBUG);
+    app.loglevel(crow::LogLevel::INFO);
     app.port(18080).multithreaded().run();
 
     return 0;
