@@ -10,9 +10,8 @@
 #include <crow.h>
 #include <crow/middlewares/cors.h>
 
-#include "program.h"
-#include "FLAC/flac.h"
-#include "MPEG/mpeg.h"
+#include "../include/program.h"
+#include "../include/musicTagHandlerFactory.h"
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -59,71 +58,11 @@ int typeOrder(const std::string &type) {
     }
 }
 
-json listTags(const fs::path &path) {
-    const std::function flac { &FLAC::listMusicTags };
-    const std::function mpeg { &MPEG::listMusicTags };
-
-    const auto ext = path.extension().string();
-
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " File Extension: " << ext;
-
-    if (ext == ".mp3") {
-        return mpeg(path);
-    } else if (ext == ".flac") {
-        return flac(path);
-    }
-
-    json j;
-    j["path"] = path;
-    j["error"] = "unsupported file type";
-    return j;
-}
-
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     const fs::path i { path };
     CROW_LOG_DEBUG << "(" << __func__ << ") returning " << i.extension();
     return i.extension();
-}
-
-std::vector<program::response> editMusicTags(const ordered_json &body) {
-    std::vector<program::filePath> path {};
-    std::vector<program::response> response {};
-    const std::string fieldType { body.value("tagType", "none") };
-    const std::string replaceWith { body.value("replaceWith", "none") };
-    const std::string replaceWhat { body.value("replaceWhat", "none") };
-
-    for (const auto &entry : body["path"]) {
-        CROW_LOG_DEBUG << "(" << __func__ << ") filling up std::vector path...";
-        path.emplace_back(entry, getExtension(entry));
-    }
-
-    for (std::size_t i {}; i < path.size(); i++) {
-        if (path[i].extension == ".flac") {
-            CROW_LOG_DEBUG << "(" << __func__ << ") "<< path[i].path << " is .flac";
-            if (replaceWhat != "none") {
-                CROW_LOG_DEBUG << "(" << __func__ << ") found replaceWhat inside";
-                response.push_back(FLAC::editMusicTags(
-                    path[i].path, fieldType, replaceWhat, replaceWith
-                ));
-            } else {
-                CROW_LOG_DEBUG << "(" << __func__ << ") replaceWhat is not found inside";
-                response.push_back(FLAC::editMusicTags(
-                    path[i].path, fieldType, replaceWith
-                ));
-            }
-        } else if (path[i].extension == ".mp3") {
-            CROW_LOG_DEBUG << "(" << __func__ << ") " << path[i].path << " is .mp3";
-            response.emplace_back(path[i].path, ".mp3 is not supported", 500);
-            CROW_LOG_ERROR << "(" << __func__ << ") .mp3 is not supported";
-        } else {
-            CROW_LOG_DEBUG << "(" << __func__ << ") " << path[i].path << " is " << path[i].extension;
-            response.emplace_back(path[i].path, path[i].extension + " is not supported", 500);
-            CROW_LOG_ERROR << "(" << __func__ << ") " << path[i].extension << " is not supported";
-        }
-    }
-
-    return response;
 }
 
 ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
@@ -187,7 +126,6 @@ int main (int argc, char **argv) {
     }
     
     crow::App<crow::CORSHandler> app;
-    auto &cors = app.get_middleware<crow::CORSHandler>();
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
 
     CROW_ROUTE(app, "/api/getmntpoint").methods("GET"_method)
@@ -204,52 +142,88 @@ int main (int argc, char **argv) {
     CROW_ROUTE(app, "/api/edittag").methods("POST"_method)
     ([&](const crow::request &req) {
         const ordered_json body = json::parse(req.body);
-        const std::vector responses { editMusicTags(body) };
-        for (const auto &r : responses) {
-            if (r.status == 200) {
-                continue;
-            } else {
-                return crow::response { 207 };
-            }
+        const auto pathSize { body["path"].size() };
+        std::string fileExtension {};
+        if (pathSize > 1) {
+            fileExtension = fs::path(body["path"][0]).extension().string();
+        } else {
+            fileExtension = fs::path(body["path"]).extension().string();
         }
-        return crow::response { 200 };
+
+        CROW_LOG_DEBUG << "(api/edittag) requested file extension: " << fileExtension;
+
+        std::vector<fs::path> filePaths{};
+        filePaths.reserve(pathSize);
+        const std::string fieldType = body.value("tagType", "none");
+        CROW_LOG_DEBUG << "(api/edittag) requested tag type: " << fieldType;
+        const std::string replaceWhat = body.value("replaceWhat", "none");
+        CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << replaceWhat;
+        const std::string replaceWith = body.value("replaceWith", "none");
+        CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << replaceWith;
+        for (const auto &path : body["path"]) {
+            CROW_LOG_DEBUG << "(api/edittag) path: " << path;
+            filePaths.emplace_back(path);
+        }
+        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        if (replaceWhat == "none") {
+            return handler->editMusicTags(filePaths, fieldType, replaceWith);
+        } else {
+            return handler->editMusicTags(filePaths, fieldType, replaceWhat, replaceWith);
+        }
     });
 
     CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
     ([&](const crow::request &req) {
         const ordered_json body = json::parse(req.body);
-        const fs::path fspath { body["path"] };
-        const std::string fileExtension { fspath.extension() };
-
-        if (fileExtension == ".mp3") {
-            CROW_LOG_ERROR << fileExtension << " is not supported";
-            return crow::response { 500, "Not supported" };
-        }
-
-        if (const auto it = body.find("fieldType"); it != body.end()) {
-            return FLAC::addMusicTag(body["path"], body["fieldType"], body["value"]);
+        const auto pathSize { body["path"].size() };
+        std::string fileExtension {};
+        if (pathSize > 1) {
+            fileExtension = fs::path(body["path"][0]).extension().string();
         } else {
-            CROW_LOG_ERROR << "(api/addfieldtag) fieldType not found!";
-            return crow::response { 500, "fieldType not found" };
+            fileExtension = fs::path(body["path"]).extension().string();
         }
+
+        CROW_LOG_DEBUG << "(api/addfieldtag) requested file extension: " << fileExtension;
+
+        std::vector<fs::path> filePaths{};
+        filePaths.reserve(pathSize);
+        const std::string fieldType = body.value("fieldType", "none");
+        CROW_LOG_DEBUG << "(api/addfieldtag) requested tag type: " << fieldType;
+        const std::string value = body.value("value", "none");
+        CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << value;
+        for (const auto &path : body["path"]) {
+            CROW_LOG_DEBUG << "(api/addfieldtag) path: " << path;
+            filePaths.emplace_back(path);
+        }
+        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        return handler->addMusicTag(filePaths, fieldType, value);
     });
 
     CROW_ROUTE(app, "/api/removefieldtag").methods("POST"_method)
     ([&](const crow::request &req) {
         const ordered_json body = json::parse(req.body);
-        const fs::path fspath { body["path"] };
-        const std::string fileExtension { fspath.extension() };
-        if (fileExtension == ".mp3") {
-            CROW_LOG_ERROR << fileExtension << " is not supported";
-            return crow::response { 500, ".mp3 is not supported" };
+        const auto pathSize { body["path"].size() };
+        std::string fileExtension {};
+        if (pathSize > 1) {
+            fileExtension = fs::path(body["path"][0]).extension().string();
+        } else {
+            fileExtension = fs::path(body["path"]).extension().string();
         }
 
-        if (const auto it = body.find("fieldType"); it != body.end()) {
-            return FLAC::removeMusicTag(body["path"], body["fieldType"]);
-        } else {
-            CROW_LOG_ERROR << "(api/removefieldtag) fieldType not found!";
-            return crow::response { 500, "fieldType not found" };
+        CROW_LOG_DEBUG << "(api/removefieldtag) requested file extension: " << fileExtension;
+
+        std::vector<fs::path> filePaths{};
+        filePaths.reserve(pathSize);
+        const std::string fieldType = body.value("fieldType", "none");
+        CROW_LOG_DEBUG << "(api/removefieldtag) requested tag type: " << fieldType;
+        const std::string value = body.value("value", "none");
+        CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << value;
+        for (const auto &path : body["path"]) {
+            CROW_LOG_DEBUG << "(api/removefieldtag) path: " << path;
+            filePaths.emplace_back(path);
         }
+        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        return handler->removeMusicTag(filePaths, fieldType, value);
     });
 
     CROW_ROUTE(app, "/api/store").methods("POST"_method)
@@ -328,31 +302,13 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/tag").methods("GET"_method)
     ([&](const crow::request &req) {
-        // ordered_json body {};
-        // fs::path filePath {};
-        // try {
-        //     body = json::parse(req.body);
-        //     filePath = body.value("path", "none");
-        // } catch (std::exception &e) {
-        //     CROW_LOG_ERROR << "(api/tag) " << e.what();
-        //     CROW_LOG_ERROR << "(api/tag) " << "Could not parse JSON (is it empty?)";
-        //     return crow::response { 500, "Error: Could not parse JSON object"};
-        // }
-        //
-        // CROW_LOG_INFO << "(api/tag) Requested filepath: " << filePath;
-        // const json tags = listTags(filePath);
-        //
-        // crow::response response(tags.dump());
-        // response.set_header("Content-Type", "application/json");
-        // return response;
-        const char* p = req.url_params.get("path");
-        if (!p) {
-            return crow::response(400, "missing path param");
-        }
+        const std::string filePath = req.url_params.get("path");
+        const std::string fileExtension = fs::path(filePath).extension().string();
+        CROW_LOG_DEBUG << "(api/tag) Requested filepath: " << filePath;
+        CROW_LOG_DEBUG << "(api/tag) fileExtension: " << fileExtension;
 
-        const std::string filePath = p;
-        CROW_LOG_INFO << "(api/tag) Requested filepath: " << filePath;
-        const json tags = listTags(filePath);
+        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const json tags = handler->listMusicTags(filePath);
 
         crow::response response(tags.dump());
         response.set_header("Content-Type", "application/json");
@@ -397,7 +353,7 @@ int main (int argc, char **argv) {
         return response;
     });
 
-    app.loglevel(crow::LogLevel::INFO);
+    app.loglevel(crow::LogLevel::DEBUG);
     app.port(18080).multithreaded().run();
 
     return 0;

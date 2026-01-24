@@ -9,12 +9,15 @@ find_package(nlohmann_json REQUIRED)
 pkg_check_modules(TAGLIB REQUIRED taglib)
 
 # Your executable
-add_executable(web_tag_editor main.cpp
-        FLAC/flac.cpp
-        FLAC/flac.h
-        MPEG/mpeg.cpp
-        MPEG/mpeg.h
-        program.h)
+add_executable(web_tag_editor src/main.cpp
+        include/program.h
+        include/musicTagHandler.h
+        include/format_handlers/flacTagHandler.h
+        src/format_handlers/flacTagHandler.cpp
+        include/musicTagHandlerFactory.h
+        src/musicTagHandlerFactory.cpp
+        src/format_handlers/mpegTagHandler.cpp
+        include/format_handlers/mpegTagHandler.h)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})

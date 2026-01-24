@@ -4,7 +4,7 @@
 
 namespace program {
     namespace fs = std::filesystem;
-    constexpr std::string_view version { "Alpha 1.1.0" };
+    constexpr std::string_view version { "Alpha 1.2.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -22,12 +22,6 @@ namespace program {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);
         }
-    };
-
-    struct response {
-        std::string path {};
-        std::string msg { "ok" };
-        int status { 200 };
     };
 
     struct filePath {

@@ -1,32 +1,35 @@
-#include "flac.h"
+//
+// Created by myooker on 1/24/26.
+//
 
-using json = nlohmann::json;
-using ordered_json = nlohmann::ordered_json;
+#include "../../include/format_handlers/flacTagHandler.h"
+#include <flacfile.h>
+#include <xiphcomment.h>
 
-namespace FLAC {
-    nlohmann::json listMusicTags(const std::string &path) {
-        TagLib::FLAC::File file { path.c_str() };
+json audioFormat::flacTagHandler::listMusicTags(const std::string &filePath) {
+    TagLib::FLAC::File file { filePath.c_str() };
 
-        json j;
-        const auto tag = file.xiphComment();
-        for (const auto &a : tag->fieldListMap()) {
-            const std::string key = a.first.to8Bit(true);
-            if (a.second.size() > 1) {
-                const std::size_t temp { a.second.size() };
-                for (std::size_t i { 0 }; i < temp; ++i) {
-                    std::string value { a.second[i].to8Bit(true) };
-                    j[key] += value;
-                }
-                continue;
+    json j;
+    const auto tag = file.xiphComment();
+    for (const auto &a : tag->fieldListMap()) {
+        const std::string key = a.first.to8Bit(true);
+        if (a.second.size() > 1) {
+            const std::size_t temp { a.second.size() };
+            for (std::size_t i { 0 }; i < temp; ++i) {
+                std::string value { a.second[i].to8Bit(true) };
+                j[key] += value;
             }
-            std::string value { a.second[0].to8Bit(true) };
-            j[key] = value;
+            continue;
         }
-        CROW_LOG_DEBUG << "(" << __func__ << ") returning JSON";
-        return j;
+        std::string value { a.second[0].to8Bit(true) };
+        j[key] = value;
     }
+    CROW_LOG_DEBUG << "(" << __func__ << ") returning JSON";
+    return j;
+}
 
-    crow::response removeMusicTag(const std::string &path, const std::string &fieldType) {
+crow::response audioFormat::flacTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+    for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
@@ -38,14 +41,16 @@ namespace FLAC {
         }
 
         auto *tag = file.xiphComment();
-        tag->removeFields(fieldType);
+        tag->removeFields(fieldType, value);
         CROW_LOG_INFO << "(" << __func__ << ") " << fieldType << " field was removed!";
         file.save();
         CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
-        return {200, "OK"};
     }
+    return {200, "OK"};
+}
 
-    crow::response addMusicTag(const std::string &path, const std::string &fieldType, const std::string &value) {
+crow::response audioFormat::flacTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+    for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
@@ -60,38 +65,44 @@ namespace FLAC {
         tag->addField(fieldType, value, false);
         file.save();
         CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
-        return {200, "OK"};
     }
+    return {200, "OK"};
+}
 
-    // Single-valued key function to edit key's value
-    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWith) {
+crow::response audioFormat::flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
+    for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " is not valid";
-            return { path, "The file is not valid", 500 };
+            // return { path, "The file is not valid", 500 };
+            return { 500, "The file is not valid" };
         }
         if (!file.hasXiphComment()) {
             CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " does not have Xiph Comments";
-            return { path, "The file does not have Xiph Comments", 500 };
+            // return { path, "The file does not have Xiph Comments", 500 };
+            return { 500, "The file does not have Xiph Comments"};
         }
 
         auto *tag = file.xiphComment();
         tag->addField(fieldType, replaceWith);
         file.save();
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << path.c_str() << " saved!";
-        return { path };
     }
+    return { 200, "OK" };
+}
 
-    // If a key is multi-valued then we will use this overloaded function
-    program::response editMusicTags(const std::string &path, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+crow::response audioFormat::flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+    for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " is not valid";
-            return { path, "The file is not valid", 500 };
+            // return { path, "The file is not valid", 500 };
+            return { 500, "The file is not valid" };
         }
         if (!file.hasXiphComment()) {
             CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " does not have Xiph Comments";
-            return { path, "The file does not have Xiph Comments", 500 };
+            // return { path, "The file does not have Xiph Comments", 500 };
+            return { 500, "The file does not have Xiph Comments"};
         }
         auto *tag = file.xiphComment();
         const auto filedType_it = tag->fieldListMap().find(fieldType);
@@ -104,7 +115,8 @@ namespace FLAC {
             oldValues = filedType_it->second;
         } else {
             CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << fieldType.c_str() << " was not found in " << path.c_str();
-            return { path, fieldType + " was not found" , 500 };
+            // return { path, fieldType + " was not found" , 500 };
+            return { 500, "Field type does not exist" };
         }
 
         // Here we're edit values
@@ -127,4 +139,5 @@ namespace FLAC {
 
         return { path };
     }
+    return { 200, "OK" };
 }
