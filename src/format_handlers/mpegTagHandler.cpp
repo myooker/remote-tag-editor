@@ -181,6 +181,32 @@ crow::response mpegTagHandler::removeMusicTag(const std::vector<fs::path> &fileP
     return crow::response {200, "OK" };
 }
 
+void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &text) {
+    TagLib::ID3v2::FrameList frames = tag->frameList("TXXX");
+
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
+
+    for (auto *frame : frames) {
+        if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+            const std::string frameDesc = userFrame->description().toCString(true);
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
+            if (frameDesc == desc) {
+                CROW_LOG_DEBUG << "(" << __func__ << ")" << " found conflicting " << desc;
+                CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing " << desc;
+                tag->removeFrame(frame);
+                break;
+            }
+        }
+    }
+
+    auto *newFrame = new TagLib::ID3v2::UserTextIdentificationFrame(TagLib::String::UTF8);
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame desc: " << desc;
+    newFrame->setDescription(desc);
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame text: " << text;
+    newFrame->setText(text);
+    tag->addFrame(newFrame);
+}
+
 crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     for (const auto &path : filePaths) {
         TagLib::MPEG::File file { path.c_str() };
@@ -196,8 +222,16 @@ crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePath
         auto *tag = file.ID3v2Tag();
         auto frameID = StringToIDv3Tag(fieldType);
         auto frames = tag->frameList(frameID);
+        const std::string frameIDstr { frameID.data(), frameID.size() };
         TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
         newFrame->setText(value);
+
+        if (frameIDstr == "TXXX") {
+            addTXXXFrame(tag, fieldType, value);
+            file.save();
+            CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
+            continue;
+        }
 
         if (frames.isEmpty()) {
             CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame to the file...";
@@ -207,7 +241,6 @@ crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePath
         } else {
             CROW_LOG_DEBUG << "(" << __func__ << ") Frame " << frameID << " already exists in the file: " << path;
             CROW_LOG_DEBUG << "(" << __func__ << ") Skipping...";
-            continue;
         }
     }
 
@@ -229,7 +262,16 @@ crow::response mpegTagHandler::editMusicTags(const std::vector<fs::path> &filePa
         auto *tag = file.ID3v2Tag();
         auto frameID = StringToIDv3Tag(fieldType);
         auto frames = tag->frameList(frameID);
+        const std::string frameIDstr { frameID.data(), frameID.size() };
         TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
+
+        if (frameIDstr == "TXXX") {
+            addTXXXFrame(tag, fieldType, replaceWith);
+            file.save();
+            CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
+            continue;
+        }
+
         newFrame->setText(replaceWith);
         CROW_LOG_DEBUG << "(" << __func__ << ") Removing existing frame...";
         tag->removeFrames(frameID);
