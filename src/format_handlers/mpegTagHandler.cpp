@@ -137,8 +137,7 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
 
     for (auto *frame : frames) {
-        auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
-        if (userFrame) {
+        if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
             const std::string frameDesc = userFrame->description().toCString(true);
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
             if (frameDesc == desc) {
@@ -217,5 +216,29 @@ crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePath
 }
 
 crow::response mpegTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
-    return crow::response {500};
+    for (const auto &path : filePaths) {
+        TagLib::MPEG::File file { path.c_str() };
+        if (!file.isValid()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ")  The file is not valid: " << path;
+            return crow::response {500, "File is not valid"};
+        }
+        if (!file.hasID3v2Tag()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ")  The file does not have an ID3v2Tag: " << path;
+            return crow::response {500, "File does not have an ID3v2Tag"};
+        }
+
+        auto *tag = file.ID3v2Tag();
+        auto frameID = StringToIDv3Tag(fieldType);
+        auto frames = tag->frameList(frameID);
+        TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
+        newFrame->setText(replaceWith);
+        CROW_LOG_DEBUG << "(" << __func__ << ") Removing existing frame...";
+        tag->removeFrames(frameID);
+        CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame...";
+        tag->addFrame(newFrame);
+        file.save();
+        CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
+    }
+
+    return crow::response {200, "OK" };
 }
