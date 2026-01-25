@@ -184,7 +184,36 @@ crow::response mpegTagHandler::removeMusicTag(const std::vector<fs::path> &fileP
 }
 
 crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
-    return crow::response {500};
+    for (const auto &path : filePaths) {
+        TagLib::MPEG::File file { path.c_str() };
+        if (!file.isValid()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ")  The file is not valid: " << path;
+            return crow::response {500, "File is not valid"};
+        }
+        if (!file.hasID3v2Tag()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ")  The file does not have an ID3v2Tag: " << path;
+            return crow::response {500, "File does not have an ID3v2Tag"};
+        }
+
+        auto *tag = file.ID3v2Tag();
+        auto frameID = StringToIDv3Tag(fieldType);
+        auto frames = tag->frameList(frameID);
+        TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
+        newFrame->setText(value);
+
+        if (frames.isEmpty()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame to the file...";
+            tag->addFrame(newFrame);
+            file.save();
+            CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
+        } else {
+            CROW_LOG_DEBUG << "(" << __func__ << ") Frame " << frameID << " already exists in the file: " << path;
+            CROW_LOG_DEBUG << "(" << __func__ << ") Skipping...";
+            continue;
+        }
+    }
+
+    return crow::response {200, "OK" };
 }
 
 crow::response mpegTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
