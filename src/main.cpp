@@ -308,11 +308,18 @@ int main (int argc, char **argv) {
         CROW_LOG_DEBUG << "(api/tag) fileExtension: " << fileExtension;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-        const json tags = handler->listMusicTags(filePath);
+        const auto result = handler->listMusicTags(filePath);
 
-        crow::response response(tags.dump());
-        response.set_header("Content-Type", "application/json");
-        return response;
+        if (!result.has_value()) {
+            CROW_LOG_ERROR << "(api/tag) Error occurred: " << result.error();
+            crow::response errorResponse(500, result.error());
+            CROW_LOG_ERROR << "(api/tag) Returning status: " << errorResponse.code;
+            return errorResponse;
+        } else {
+            crow::response response(result.value().dump());
+            response.set_header("Content-Type", "application/json");
+            return response;
+        }
     });
 
     // This endpoint returns a JSON response of directories and files of requested directory

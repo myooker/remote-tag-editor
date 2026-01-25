@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 4.0)
 project(web_tag_editor)
 
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 
 # Find TagLib using pkg-config
 find_package(PkgConfig REQUIRED)

@@ -10,7 +10,7 @@
 namespace audioFormat {
     class flacTagHandler : public musicTagHandler {
     public:
-        json listMusicTags(const std::string &filePath) override;
+        std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         crow::response removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
         crow::response addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
         crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) override;

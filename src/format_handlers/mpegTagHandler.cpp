@@ -68,15 +68,17 @@ TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
     }
 }
 
-json mpegTagHandler::listMusicTags(const std::string &filePath) {
+std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::MPEG::File file { filePath.c_str() };
 
     if (!file.isValid()) {
-        return json::object({
-            {"error", true },
-            {"message", "Invalid file"},
-            {"code", 500}
-        });
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return std::unexpected("The file is not valid");
+    }
+
+    if (!file.hasID3v2Tag()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have ID3v2Tag";
+        return std::unexpected("The file does not have ID3v2Tag");
     }
 
     json base = json::object();
@@ -86,11 +88,8 @@ json mpegTagHandler::listMusicTags(const std::string &filePath) {
     // .ID3v2Tag() will return a nullptr if there are no such tags
     // Here we handle it
     if (!tag) {
-        return json::object({
-            {"error", true},
-            {"message", "No ID3v2Tag in the file"},
-            {"code", 500}
-        });
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have ID3v2Tag";
+        return std::unexpected("The file does not have ID3v2Tag");
     }
 
     const auto map = tag->frameListMap();

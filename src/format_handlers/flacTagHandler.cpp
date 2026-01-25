@@ -6,8 +6,20 @@
 #include <flacfile.h>
 #include <xiphcomment.h>
 
-json audioFormat::flacTagHandler::listMusicTags(const std::string &filePath) {
+using namespace audioFormat;
+
+std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
+
+    if (!file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return std::unexpected("The file is not valid");
+    }
+
+    if (!file.hasXiphComment()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have Xiph Comments";
+        return std::unexpected("The file does not have Xiph Comments");
+    }
 
     json j;
     const auto tag = file.xiphComment();
@@ -28,7 +40,7 @@ json audioFormat::flacTagHandler::listMusicTags(const std::string &filePath) {
     return j;
 }
 
-crow::response audioFormat::flacTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+crow::response flacTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
@@ -49,7 +61,7 @@ crow::response audioFormat::flacTagHandler::removeMusicTag(const std::vector<fs:
     return {200, "OK"};
 }
 
-crow::response audioFormat::flacTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+crow::response flacTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
@@ -69,7 +81,7 @@ crow::response audioFormat::flacTagHandler::addMusicTag(const std::vector<fs::pa
     return {200, "OK"};
 }
 
-crow::response audioFormat::flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
+crow::response flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
     for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
@@ -91,7 +103,7 @@ crow::response audioFormat::flacTagHandler::editMusicTags(const std::vector<fs::
     return { 200, "OK" };
 }
 
-crow::response audioFormat::flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+crow::response flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
     for (const auto &path : filePaths) {
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {

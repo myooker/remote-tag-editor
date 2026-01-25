@@ -7,6 +7,7 @@
 
 #include <filesystem>
 #include <string>
+#include <expected>
 #include <crow/http_response.h>
 #include <nlohmann/json.hpp>
 
@@ -18,7 +19,7 @@ class musicTagHandler {
 public:
     virtual ~musicTagHandler() = default;
 
-    virtual json listMusicTags(const std::string &filePath) = 0;
+    virtual std::expected<json, std::string> listMusicTags(const std::string &filePath) = 0;
     virtual crow::response removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) = 0;
     virtual crow::response addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) = 0;
     virtual crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) = 0;
