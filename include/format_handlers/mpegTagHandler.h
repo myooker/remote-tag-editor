@@ -14,6 +14,7 @@ namespace audioFormat {
         static std::string IDv3TagToString(const TagLib::ByteVector &frameID);
         static TagLib::ByteVector StringToIDv3Tag(const std::string &frameID);
         json listMusicTags(const std::string &filePath) override;
+        static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc);
         crow::response removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
         crow::response addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
         crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) override;

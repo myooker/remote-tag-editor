@@ -6,8 +6,12 @@
 
 #include <mpegfile.h>
 #include <textidentificationframe.h>
+#include <id3v2tag.h>
+#include <id3v1tag.h>
 
-std::string audioFormat::mpegTagHandler::IDv3TagToString(const TagLib::ByteVector &frameID) {
+using namespace audioFormat;
+
+std::string mpegTagHandler::IDv3TagToString(const TagLib::ByteVector &frameID) {
     const std::string temp { frameID.data() };
     const std::unordered_map<std::string, std::string> tagMap = {
         {"TALB", "ALBUM"},
@@ -35,7 +39,7 @@ std::string audioFormat::mpegTagHandler::IDv3TagToString(const TagLib::ByteVecto
     }
 }
 
-TagLib::ByteVector StringToIDv3Tag(const std::string &frameID) {
+TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
     TagLib::ByteVector frame{};
 
     const std::unordered_map<std::string, std::string> tagMap = {
@@ -60,11 +64,11 @@ TagLib::ByteVector StringToIDv3Tag(const std::string &frameID) {
     if (const auto it = tagMap.find(frameID); it != tagMap.end()) {
         return TagLib::ByteVector { it->second.c_str() };
     } else {
-        return TagLib::ByteVector {};
+        return TagLib::ByteVector { "TXXX" };
     }
 }
 
-json audioFormat::mpegTagHandler::listMusicTags(const std::string &filePath) {
+json mpegTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::MPEG::File file { filePath.c_str() };
 
     if (!file.isValid()) {
@@ -127,14 +131,62 @@ json audioFormat::mpegTagHandler::listMusicTags(const std::string &filePath) {
     return base;
 }
 
-crow::response audioFormat::mpegTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc) {
+    TagLib::ID3v2::FrameList frames = tag->frameList("TXXX");
+
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
+
+    for (auto *frame : frames) {
+        auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
+        if (userFrame) {
+            const std::string frameDesc = userFrame->description().toCString(true);
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
+            if (frameDesc == desc) {
+                CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
+                tag->removeFrame(frame);
+                return;
+            }
+        }
+    }
+}
+
+crow::response mpegTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
+    for (const auto &path : filePaths) {
+        TagLib::MPEG::File file { path.c_str() };
+        if (!file.isValid()) {
+            return crow::response {500, "Object is not valid"};
+        }
+
+        if (!file.hasID3v2Tag()) {
+            return crow::response {500, "Object does not have an ID3v2Tag"};
+        }
+
+        auto *tag = file.ID3v2Tag();
+        auto frameID = StringToIDv3Tag(fieldType);
+        const std::string frameIDstr { frameID.data(), frameID.size() };
+        auto frames = tag->frameList(frameID);
+        CROW_LOG_DEBUG << "(" << __func__ << ")" << " fieldtype is " << fieldType;
+        CROW_LOG_DEBUG << "(" << __func__ << ")" << " fildtype to idv3tag " << StringToIDv3Tag(fieldType);
+        CROW_LOG_DEBUG << "(" << __func__ << ")" << " frames are " << frames.size() << " frames";
+
+        if (frameIDstr == "TXXX") {
+            removeTXXXFrame(tag, fieldType);
+            file.save();
+        } else if (!frames.isEmpty()) {
+            auto *frame = frames.front();
+            tag->removeFrame(frame);
+            file.strip(TagLib::MPEG::File::ID3v1);
+            file.save();
+        }
+    }
+
+    return crow::response {200, "OK" };
+}
+
+crow::response mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     return crow::response {500};
 }
 
-crow::response audioFormat::mpegTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
-    return crow::response {500};
-}
-
-crow::response audioFormat::mpegTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
+crow::response mpegTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {
     return crow::response {500};
 }
