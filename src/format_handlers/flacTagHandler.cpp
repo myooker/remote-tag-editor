@@ -3,6 +3,7 @@
 //
 
 #include "../../include/format_handlers/flacTagHandler.h"
+#include "../../include/scopeTimer.h"
 #include <flacfile.h>
 #include <xiphcomment.h>
 
@@ -10,6 +11,7 @@ using namespace audioFormat;
 
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
+    scopeTimer scopeTimer { filePath };
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
@@ -42,6 +44,7 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
 
 crow::response flacTagHandler::removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     for (const auto &path : filePaths) {
+        scopeTimer scopeTimer { path.filename().string() };
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
@@ -63,6 +66,7 @@ crow::response flacTagHandler::removeMusicTag(const std::vector<fs::path> &fileP
 
 crow::response flacTagHandler::addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) {
     for (const auto &path : filePaths) {
+        scopeTimer scopeTimer { path.filename().string() };
         TagLib::FLAC::File file { path.c_str() };
         if (!file.isValid()) {
             CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
@@ -78,7 +82,7 @@ crow::response flacTagHandler::addMusicTag(const std::vector<fs::path> &filePath
         file.save();
         CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
     }
-    return {200, "OK"};
+    return {200, "File/s saved!"};
 }
 
 crow::response flacTagHandler::editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) {

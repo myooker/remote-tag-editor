@@ -17,7 +17,10 @@ add_executable(web_tag_editor src/main.cpp
         include/musicTagHandlerFactory.h
         src/musicTagHandlerFactory.cpp
         src/format_handlers/mpegTagHandler.cpp
-        include/format_handlers/mpegTagHandler.h)
+        include/format_handlers/mpegTagHandler.h
+        src/format_handlers/mpeg4TagHandler.cpp
+        include/format_handlers/mpeg4TagHandler.h
+        include/scopeTimer.h)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})

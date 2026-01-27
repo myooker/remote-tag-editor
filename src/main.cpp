@@ -27,7 +27,6 @@ std::string fileExtensionToType(const std::string &ext) {
         {".aac", "music"},
         {".ogg", "music"},
         {".wma", "music"},
-        {".m4a", "music"},
         {".wav", "music"},
         {".aif", "music"},
         {".aiff", "music"},
