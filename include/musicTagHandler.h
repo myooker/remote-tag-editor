@@ -20,11 +20,20 @@ public:
     virtual ~musicTagHandler() = default;
 
     virtual std::expected<json, std::string> listMusicTags(const std::string &filePath) = 0;
-    virtual crow::response removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) = 0;
-    virtual crow::response addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) = 0;
-    virtual crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) = 0;
-    virtual crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
-        return crow::response{ 501, "Multi-valued editing is not supported for this format"};
+    virtual crow::response removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) = 0;
+    virtual crow::response addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) = 0;
+    virtual crow::response editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) = 0;
+    virtual crow::response editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+        return { 501, "Multi-valued editing is not supported for this format"};
+    };
+    virtual crow::response getAlbumCover(const std::string &filePath) {
+        return { 501, "Returning an album cover from a file is not supported"};
+    }
+    virtual crow::response removeAlbumCover(const std::string &filePath) {
+        return { 501, "Removing an album cover from a file is not supported"};
+    }
+    virtual crow::response addAlbumCover(const std::string &filePath) {
+        return { 501, "Adding an album cover from a file is not supported"};
     }
 };
 

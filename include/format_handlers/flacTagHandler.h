@@ -11,10 +11,10 @@ namespace audioFormat {
     class flacTagHandler : public musicTagHandler {
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
-        crow::response removeMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
-        crow::response addMusicTag(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &value) override;
-        crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWith) override;
-        crow::response editMusicTags(const std::vector<fs::path> &filePaths, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) override;
+        crow::response removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
+        crow::response addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
+        crow::response editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) override;
+        crow::response editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) override;
     };
 }
 
