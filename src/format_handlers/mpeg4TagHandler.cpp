@@ -54,11 +54,15 @@ atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
 }
 
 std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
-    TagLib::MP4::File file { filePath.c_str() };
+    const TagLib::MP4::File file { filePath.c_str() };
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
         return std::unexpected(filePath + " is not valid");
+    }
+
+    if (!file.hasMP4Tag()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does ";
     }
 
     json base = json::object();
@@ -70,7 +74,8 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
         const auto key = pair.first;
         const auto value = pair.second;
 
-        const std::string humanKey { atomToString(key.toCString(true)).name };
+        // const std::string humanKey { atomToString(key.toCString(true)).name };
+        const std::string humanKey { key.toCString(true) };
 
         if (atomToString(key.toCString()).flag == "uint8") {
             base[humanKey] = value.toInt();
@@ -93,10 +98,31 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
 }
 
 crow::response mpeg4TagHandler::removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
-    return {200, "Not implemented"};
+    TagLib::MP4::File file { filePath.c_str() };
+
+    if (!file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return {500, "Not valid"};
+    }
+
+    if (!file.hasMP4Tag()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
+        return {500, "does not have mp4 tags"};
+    }
+
+    auto *tag = file.tag();
+    tag->removeItem(TagLib::String(fieldType, TagLib::String::UTF8));
+
+    file.save();
+
+    return {200, "OK"};
 }
 
 crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
+    TagLib::MP4::File file { filePath.c_str() };
+
+    
+
     return {200, "Not implemented"};
 }
 

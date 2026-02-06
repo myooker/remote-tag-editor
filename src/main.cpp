@@ -122,6 +122,8 @@ int main (int argc, char **argv) {
     const auto test = musicTagHandlerFactory::createHandler(".m4a");
     const auto j = test->listMusicTags(application.testmp4file);
     std::cout << j.value().dump(4) << '\n';
+    test->removeMusicTag(application.testmp4file, "\xA9nam", "");
+    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
 
 
     // if (application.isExist()) {
