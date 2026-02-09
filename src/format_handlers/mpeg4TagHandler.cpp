@@ -9,48 +9,52 @@ using namespace audioFormat;
 
 atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
     const std::unordered_map<std::string, atomEntity> atomMap = {
-        {"©alb", {"ALBUM", "text"}},
-        {"©art", {"ARTIST", "text"}},
-        {"aART", {"ALBUM ARTIST", "text"}},
-        {"©cmt", {"COMMENT", "text"}},
-        {"©day", {"YEAR", "text"}},
-        {"©nam", {"TITLE", "text"}},
+        {"©alb", {"ALBUM", atomType::TEXT }},
+        {"©art", {"ARTIST", atomType::TEXT}},
+        {"aART", {"ALBUM ARTIST", atomType::TEXT}},
+        {"©cmt", {"COMMENT", atomType::TEXT}},
+        {"©day", {"YEAR", atomType::TEXT}},
+        {"©nam", {"TITLE", atomType::TEXT}},
 
-        {"©gen", {"GENRE", "text|uint8"}}, // ©gen or gnre
-        {"gnre", {"GENRE", "uint8"}},
+        {"©gen", {"GENRE", atomType::TEXT}}, // ©gen or gnre
+        {"gnre", {"GENRE", atomType::UINT8}},
 
-        {"trkn", {"TRACK NUMBER", "uint8"}},
-        {"disk", {"DISK NUMBER", "uint8"}},
+        {"trkn", {"TRACK NUMBER", atomType::UINT8}},
+        {"disk", {"DISK NUMBER", atomType::UINT8}},
 
-        {"©wrt", {"COMPOSER", "text"}},
-        {"©too", {"ENCODER", "text"}},
-        {"tmpo", {"BPM", "uint8"}},
-        {"©cprt", {"COPYRIGHT", "text"}},
-        {"cpil", {"COMPILATION", "uint8"}},
+        {"©wrt", {"COMPOSER", atomType::TEXT}},
+        {"©too", {"ENCODER", atomType::TEXT}},
+        {"tmpo", {"BPM", atomType::UINT8}},
+        {"©cprt", {"COPYRIGHT", atomType::TEXT}},
+        {"cpil", {"COMPILATION", atomType::UINT8}},
 
-        {"covr", {"ARTWORK", "jpeg|png"}},
+        {"covr", {"ARTWORK", atomType::PICTURE}},
 
-        {"rtng", {"RATING/ADVISORY", "uint8"}},
-        {"©grp", {"GROUPING", "text"}},
-        {"stik", {"MEDIA TYPE (STIK)", "uint8"}},
+        {"rtng", {"RATING/ADVISORY", atomType::UINT8}},
+        {"©grp", {"GROUPING", atomType::TEXT}},
+        {"stik", {"MEDIA TYPE (STIK)", atomType::UINT8}},
 
-        {"pcst", {"PODCAST", "uint8"}},
-        {"catg", {"CATEGORY", "text"}},
-        {"keyw", {"KEYWORD", "text"}},
-        {"purl", {"PODCAST URL", "text"}},
-        {"egid", {"EPISODE GLOBAL UNIQUE ID", "text"}},
+        {"pcst", {"PODCAST", atomType::UINT8}},
+        {"catg", {"CATEGORY", atomType::TEXT}},
+        {"keyw", {"KEYWORD", atomType::TEXT}},
+        {"purl", {"PODCAST URL", atomType::TEXT}},
+        {"egid", {"EPISODE GLOBAL UNIQUE ID", atomType::TEXT}},
 
-        {"desc", {"DESCRIPTION", "text"}},
-        {"©lyr", {"LYRICS", "text"}},
-        {"purd", {"PURCHASE DATE", "text"}},
-        {"pgap", {"GAPLESS PLAYBACK", "uint8"}}
+        {"desc", {"DESCRIPTION", atomType::TEXT}},
+        {"©lyr", {"LYRICS", atomType::TEXT}},
+        {"purd", {"PURCHASE DATE", atomType::TEXT}},
+        {"pgap", {"GAPLESS PLAYBACK", atomType::UINT8}}
     };
 
     if (const auto it = atomMap.find(atom); it != atomMap.end()) {
         return it->second;
     } else {
-        return {"UNKNOWN", "UNKNOWN"};
+        return {"unkn", atomType::UNDEFINED};
     }
+}
+
+std::string mpeg4TagHandler::stringToAtom(const std::string &atom) {
+    return "none";
 }
 
 std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
@@ -121,9 +125,43 @@ crow::response mpeg4TagHandler::removeMusicTag(const std::string &filePath, cons
 crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
     TagLib::MP4::File file { filePath.c_str() };
 
-    
+    if (file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return {500, "Not valid"};
+    }
 
-    return {200, "Not implemented"};
+    if (!file.hasMP4Tag()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
+        return {500, "does not have mp4 tags"};
+    }
+
+    auto *tag = file.tag();
+    const TagLib::String fieldTypeT { fieldType, TagLib::String::UTF8 };
+    const auto type = atomToString(fieldType).flag;
+    switch (type) {
+        case atomType::TEXT: {
+            const TagLib::StringList tags { TagLib::String{ value, TagLib::String::UTF8 } };
+            const TagLib::MP4::Item temp(tags.toString());
+            tag->setItem(fieldTypeT, temp);
+            file.save();
+            return {200, "OK"};
+        }
+        case atomType::UINT8: {
+            const TagLib::MP4::Item mp4ItemTemp(std::stoi(value));
+            tag->setItem(fieldTypeT, mp4ItemTemp);
+            file.save();
+            return {200, "OK"};
+        }
+        case atomType::PICTURE:
+            CROW_LOG_INFO << "(" << __func__ << ") Not implemented";
+            return {200, "Not implemented"};
+        case atomType::UNDEFINED:
+            CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+            return {500, "Not valid"};
+        default:
+            CROW_LOG_CRITICAL << "(" << __func__ << ") Something went wrong!";
+            return {500, "Not valid"};
+    }
 }
 
 crow::response mpeg4TagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {

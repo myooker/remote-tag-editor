@@ -120,11 +120,11 @@ int main (int argc, char **argv) {
     const program::settings application {};
 
     const auto test = musicTagHandlerFactory::createHandler(".m4a");
-    const auto j = test->listMusicTags(application.testmp4file);
-    std::cout << j.value().dump(4) << '\n';
-    test->removeMusicTag(application.testmp4file, "\xA9nam", "");
-    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
 
+    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
+    test->addMusicTag(application.testmp4file, "©alb", "幽玄");
+    //test->removeMusicTag(application.testmp4file, "©alb", "");
+    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
 
     // if (application.isExist()) {
     //     CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";

@@ -13,15 +13,25 @@ namespace audioFormat {
     // This struct represent the following table:
     // https://atomicparsley.sourceforge.net/mpeg-4files.html
     // It will contain both values: name and flag (data type)
+
+    enum class atomType : int {
+        TEXT,
+        UINT8,
+        PICTURE,
+
+        UNDEFINED = 99
+    };
+
     struct atomEntity {
-        std::string name{};
-        std::string flag{};
+
+        std::string name{ "©alb" };
+        atomType flag{ atomType::TEXT };
     };
 
     class mpeg4TagHandler : public musicTagHandler {
     public:
         static atomEntity atomToString(const std::string &atom);
-        //static
+        static std::string stringToAtom(const std::string &atom);
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         crow::response removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
         crow::response addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
