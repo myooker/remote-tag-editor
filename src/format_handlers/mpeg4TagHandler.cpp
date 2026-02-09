@@ -131,7 +131,7 @@ crow::response mpeg4TagHandler::removeMusicTag(const std::string &filePath, cons
 crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
     TagLib::MP4::File file { filePath.c_str() };
 
-    if (file.isValid()) {
+    if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
         return {500, "Not valid"};
     }
@@ -150,16 +150,18 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
             const TagLib::MP4::Item temp(tags.toString());
             tag->setItem(fieldTypeTS, temp);
             file.save();
+            CROW_LOG_INFO << "(" << __func__ << ") " << filePath << " has been saved!";
             return {200, "OK"};
         }
         case atomType::UINT8: {
             const TagLib::MP4::Item mp4ItemTemp(std::stoi(value));
             tag->setItem(fieldTypeTS, mp4ItemTemp);
             file.save();
+            CROW_LOG_INFO << "(" << __func__ << ") " << filePath << " has been saved!";
             return {200, "OK"};
         }
         case atomType::PICTURE:
-            CROW_LOG_INFO << "(" << __func__ << ") Not implemented";
+            CROW_LOG_DEBUG << "(" << __func__ << ") Not implemented";
             return {200, "Not implemented"};
         case atomType::UNDEFINED:
             CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
@@ -171,25 +173,5 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
 }
 
 crow::response mpeg4TagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {
-    TagLib::MP4::File file { filePath.c_str() };
-
-    if (file.isValid()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
-        return {500, "Not valid"};
-    }
-
-    if (!file.hasMP4Tag()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
-        return {500, "does not have mp4 tags"};
-    }
-
-    auto *tag = file.tag();
-    const TagLib::String fieldTypeT { fieldType, TagLib::String::UTF8 };
-    const auto type = atomToString(fieldType).flag;
-
-
-
-
-
-    return {200, "Not implemented"};
+    return addMusicTag(filePath, fieldType, replaceWith);
 }

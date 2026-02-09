@@ -133,7 +133,7 @@ int main (int argc, char **argv) {
             "Path to the test directory");
     cli.add_option("-l,--log-level",
                     debugLevel,
-            "temp");
+            "temp")->default_val(1);
 
     CLI11_PARSE(cli, argc, argv);
 
@@ -146,16 +146,16 @@ int main (int argc, char **argv) {
         default: logLevel = crow::LogLevel::INFO; break;
     }
 
-    std::cout << application.debugFile << '\n';
-    std::cout << application.mountpoint << '\n';
+    CROW_LOG_DEBUG << "debugFile: " << application.debugFile << '\n';
+    CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
 
     const auto test = musicTagHandlerFactory::createHandler(".m4a");
+    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
+    test->addMusicTag(application.debugFile, "aART", "lol");
+    test->editMusicTags(application.debugFile, "©gen", "gay228");
+    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
 
-    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
-    test->addMusicTag(application.debugFile, "©alb", "幽玄");
-    test->removeMusicTag(application.debugFile, "©alb", "");
-    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
 
     // if (application.isExist()) {
     //     CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";
