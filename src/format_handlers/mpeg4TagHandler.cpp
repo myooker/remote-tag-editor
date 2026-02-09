@@ -80,22 +80,28 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
 
         // const std::string humanKey { atomToString(key.toCString(true)).name };
         const std::string humanKey { key.toCString(true) };
+        const auto currentFlag { atomToString(key.toCString(true)).flag };
+        CROW_LOG_DEBUG << "(" << __func__ << ") " << key << " : " << currentFlag;
 
-        if (atomToString(key.toCString()).flag == "uint8") {
-            base[humanKey] = value.toInt();
-            continue;
-        } if (atomToString(key.toCString()).name == "ARTWORK") {
-            continue;
-        } if (key == "disk" || key == "trkn") {
-            const auto int_pair = value.toIntPair();
-            base[humanKey] = {
-                {"current", int_pair.first},
-                {"total", int_pair.second}
-            };
-            continue;
+        switch (currentFlag) {
+            case atomType::TEXT: {
+                base[humanKey] = value.toStringList().toString().toCString(true);
+                continue;
+            }
+            case atomType::UINT8: {
+                base[humanKey] = value.toInt();
+                continue;
+            }
+            case atomType::PICTURE:
+                CROW_LOG_INFO << "(" << __func__ << ") atomType::PICTURE is not implemented";
+                continue;
+            case atomType::UNDEFINED:
+                CROW_LOG_ERROR << "(" << __func__ << ") atomType::UNDEFINED is not implemented";
+                continue;
+            default:
+                CROW_LOG_CRITICAL << "(" << __func__ << ") Something went completely wrong uwu...";
+                return std::string{"switch (currentFlag) default case uwu..."};
         }
-
-        base[humanKey] = value.toStringList().toString().toCString(true);
     }
 
     return base;

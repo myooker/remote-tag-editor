@@ -10,10 +10,6 @@
 #include "../musicTagHandler.h"
 
 namespace audioFormat {
-    // This struct represent the following table:
-    // https://atomicparsley.sourceforge.net/mpeg-4files.html
-    // It will contain both values: name and flag (data type)
-
     enum class atomType : int {
         TEXT,
         UINT8,
@@ -22,8 +18,30 @@ namespace audioFormat {
         UNDEFINED = 99
     };
 
-    struct atomEntity {
+    constexpr std::string_view atomTypeToString(atomType atom) {
+        switch (atom) {
+            case atomType::TEXT: return "TEXT";
+            case atomType::UINT8: return "UINT8";
+            case atomType::PICTURE: return "PICTURE";
+            case atomType::UNDEFINED: return "UNDEFINED";
+            default: return "UNDEFINED";
+        }
+    }
 
+    inline std::ofstream &operator<<(std::ofstream &out, atomType atom) {
+        out << atomTypeToString(atom);
+        return out;
+    }
+
+    inline std::ostringstream &operator<<(std::ostringstream &out, atomType atom) {
+        out << atomTypeToString(atom);
+        return out;
+    }
+
+    // This struct represent the following table:
+    // https://atomicparsley.sourceforge.net/mpeg-4files.html
+    // It will contain both values: name and flag (data type)
+    struct atomEntity {
         std::string name{ "©alb" };
         atomType flag{ atomType::TEXT };
     };
