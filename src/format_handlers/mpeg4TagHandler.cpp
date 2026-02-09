@@ -142,19 +142,19 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
     }
 
     auto *tag = file.tag();
-    const TagLib::String fieldTypeT { fieldType, TagLib::String::UTF8 };
+    const TagLib::String fieldTypeTS { fieldType, TagLib::String::UTF8 };
     const auto type = atomToString(fieldType).flag;
     switch (type) {
         case atomType::TEXT: {
             const TagLib::StringList tags { TagLib::String{ value, TagLib::String::UTF8 } };
             const TagLib::MP4::Item temp(tags.toString());
-            tag->setItem(fieldTypeT, temp);
+            tag->setItem(fieldTypeTS, temp);
             file.save();
             return {200, "OK"};
         }
         case atomType::UINT8: {
             const TagLib::MP4::Item mp4ItemTemp(std::stoi(value));
-            tag->setItem(fieldTypeT, mp4ItemTemp);
+            tag->setItem(fieldTypeTS, mp4ItemTemp);
             file.save();
             return {200, "OK"};
         }
@@ -171,5 +171,25 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
 }
 
 crow::response mpeg4TagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {
+    TagLib::MP4::File file { filePath.c_str() };
+
+    if (file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return {500, "Not valid"};
+    }
+
+    if (!file.hasMP4Tag()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
+        return {500, "does not have mp4 tags"};
+    }
+
+    auto *tag = file.tag();
+    const TagLib::String fieldTypeT { fieldType, TagLib::String::UTF8 };
+    const auto type = atomToString(fieldType).flag;
+
+
+
+
+
     return {200, "Not implemented"};
 }

@@ -9,6 +9,7 @@
 #include <nlohmann/json.hpp>
 //#include <crow.h>
 //#include <crow/middlewares/cors.h>
+#include <CLI/CLI.hpp>
 
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
@@ -117,14 +118,44 @@ ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth
 }
 
 int main (int argc, char **argv) {
-    const program::settings application {};
+    program::settings application {};
+    int debugLevel {};
+    auto logLevel = crow::LogLevel::Info;
+    CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor."};
+    cli.add_option("-m,--mount-point",
+                    application.mountpoint,
+            "The directory of your music library")->required();
+    cli.add_option("-p,--port",
+                        application.port,
+        "The application's port to bind in. Default is 18080.")->default_val(18080);
+    cli.add_option("--test-file",
+                    application.debugFile,
+            "Path to the test directory");
+    cli.add_option("-l,--log-level",
+                    debugLevel,
+            "temp");
+
+    CLI11_PARSE(cli, argc, argv);
+
+    switch (debugLevel) {
+        case 0: logLevel = crow::LogLevel::DEBUG; break;
+        case 1: logLevel = crow::LogLevel::INFO; break;
+        case 2: logLevel = crow::LogLevel::WARNING; break;
+        case 3: logLevel = crow::LogLevel::ERROR; break;
+        case 4: logLevel = crow::LogLevel::CRITICAL; break;
+        default: logLevel = crow::LogLevel::INFO; break;
+    }
+
+    std::cout << application.debugFile << '\n';
+    std::cout << application.mountpoint << '\n';
+
 
     const auto test = musicTagHandlerFactory::createHandler(".m4a");
 
-    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
-    test->addMusicTag(application.testmp4file, "©alb", "幽玄");
-    //test->removeMusicTag(application.testmp4file, "©alb", "");
-    std::cout << test->listMusicTags(application.testmp4file).value().dump(4) << '\n';
+    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
+    test->addMusicTag(application.debugFile, "©alb", "幽玄");
+    test->removeMusicTag(application.debugFile, "©alb", "");
+    std::cout << test->listMusicTags(application.debugFile).value().dump(4) << '\n';
 
     // if (application.isExist()) {
     //     CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";

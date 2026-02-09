@@ -1,6 +1,7 @@
 #ifndef WEB_TAG_EDITOR_PROGRAM_H
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
+#include <crow/logging.h>
 
 namespace program {
     namespace fs = std::filesystem;
@@ -14,11 +15,9 @@ namespace program {
     };
 
     struct settings {
-        //std::string mountpoint { "/home/myooker/music2" };
+        int port{ 18080 };
         std::string mountpoint { "/media/music2" };
-        // std::string testFlacFile { "/home/myooker/music2/01 Shadow Wizard Money Gang, Cynthoni - Psychic Unhealing.flac" };
-        // std::string testMp3File { "/home/myooker/music2/A.L.I.S.O.N - Seagulls.mp3"};
-        std::string testmp4file {"/home/myooker/music2/Nakajima Megumi - TRY UNITE! (aran Remix) [266128272].m4a"};
+        std::string debugFile {};
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);

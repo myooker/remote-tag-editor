@@ -18,7 +18,7 @@ namespace audioFormat {
         UNDEFINED = 99
     };
 
-    constexpr std::string_view atomTypeToString(atomType atom) {
+    constexpr std::string_view atomTypeToString(const atomType atom) {
         switch (atom) {
             case atomType::TEXT: return "TEXT";
             case atomType::UINT8: return "UINT8";
@@ -28,12 +28,12 @@ namespace audioFormat {
         }
     }
 
-    inline std::ofstream &operator<<(std::ofstream &out, atomType atom) {
+    inline std::ofstream &operator<<(std::ofstream &out, const atomType atom) {
         out << atomTypeToString(atom);
         return out;
     }
 
-    inline std::ostringstream &operator<<(std::ostringstream &out, atomType atom) {
+    inline std::ostringstream &operator<<(std::ostringstream &out, const atomType atom) {
         out << atomTypeToString(atom);
         return out;
     }
