@@ -11,6 +11,7 @@
 #include <opusfile.h>
 #include <speexfile.h>
 
+#include "../../include/format_handlers/oggFlacTagHandler.h"
 #include "../../include/format_handlers/oggVorbisTagHandler.h"
 
 using namespace audioFormat;
@@ -27,15 +28,17 @@ std::unique_ptr<musicTagHandler> oggTagHandler::codecHandler(const std::string &
 
     if (auto *codec = dynamic_cast<TagLib::Ogg::Vorbis::File *>(file)) {
         return std::make_unique<oggVorbisTagHandler>();
-    } else if (auto *codec = dynamic_cast<TagLib::Ogg::FLAC::File *>(file)) {
-        return nullptr;
-    } else if (auto *codec = dynamic_cast<TagLib::Ogg::Opus::File *>(file)) {
-        return nullptr;
-    } else if (auto *codec = dynamic_cast<TagLib::Ogg::Speex::File *>(file)) {
-        return nullptr;
-    } else {
+    }
+    if (auto *codec = dynamic_cast<TagLib::Ogg::FLAC::File *>(file)) {
+        return std::make_unique<oggFlacTagHandler>();
+    }
+    if (auto *codec = dynamic_cast<TagLib::Ogg::Opus::File *>(file)) {
         return nullptr;
     }
+    if (auto *codec = dynamic_cast<TagLib::Ogg::Speex::File *>(file)) {
+        return nullptr;
+    }
+    return nullptr;
 }
 
 std::expected<json, std::string> oggTagHandler::listMusicTags(const std::string &filePath) {

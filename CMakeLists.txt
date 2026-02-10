@@ -24,7 +24,13 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggTagHandler.cpp
         include/format_handlers/oggTagHandler.h
         src/format_handlers/oggVorbisTagHandler.cpp
-        include/format_handlers/oggVorbisTagHandler.h)
+        include/format_handlers/oggVorbisTagHandler.h
+        src/format_handlers/oggFlacTagHandler.cpp
+        include/format_handlers/oggFlacTagHandler.h
+        src/format_handlers/oggOpusTagHandler.cpp
+        include/format_handlers/oggOpusTagHandler.h
+        src/format_handlers/oggSpeexTagHandler.cpp
+        include/format_handlers/oggSpeexTagHandler.h)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})

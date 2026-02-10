@@ -24,7 +24,7 @@ std::string fileExtensionToType(const std::string &ext) {
         {".mp3", "music"},      // done
         {".flac", "music"},     // done
         {".m4a", "music"},      // done
-        {".ogg", "music"},      // in-progress: only vorbis complete
+        {".ogg", "music"},      // done
         {".aac", "music"},      // not implemented
         {".wma", "music"},      // not implemented
         {".wav", "music"},      // not implemented
