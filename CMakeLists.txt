@@ -20,7 +20,11 @@ add_executable(web_tag_editor src/main.cpp
         include/format_handlers/mpegTagHandler.h
         src/format_handlers/mpeg4TagHandler.cpp
         include/format_handlers/mpeg4TagHandler.h
-        include/scopeTimer.h)
+        include/scopeTimer.h
+        src/format_handlers/oggTagHandler.cpp
+        include/format_handlers/oggTagHandler.h
+        src/format_handlers/oggVorbisTagHandler.cpp
+        include/format_handlers/oggVorbisTagHandler.h)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})
@@ -31,6 +35,9 @@ target_link_libraries(web_tag_editor PRIVATE ${TAGLIB_LIBRARIES})
 
 # Compiler flags (if needed)
 target_compile_options(web_tag_editor PRIVATE ${TAGLIB_CFLAGS_OTHER})
+target_compile_definitions(web_tag_editor
+        PRIVATE $<$<CONFIG:Debug>:APP_DEBUG>
+)
 
 
 

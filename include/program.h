@@ -15,6 +15,7 @@ namespace program {
     };
 
     struct settings {
+        bool disableCrowServer { false };
         int port{ 18080 };
         std::string mountpoint { "/media/music2" };
         std::string debugFile {};

@@ -88,12 +88,10 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " is not valid";
-        // return { path, "The file is not valid", 500 };
         return { 500, "The file is not valid" };
     }
     if (!file.hasXiphComment()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " does not have Xiph Comments";
-        // return { path, "The file does not have Xiph Comments", 500 };
         return { 500, "The file does not have Xiph Comments"};
     }
 
@@ -109,12 +107,10 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " is not valid";
-        // return { path, "The file is not valid", 500 };
         return { 500, "The file is not valid" };
     }
     if (!file.hasXiphComment()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " does not have Xiph Comments";
-        // return { path, "The file does not have Xiph Comments", 500 };
         return { 500, "The file does not have Xiph Comments"};
     }
     auto *tag = file.xiphComment();
