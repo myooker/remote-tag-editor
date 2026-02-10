@@ -326,43 +326,30 @@ int main (int argc, char **argv) {
             }
         });
 
-        // This endpoint returns a JSON response of directories and files of requested directory
-        // The structure of the response is the following:
-        /*
-            {
-                "name": "music",
-                "type": "directory",
-                "content": [
-                    {
-                        "name": ".cache",
-                        "type": "directory",
-                        "content": []
-                    },
-                    {
-                        "name": ".config",
-                        "type": "directory",
-                        "content": []
-                    },
-                ...
-            }
-        */
-        // TODO:
-        // Add security feature to check whatever requested directory is a mounted directory (should not return, for example /usr/bin/)
         CROW_ROUTE(app, "/api/list").methods("GET"_method, "OPTIONS"_method)
         ([&] (const crow::request &req){
             std::string filePath = req.url_params.get("path");
+            fs::path requestedPath { filePath };
 
-            // Remove trailing slash for buildMainDirectoryTree
-            if (filePath.ends_with('/')) {
-                filePath.pop_back();
+            auto fsMountPoint { fs::canonical(application.mountpoint) };
+            auto fsRequestedPath { fs::canonical(filePath) };
+
+            if (fsMountPoint == fsRequestedPath || fsRequestedPath.string().starts_with(fsMountPoint.string())) {
+                // Remove trailing slash for buildMainDirectoryTree
+                if (filePath.ends_with('/')) {
+                    filePath.pop_back();
+                }
+
+                CROW_LOG_INFO << "(api/list) building tree for: " << filePath;
+                const auto directoryTree = buildMainDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
+                crow::response response(directoryTree.dump());
+                response.set_header("Content-Type", "application/json");
+
+                return response;
+            } else {
+                CROW_LOG_WARNING << "(api/tag) requested filepath is not a mount-point";
+                return crow::response{ 500, "The requested path is not a mount-point" };
             }
-
-            CROW_LOG_INFO << "(api/list) building tree for: " << filePath;
-            const auto directoryTree = buildMainDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
-            crow::response response(directoryTree.dump());
-            response.set_header("Content-Type", "application/json");
-
-            return response;
         });
 
         app.loglevel(logLevel);
