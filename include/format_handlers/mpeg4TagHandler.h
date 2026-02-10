@@ -49,7 +49,7 @@ namespace audioFormat {
     class mpeg4TagHandler : public musicTagHandler {
     public:
         static atomEntity atomToString(const std::string &atom);
-        static std::string stringToAtom(const std::string &atom);
+        static TagLib::String stringToAtom(const std::string &atom);
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         crow::response removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
         crow::response addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;

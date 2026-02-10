@@ -8,42 +8,51 @@
 using namespace audioFormat;
 
 atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
+    CROW_LOG_DEBUG << "(" << __func__ << ") atom: " << atom;
     const std::unordered_map<std::string, atomEntity> atomMap = {
-        {"©alb", {"ALBUM", atomType::TEXT }},
-        {"©art", {"ARTIST", atomType::TEXT}},
-        {"aART", {"ALBUM ARTIST", atomType::TEXT}},
-        {"©cmt", {"COMMENT", atomType::TEXT}},
-        {"©day", {"YEAR", atomType::TEXT}},
-        {"©nam", {"TITLE", atomType::TEXT}},
+    // TEXT atoms -------------------------------------------------------------
+    { "©alb", {"ALBUM",                     atomType::TEXT } },
+    { "©art", {"ARTIST",                    atomType::TEXT } },
+    { "aART", {"ALBUM ARTIST",              atomType::TEXT } },
+    { "©cmt", {"COMMENT",                   atomType::TEXT } },
+    { "©day", {"YEAR",                      atomType::TEXT } },
+    { "©nam", {"TITLE",                     atomType::TEXT } },
 
-        {"©gen", {"GENRE", atomType::TEXT}}, // ©gen or gnre
-        {"gnre", {"GENRE", atomType::UINT8}},
+    // GENRE (both text and numeric forms) -----------------------------------
+    { "©gen", {"GENRE",                    atomType::TEXT  } },   // ©gen or gnre
+    { "gnre", {"GENRE",                    atomType::UINT8 } },
 
-        {"trkn", {"TRACK NUMBER", atomType::UINT8}},
-        {"disk", {"DISK NUMBER", atomType::UINT8}},
+    // TRACK / DISK numbers ----------------------------------------------------
+    { "trkn", {"TRACK NUMBER",             atomType::UINT8 } },
+    { "disk", {"DISK NUMBER",              atomType::UINT8 } },
 
-        {"©wrt", {"COMPOSER", atomType::TEXT}},
-        {"©too", {"ENCODER", atomType::TEXT}},
-        {"tmpo", {"BPM", atomType::UINT8}},
-        {"©cprt", {"COPYRIGHT", atomType::TEXT}},
-        {"cpil", {"COMPILATION", atomType::UINT8}},
+    // Additional TEXT atoms ---------------------------------------------------
+    { "©wrt", {"COMPOSER",                 atomType::TEXT } },
+    { "©too", {"ENCODER",                  atomType::TEXT } },
+    { "tmpo", {"BPM",                      atomType::UINT8 } },
+    { "©cprt",{"COPYRIGHT",                 atomType::TEXT } },
+    { "cpil", {"COMPILATION",              atomType::UINT8 } },
 
-        {"covr", {"ARTWORK", atomType::PICTURE}},
+    // PICTURE atom ------------------------------------------------------------
+    { "covr", {"ARTWORK",                  atomType::PICTURE } },
 
-        {"rtng", {"RATING/ADVISORY", atomType::UINT8}},
-        {"©grp", {"GROUPING", atomType::TEXT}},
-        {"stik", {"MEDIA TYPE (STIK)", atomType::UINT8}},
+    // UINT8 atoms -------------------------------------------------------------
+    { "rtng", {"RATING/ADVISORY",          atomType::UINT8 } },
+    { "©grp", {"GROUPING",                 atomType::TEXT } },
+    { "stik", {"MEDIA TYPE (STIK)",        atomType::UINT8 } },
 
-        {"pcst", {"PODCAST", atomType::UINT8}},
-        {"catg", {"CATEGORY", atomType::TEXT}},
-        {"keyw", {"KEYWORD", atomType::TEXT}},
-        {"purl", {"PODCAST URL", atomType::TEXT}},
-        {"egid", {"EPISODE GLOBAL UNIQUE ID", atomType::TEXT}},
+    // PODCAST related ---------------------------------------------------------
+    { "pcst", {"PODCAST",                  atomType::UINT8 } },
+    { "catg", {"CATEGORY",                 atomType::TEXT } },
+    { "keyw", {"KEYWORD",                  atomType::TEXT } },
+    { "purl", {"PODCAST URL",              atomType::TEXT } },
+    { "egid", {"EPISODE GLOBAL UNIQUE ID", atomType::TEXT } },
 
-        {"desc", {"DESCRIPTION", atomType::TEXT}},
-        {"©lyr", {"LYRICS", atomType::TEXT}},
-        {"purd", {"PURCHASE DATE", atomType::TEXT}},
-        {"pgap", {"GAPLESS PLAYBACK", atomType::UINT8}}
+    // Remaining TEXT / UINT8 atoms ------------------------------------------
+    { "desc", {"DESCRIPTION",               atomType::TEXT } },
+    { "©lyr", {"LYRICS",                   atomType::TEXT } },
+    { "purd", {"PURCHASE DATE",             atomType::TEXT } },
+    { "pgap", {"GAPLESS PLAYBACK",          atomType::UINT8 } }
     };
 
     if (const auto it = atomMap.find(atom); it != atomMap.end()) {
@@ -53,8 +62,48 @@ atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
     }
 }
 
-std::string mpeg4TagHandler::stringToAtom(const std::string &atom) {
-    return "none";
+TagLib::String mpeg4TagHandler::stringToAtom(const std::string &atom) {
+    const std::unordered_map<std::string, TagLib::String> atomMap = {
+        // TEXT atoms -------------------------------------------------------
+        {"ALBUM",                {"©alb",          TagLib::String::UTF8}},
+        {"ARTIST",               {"©art",          TagLib::String::UTF8}},
+        {"ALBUM ARTIST",         {"aART",          TagLib::String::UTF8}},
+        {"COMMENT",              {"©cmt",          TagLib::String::UTF8}},
+        {"YEAR",                 {"©day",          TagLib::String::UTF8}},
+        {"TITLE",                {"©nam",          TagLib::String::UTF8}},
+        {"GENRE",                {"©gen",          TagLib::String::UTF8}},   // text form
+        {"COMPOSER",             {"©wrt",          TagLib::String::UTF8}},
+        {"ENCODER",              {"©too",          TagLib::String::UTF8}},
+        {"COPYRIGHT",            {"©cprt",         TagLib::String::UTF8}},
+        {"GROUPING",             {"©grp",          TagLib::String::UTF8}},
+        {"CATEGORY",             {"catg",          TagLib::String::UTF8}},
+        {"KEYWORD",              {"keyw",          TagLib::String::UTF8}},
+        {"PODCAST URL",          {"purl",          TagLib::String::UTF8}},
+        {"EPISODE GLOBAL UNIQUE ID", {"egid",      TagLib::String::UTF8}},
+        {"DESCRIPTION",          {"desc",          TagLib::String::UTF8}},
+        {"LYRICS",               {"©lyr",          TagLib::String::UTF8}},
+        {"PURCHASE DATE",        {"purd",          TagLib::String::UTF8}},
+
+        // UINT8 atoms ------------------------------------------------------
+        {"GENRE (uint8)",        {"gnre",          TagLib::String::UTF8}},   // numeric form
+        {"TRACK NUMBER",         {"trkn",          TagLib::String::UTF8}},
+        {"DISK NUMBER",          {"disk",          TagLib::String::UTF8}},
+        {"COMPILATION",          {"cpil",          TagLib::String::UTF8}},
+        {"BPM",                  {"tmpo",          TagLib::String::UTF8}},
+        {"RATING/ADVISORY",      {"rtng",          TagLib::String::UTF8}},
+        {"MEDIA TYPE (STIK)",    {"stik",          TagLib::String::UTF8}},
+        {"PODCAST",              {"pcst",          TagLib::String::UTF8}},
+        {"GAPLESS PLAYBACK",     {"pgap",          TagLib::String::UTF8}},
+
+        // PICTURE atom -----------------------------------------------------
+        {"ARTWORK",              {"covr",          TagLib::String::UTF8}}
+    };
+
+    if (const auto it = atomMap.find(atom); it != atomMap.end()) {
+        return it->second;
+    } else {
+        return TagLib::String{ "Unknown", TagLib::String::UTF8 };
+    }
 }
 
 std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
@@ -78,8 +127,7 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
         const auto key = pair.first;
         const auto value = pair.second;
 
-        // const std::string humanKey { atomToString(key.toCString(true)).name };
-        const std::string humanKey { key.toCString(true) };
+        const std::string humanKey { atomToString(key.toCString(true)).name };
         const auto currentFlag { atomToString(key.toCString(true)).flag };
         CROW_LOG_DEBUG << "(" << __func__ << ") " << key << " : " << currentFlag;
 
@@ -121,7 +169,8 @@ crow::response mpeg4TagHandler::removeMusicTag(const std::string &filePath, cons
     }
 
     auto *tag = file.tag();
-    tag->removeItem(TagLib::String(fieldType, TagLib::String::UTF8));
+    //tag->removeItem(TagLib::String(fieldType, TagLib::String::UTF8));
+    tag->removeItem(stringToAtom(fieldType));
 
     file.save();
 
@@ -142,8 +191,9 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
     }
 
     auto *tag = file.tag();
-    const TagLib::String fieldTypeTS { fieldType, TagLib::String::UTF8 };
-    const auto type = atomToString(fieldType).flag;
+    const auto fieldTypeTS = stringToAtom(fieldType);
+    CROW_LOG_DEBUG << "(" << __func__ << ") fieldTypeTS: " << fieldTypeTS;
+    const auto type = atomToString(stringToAtom(fieldType).toCString(true)).flag;
     switch (type) {
         case atomType::TEXT: {
             const TagLib::StringList tags { TagLib::String{ value, TagLib::String::UTF8 } };
@@ -164,7 +214,9 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
             CROW_LOG_DEBUG << "(" << __func__ << ") Not implemented";
             return {200, "Not implemented"};
         case atomType::UNDEFINED:
-            CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+            CROW_LOG_ERROR << "(" << __func__ << ") The specified fieldType fallback to atomType::UNDEFINED: ";
+            CROW_LOG_ERROR << "(" << __func__ << ") fieldType: " << fieldType;
+            CROW_LOG_ERROR << "(" << __func__ << ") fieldTypeTS: " << fieldTypeTS;
             return {500, "Not valid"};
         default:
             CROW_LOG_CRITICAL << "(" << __func__ << ") Something went wrong!";
