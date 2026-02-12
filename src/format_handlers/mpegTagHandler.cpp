@@ -202,7 +202,7 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame desc: " << desc;
     newFrame->setDescription(desc);
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame text: " << text;
-    newFrame->setText(text);
+    newFrame->setText(TagLib::String{text, TagLib::String::UTF8});
     tag->addFrame(newFrame);
 }
 
@@ -223,7 +223,7 @@ crow::response mpegTagHandler::addMusicTag(const std::string &filePath, const st
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
     TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
-    newFrame->setText(value);
+    newFrame->setText(TagLib::String{value, TagLib::String::UTF8});
 
     if (frameIDstr == "TXXX") {
         addTXXXFrame(tag, fieldType, value);
@@ -270,7 +270,7 @@ crow::response mpegTagHandler::editMusicTags(const std::string &filePath, const 
         return crow::response {200, "OK" };
     }
 
-    newFrame->setText(replaceWith);
+    newFrame->setText(TagLib::String{replaceWith, TagLib::String::UTF8});
     CROW_LOG_DEBUG << "(" << __func__ << ") Removing existing frame...";
     tag->removeFrames(frameID);
     CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame...";

@@ -147,10 +147,10 @@ int main (int argc, char **argv) {
     CROW_LOG_DEBUG << "debugFile: " << application.debugFile << '\n';
     CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
-    auto list = musicTagHandlerFactory::createHandler(".m4a");
-    std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
-    list->addMusicTag(application.debugFile,"ALBUM", "幽玄");
-    std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
+    // auto list = musicTagHandlerFactory::createHandler(".m4a");
+    // std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
+    // list->addMusicTag(application.debugFile,"ALBUM", "幽玄");
+    // std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
 
     if (application.isExist()) {
         CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";

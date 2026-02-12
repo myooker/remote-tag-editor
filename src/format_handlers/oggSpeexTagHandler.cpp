@@ -43,7 +43,7 @@ crow::response oggSpeexTagHandler::removeMusicTag(const std::string &filePath, c
    }
 
    auto *tag = file.tag();
-   tag->removeFields(fieldType, value);
+   tag->removeFields(fieldType, TagLib::String{value, TagLib::String::UTF8});
    CROW_LOG_INFO << "(" << __func__ << ") " << fieldType << " field was removed!";
    file.save();
    CROW_LOG_INFO << "(" << __func__ << ") " << filePath.c_str() << " saved!";
@@ -59,7 +59,7 @@ crow::response oggSpeexTagHandler::addMusicTag(const std::string &filePath, cons
    }
 
    auto *tag = file.tag();
-   tag->addField(fieldType, value, false);
+   tag->addField(fieldType, TagLib::String{value, TagLib::String::UTF8}, false);
    file.save();
    CROW_LOG_INFO << "(" << __func__ << ") " << filePath << " saved!";
    return {200, "File/s saved!"};
@@ -74,7 +74,7 @@ crow::response oggSpeexTagHandler::editMusicTags(const std::string &filePath, co
    }
 
    auto *tag = file.tag();
-   tag->addField(fieldType, replaceWith);
+   tag->addField(fieldType, TagLib::String{replaceWith, TagLib::String::UTF8});
    file.save();
    CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << filePath << " saved!";
    return { 200, "OK" };
@@ -105,8 +105,8 @@ crow::response oggSpeexTagHandler::editMusicTags(const std::string &filePath, co
 
    // Here we're edit values
    for (auto &a : oldValues) {
-      if (a == replaceWhat) { // If we find replaceWhat then we will fill replaceWith instead to newValues
-         newValues.append(replaceWith);
+      if (a == TagLib::String{replaceWhat, TagLib::String::UTF8}) { // If we find replaceWhat then we will fill replaceWith instead to newValues
+         newValues.append(TagLib::String{replaceWith,TagLib::String::UTF8});
       } else { // Otherwise we fill with oldValue
          newValues.append(a);
       }

@@ -56,7 +56,7 @@ crow::response flacTagHandler::removeMusicTag(const std::string &filePath, const
     }
 
     auto *tag = file.xiphComment();
-    tag->removeFields(fieldType, value);
+    tag->removeFields(fieldType, TagLib::String{value, TagLib::String::UTF8});
     CROW_LOG_INFO << "(" << __func__ << ") " << fieldType << " field was removed!";
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
@@ -77,7 +77,7 @@ crow::response flacTagHandler::addMusicTag(const std::string &filePath, const st
     }
 
     auto *tag = file.xiphComment();
-    tag->addField(fieldType, value, false);
+    tag->addField(fieldType, TagLib::String{value, TagLib::String::UTF8}, false);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
     return {200, "File/s saved!"};
@@ -96,7 +96,7 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
     }
 
     auto *tag = file.xiphComment();
-    tag->addField(fieldType, replaceWith);
+    tag->addField(fieldType, TagLib::String{replaceWith, TagLib::String::UTF8});
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << path.c_str() << " saved!";
     return { 200, "OK" };
@@ -130,8 +130,8 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
 
     // Here we're edit values
     for (auto &a : oldValues) {
-        if (a == replaceWhat) { // If we find replaceWhat then we will fill replaceWith instead to newValues
-            newValues.append(replaceWith);
+        if (a == TagLib::String{replaceWhat, TagLib::String::UTF8}) { // If we find replaceWhat then we will fill replaceWith instead to newValues
+            newValues.append(TagLib::String{replaceWith,TagLib::String::UTF8});
         } else { // Otherwise we fill with oldValue
             newValues.append(a);
         }

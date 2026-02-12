@@ -12,6 +12,8 @@
 #include <speexfile.h>
 
 #include "../../include/format_handlers/oggFlacTagHandler.h"
+#include "../../include/format_handlers/oggOpusTagHandler.h"
+#include "../../include/format_handlers/oggSpeexTagHandler.h"
 #include "../../include/format_handlers/oggVorbisTagHandler.h"
 
 using namespace audioFormat;
@@ -33,10 +35,10 @@ std::unique_ptr<musicTagHandler> oggTagHandler::codecHandler(const std::string &
         return std::make_unique<oggFlacTagHandler>();
     }
     if (auto *codec = dynamic_cast<TagLib::Ogg::Opus::File *>(file)) {
-        return nullptr;
+        return std::make_unique<oggOpusTagHandler>();
     }
     if (auto *codec = dynamic_cast<TagLib::Ogg::Speex::File *>(file)) {
-        return nullptr;
+        return std::make_unique<oggSpeexTagHandler>();
     }
     return nullptr;
 }
