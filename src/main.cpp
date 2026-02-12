@@ -59,9 +59,7 @@ int typeOrder(const std::string &type) {
 
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
-    const fs::path i { path };
-    CROW_LOG_DEBUG << "(" << __func__ << ") returning " << i.extension();
-    return i.extension();
+    return fs::path{path}.extension().string();
 }
 
 ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
@@ -334,7 +332,9 @@ int main (int argc, char **argv) {
             fs::path requestedPath { filePath };
 
             auto fsMountPoint { fs::canonical(application.mountpoint) };
+            CROW_LOG_DEBUG << "TEST, fsMountPoint: " << fsMountPoint;
             auto fsRequestedPath { fs::canonical(filePath) };
+            CROW_LOG_DEBUG << "TEST, fsRequestedPath: " << fsRequestedPath;
 
             if (fsMountPoint == fsRequestedPath || fsRequestedPath.string().starts_with(fsMountPoint.string())) {
                 // Remove trailing slash for buildMainDirectoryTree
