@@ -145,11 +145,6 @@ int main (int argc, char **argv) {
     CROW_LOG_DEBUG << "debugFile: " << application.debugFile << '\n';
     CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
-    // auto list = musicTagHandlerFactory::createHandler(".m4a");
-    // std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
-    // list->addMusicTag(application.debugFile,"ALBUM", "幽玄");
-    // std::cout << list->listMusicTags(application.debugFile).value().dump(4) << '\n';
-
     if (application.isExist()) {
         CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";
         std::exit(-1);
@@ -326,7 +321,7 @@ int main (int argc, char **argv) {
             }
         });
 
-        CROW_ROUTE(app, "/api/test")
+        CROW_ROUTE(app, "/api/heartbeat")
         ([]() {
             return crow::response{ 200, "OK"};
         });
