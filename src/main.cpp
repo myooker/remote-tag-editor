@@ -326,6 +326,11 @@ int main (int argc, char **argv) {
             }
         });
 
+        CROW_ROUTE(app, "/api/test")
+        ([]() {
+            return crow::response{ 200, "OK"};
+        });
+
         CROW_ROUTE(app, "/api/list").methods("GET"_method, "OPTIONS"_method)
         ([&] (const crow::request &req){
             std::string filePath = req.url_params.get("path");
