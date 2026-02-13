@@ -326,7 +326,7 @@ int main (int argc, char **argv) {
             }
         });
 
-        CROW_ROUTE(app, "/api/test")
+        CROW_ROUTE(app, "/api/heartbeat")
         ([]() {
             return crow::response{ 200, "OK"};
         });
