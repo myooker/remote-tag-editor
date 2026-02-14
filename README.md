@@ -8,8 +8,8 @@ git switch docker-test
 
 Specify the path to the music directory in `docker-compose.yml` before building:
 ```yaml
-    volumes:
-      - /path/to/music:/music  # change this line
+volumes:
+  - /path/to/music:/music  # change this line
 ```
 
 ```bash
