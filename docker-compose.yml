@@ -6,5 +6,5 @@ services:
     ports:
       - "8080:80"
     volumes:
-      - /home/myooker/music2:/music
+      - /path/to/music:/music
     restart: unless-stopped
