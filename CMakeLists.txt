@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 4.0)
+cmake_minimum_required(VERSION 3.28)
 project(web_tag_editor)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -30,7 +30,8 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggOpusTagHandler.cpp
         include/format_handlers/oggOpusTagHandler.h
         src/format_handlers/oggSpeexTagHandler.cpp
-        include/format_handlers/oggSpeexTagHandler.h)
+        include/format_handlers/oggSpeexTagHandler.h
+)
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})

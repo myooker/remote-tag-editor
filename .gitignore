@@ -1,2 +1,5 @@
 .idea/
-src/.devcontainer
+#frontend/
+#docker/
+
+#docker-compose.yml

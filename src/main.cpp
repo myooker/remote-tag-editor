@@ -93,19 +93,8 @@ ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth
         }
     }
 
-    // This sorting mechanism sorts by character only! Resulting behavior that is not expected.
-    // For example:
-    // 1. Deja Vu.flac
-    // 10. Resentment.flac
-    // 11. Encore For The Fans.flac
-    // ...
-    // But should be the following:
-    // 1. Deja Vu.flac
-    // 2. Get Me Bodied.flac
-    // 3. Suga Mama.flac
-    // ...
     // TODO:
-    // Rewrite this sorting mechanism to sort it not only by character, but by numbers as well.
+    // Implement natural sorting
     std::sort(rootTree["content"].begin(), rootTree["content"].end(), [](const ordered_json &a, const ordered_json &b) {
         return typeOrder(a["type"]) < typeOrder(b["type"]) ||
                 typeOrder(a["type"]) == typeOrder(b["type"]) &&
@@ -118,7 +107,7 @@ int main (int argc, char **argv) {
     program::settings application {};
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
-    CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor."};
+    CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.", "app name"};
     cli.add_option("-m,--mount-point", application.mountpoint,
             "The directory of your music library")->required();
     cli.add_option("-p,--port", application.port,

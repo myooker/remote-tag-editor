@@ -1,0 +1,10 @@
+services:
+  remote-tag-editor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - /home/myooker/music2:/music
+    restart: unless-stopped
