@@ -119,6 +119,7 @@ document.addEventListener('keydown', (e) => {
         if (selectedFiles.length > 0) {
             lastSelectedIndex = allRows.indexOf(musicRows[musicRows.length - 1]);
             updateTagPanelForSelection();
+            saveDirectoryState();
         }
         return;
     }
@@ -130,6 +131,7 @@ document.addEventListener('keydown', (e) => {
         selectedFiles = [];
         lastSelectedIndex = -1;
         clearTags();
+        saveDirectoryState();
         return;
     }
 
@@ -158,6 +160,7 @@ document.addEventListener('keydown', (e) => {
                     lastSelectedIndex = currentIndex;
                     targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
                     updateTagPanelForSelection();
+                    saveDirectoryState();
                     return;
                 }
             }
@@ -184,6 +187,7 @@ document.addEventListener('keydown', (e) => {
 
         targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
         updateTagPanelForSelection();
+        saveDirectoryState();
         return;
     }
 

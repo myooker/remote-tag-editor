@@ -125,8 +125,69 @@ function updateNavigationButtons() {
     upBtn.disabled = !currentPath || currentPath === mountPoint;
 }
 
+// --- Directory state persistence (scroll + selection) ---
+function saveDirectoryState() {
+    if (!currentPath) return;
+    const scrollContainer = document.getElementById('explorer-content');
+    const state = {
+        scrollTop: scrollContainer ? scrollContainer.scrollTop : 0,
+        selectedPaths: selectedFiles.map(f => f.path)
+    };
+    try {
+        sessionStorage.setItem('dirState:' + currentPath, JSON.stringify(state));
+    } catch (e) { /* quota exceeded – ignore */ }
+}
+
+function restoreDirectoryState() {
+    if (!currentPath) return;
+    try {
+        const raw = sessionStorage.getItem('dirState:' + currentPath);
+        if (!raw) return;
+        const state = JSON.parse(raw);
+
+        // Restore selection
+        if (state.selectedPaths && state.selectedPaths.length > 0) {
+            const allRows = Array.from(document.querySelectorAll('#file-table-body tr'));
+            const savedSet = new Set(state.selectedPaths);
+            selectedFiles = [];
+            lastSelectedIndex = -1;
+            allRows.forEach((row, idx) => {
+                if (savedSet.has(row.dataset.path)) {
+                    row.classList.add('selected');
+                    selectedFiles.push({
+                        path: row.dataset.path,
+                        type: row.dataset.type,
+                        extension: row.dataset.extension,
+                        name: row.querySelector('.file-name')?.textContent
+                    });
+                    lastSelectedIndex = idx;
+                }
+            });
+            if (selectedFiles.length > 0) {
+                updateTagPanelForSelection();
+            }
+        }
+
+        // Restore scroll position after a microtask so the DOM has settled
+        if (state.scrollTop) {
+            const scrollContainer = document.getElementById('explorer-content');
+            if (scrollContainer) {
+                requestAnimationFrame(() => {
+                    scrollContainer.scrollTop = state.scrollTop;
+                });
+            }
+        }
+    } catch (e) { /* corrupted data – ignore */ }
+}
+
 async function loadDirectory(path, addToHistory = true) {
     try {
+        // Save state of the directory we're leaving
+        saveDirectoryState();
+
+        // Cancel any pending debounced scroll-save so it doesn't fire for the new directory
+        clearTimeout(_scrollSaveTimer);
+
         const res = await fetch(`${APIBASE}/api/list?path=${encodeURIComponent(path)}`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const tree = await res.json();
@@ -137,9 +198,30 @@ async function loadDirectory(path, addToHistory = true) {
             navigationHistory.push(path);
             historyIndex = navigationHistory.length - 1;
         }
+        // Reset selection state before rendering
+        selectedFiles = [];
+        lastSelectedIndex = -1;
+
         renderFileList(tree);
         updateBreadcrumb(path);
         updateNavigationButtons();
+
+        // Reset scroll to top immediately
+        const scrollContainer = document.getElementById('explorer-content');
+        if (scrollContainer) scrollContainer.scrollTop = 0;
+
+        // Restore saved state for the new directory (overrides scroll if previously visited)
+        restoreDirectoryState();
+
+        // Also reset scroll in next frame to ensure it sticks after layout
+        if (scrollContainer) {
+            requestAnimationFrame(() => {
+                const saved = sessionStorage.getItem('dirState:' + currentPath);
+                if (!saved) {
+                    scrollContainer.scrollTop = 0;
+                }
+            });
+        }
     } catch (err) {
         console.error('Failed to load directory', err);
         showToast(`Failed to load directory: ${err.message}`, 'error');
@@ -249,6 +331,9 @@ function handleFileClick(tr, node, event) {
 
     // Update tag panel based on selection
     updateTagPanelForSelection();
+
+    // Persist selection state
+    saveDirectoryState();
 }
 
 function updateTagPanelForSelection() {
@@ -649,6 +734,13 @@ function handleContextMenu(e, tr, node) {
     openContextMenu(e.clientX, e.clientY, tr);
 }
 
+// Save scroll position on scroll (debounced)
+let _scrollSaveTimer = null;
+document.getElementById('explorer-content').addEventListener('scroll', () => {
+    clearTimeout(_scrollSaveTimer);
+    _scrollSaveTimer = setTimeout(() => saveDirectoryState(), 150);
+});
+
 // Click on empty area to deselect all
 document.getElementById('file-table-body').addEventListener('click', (e) => {
     // Only deselect if clicking directly on tbody (empty area)
@@ -657,5 +749,6 @@ document.getElementById('file-table-body').addEventListener('click', (e) => {
         selectedFiles = [];
         lastSelectedIndex = -1;
         clearTags();
+        saveDirectoryState();
     }
 });
