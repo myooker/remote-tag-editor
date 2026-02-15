@@ -161,12 +161,7 @@ function renderFileList(tree) {
         tbody.appendChild(tr);
         return;
     }
-    const sorted = [...tree.content].sort((a, b) => {
-        if (a.type === 'directory' && b.type !== 'directory') return -1;
-        if (a.type !== 'directory' && b.type === 'directory') return 1;
-        return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-    });
-    sorted.forEach(node => {
+    tree.content.forEach(node => {
         const tr = document.createElement('tr');
         const fullPath = node.name.startsWith('/') ? node.name : `${currentPath}/${node.name}`;
         tr.dataset.path = fullPath;
