@@ -62,7 +62,38 @@ std::string getExtension(const std::string &path) {
     return fs::path{path}.extension().string();
 }
 
-ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
+bool naturalSorting(const std::string &a, const std::string &b) {
+    const auto sa = a.size();
+    const auto sb = b.size();
+
+    std::size_t sta = 0, stb = 0;
+
+    while (sta < sa && stb < sb) {
+        if (std::isdigit(a[sta]) && std::isdigit(b[stb])) {
+            std::size_t sta2 = sta, stb2 = stb;
+
+            while (sta2 < sa && std::isdigit(a[sta2])) ++sta2;
+            while (stb2 < sb && std::isdigit(b[stb2])) ++stb2;
+
+            const int value_a = std::stoi(a.substr(sta, sta2));
+            const int value_b = std::stoi(b.substr(stb, stb2));
+
+            if (value_a != value_b)
+                return value_a < value_b;
+
+            sta = sta2; stb = stb2;
+        } else {
+            if (a[sta] != b[stb]) {
+                return a[sta] < b[stb];
+            }
+            sta++; stb++;
+        }
+    }
+
+    return sa < sb;
+}
+
+ordered_json buildDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
     ordered_json rootTree = json::object();
     const fs::path root { basePath };
     rootTree["name"] = root.filename().lexically_normal().string();
@@ -85,7 +116,7 @@ ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth
     for (const auto &entry : fs::directory_iterator(root)) {
         if (entry.is_directory()) {
             const fs::path relPath = entry.path().lexically_relative(root);
-            rootTree["content"].push_back(buildMainDirectoryTree(entry.path().string(), depth, depthCount + 1));
+            rootTree["content"].push_back(buildDirectoryTree(entry.path().string(), depth, depthCount + 1));
         } else {
             const fs::path relPath = entry.path().lexically_relative(root);
             const auto fileExtenstion = relPath.extension().string();
@@ -93,12 +124,10 @@ ordered_json buildMainDirectoryTree(const std::string &basePath, const int depth
         }
     }
 
-    // TODO:
-    // Implement natural sorting
     std::sort(rootTree["content"].begin(), rootTree["content"].end(), [](const ordered_json &a, const ordered_json &b) {
         return typeOrder(a["type"]) < typeOrder(b["type"]) ||
                 typeOrder(a["type"]) == typeOrder(b["type"]) &&
-                a["name"] < b["name"];
+                naturalSorting(a["name"], b["name"]);
     });
     return rootTree;
 }
@@ -332,7 +361,7 @@ int main (int argc, char **argv) {
                 }
 
                 CROW_LOG_INFO << "(api/list) building tree for: " << filePath;
-                const auto directoryTree = buildMainDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
+                const auto directoryTree = buildDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
                 crow::response response(directoryTree.dump());
                 response.set_header("Content-Type", "application/json");
 
