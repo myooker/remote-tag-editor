@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <ctime>
 #include <unordered_set>
+#include <cctype>
 
 #include <nlohmann/json.hpp>
 #include <crow.h>
@@ -60,6 +61,13 @@ int typeOrder(const std::string &type) {
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     return fs::path{path}.extension().string();
+}
+
+void stringToUpper(std::string &str) {
+    if (str == "none")
+        return;
+
+    std::ranges::transform(str, str.begin(), toupper);
 }
 
 bool naturalSorting(const std::string &a, const std::string &b) {
@@ -187,6 +195,9 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
+            std::string tempFieldType = body.value("tagType", "none");
+            stringToUpper(tempFieldType);
+
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
             const std::string fieldType = body.value("tagType", "none");
@@ -211,9 +222,12 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
+            std::string tempFieldType = body.value("fieldType", "none");
+            stringToUpper(tempFieldType);
+
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
-            const std::string fieldType = body.value("fieldType", "none");
+            const std::string fieldType = tempFieldType;
             const std::string value = body.value("value", "none");
 
             CROW_LOG_INFO << "(api/addfieldtag) requested path: " << filePath;
@@ -229,9 +243,12 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
+            std::string tempFieldType = body.value("fieldType", "none");
+            stringToUpper(tempFieldType);
+
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
-            const std::string fieldType = body.value("fieldType", "none");
+            const std::string fieldType = tempFieldType;
             const std::string value = body.value("value", "none");
 
             CROW_LOG_INFO << "(api/removefieldtag) requested path: " << filePath;
