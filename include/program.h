@@ -17,7 +17,7 @@ namespace program {
     struct settings {
         bool disableCrowServer { false };
         int port{ 18080 };
-        std::string mountpoint { "/media/music2" };
+        std::string mountpoint { "/music" };
         std::string debugFile {};
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
