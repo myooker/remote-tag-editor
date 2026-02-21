@@ -1,6 +1,7 @@
-<img src="frontend/logo.svg" align="left" height="75px"></a>
-
+<img src="frontend/logo.svg" align="right" height="75px"></a>
 # Remote Tag Editor
+
+---
 
 WIP
 
