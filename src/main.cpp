@@ -199,7 +199,7 @@ int main (int argc, char **argv) {
             stringToUpper(tempFieldType);
 
             const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
+            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
             const std::string fieldType = body.value("tagType", "none");
             const std::string replaceWhat = body.value("replaceWhat", "none");
             const std::string replaceWith = body.value("replaceWith", "none");
@@ -226,7 +226,7 @@ int main (int argc, char **argv) {
             stringToUpper(tempFieldType);
 
             const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
+            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
             const std::string fieldType = tempFieldType;
             const std::string value = body.value("value", "none");
 
@@ -247,7 +247,7 @@ int main (int argc, char **argv) {
             stringToUpper(tempFieldType);
 
             const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? fs::path(filePath).extension().string() : "none";
+            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
             const std::string fieldType = tempFieldType;
             const std::string value = body.value("value", "none");
 
