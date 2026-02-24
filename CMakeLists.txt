@@ -12,6 +12,7 @@ pkg_check_modules(TAGLIB REQUIRED taglib)
 # Your executable
 add_executable(web_tag_editor src/main.cpp
         include/program.h
+        src/program.cpp
         include/musicTagHandler.h
         include/format_handlers/flacTagHandler.h
         src/format_handlers/flacTagHandler.cpp

@@ -4,6 +4,8 @@
 
 #include "../../include/format_handlers/flacTagHandler.h"
 #include "../../include/scopeTimer.h"
+#include "../../include/program.h"
+
 #include <flacfile.h>
 #include <xiphcomment.h>
 
@@ -11,6 +13,9 @@ using namespace audioFormat;
 
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
+
+    auto tagMap = program::getMapTag();
+
     scopeTimer scopeTimer { filePath };
 
     if (!file.isValid()) {
@@ -27,16 +32,24 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
     const auto tag = file.xiphComment();
     for (const auto &a : tag->fieldListMap()) {
         const std::string key = a.first.to8Bit(true);
+        auto it = tagMap.left.find(key);
+        bool itBool = it != tagMap.left.end() ? true : false;
         if (a.second.size() > 1) {
             const std::size_t temp { a.second.size() };
             for (std::size_t i { 0 }; i < temp; ++i) {
                 std::string value { a.second[i].to8Bit(true) };
-                j[key] += value;
+                if (itBool)
+                    j[it->get_right()] += value;
+                else
+                    j[key] += value;
             }
             continue;
         }
         std::string value { a.second[0].to8Bit(true) };
-        j[key] = value;
+        if (itBool)
+            j[it->get_right()] = value;
+        else
+            j[key] = value;
     }
     CROW_LOG_DEBUG << "(" << __func__ << ") returning JSON";
     return j;

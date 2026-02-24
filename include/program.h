@@ -2,9 +2,14 @@
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
 #include <crow/logging.h>
+#include <boost/bimap/bimap.hpp>
+#include <boost/bimap/unordered_set_of.hpp>
+#include <boost/bimap/unordered_multiset_of.hpp>
 
 namespace program {
     namespace fs = std::filesystem;
+    using namespace boost::bimaps;
+
     constexpr std::string_view version { "Beta 1.0.1" };
     constexpr std::string_view name { "web-tag-editor" };
 
@@ -29,6 +34,13 @@ namespace program {
         fs::path path {};
         std::string extension { path.extension() };
     };
+
+    typedef bimap<
+        unordered_multiset_of<std::string>,
+        unordered_set_of<std::string>
+    > tagMap;
+
+    tagMap& getMapTag();
 
     namespace error {
         enum MESSAGE {
@@ -62,8 +74,6 @@ namespace program {
             }
         }
     }
-
-
 }
 
 #endif //WEB_TAG_EDITOR_PROGRAM_H
