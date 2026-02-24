@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     nlohmann-json3-dev \
     libcli11-dev \
     libasio-dev \
+    libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Crow from the official .deb release
