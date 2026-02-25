@@ -10,7 +10,7 @@ namespace program {
     namespace fs = std::filesystem;
     using namespace boost::bimaps;
 
-    constexpr std::string_view version { "Beta 1.0.1" };
+    constexpr std::string_view version { "Beta 1.1.1" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -35,12 +35,55 @@ namespace program {
         std::string extension { path.extension() };
     };
 
-    typedef bimap<
-        unordered_multiset_of<std::string>,
-        unordered_set_of<std::string>
-    > tagMap;
+    namespace music {
+        namespace typeField {
+            constexpr std::string title { "Title" };
+            constexpr std::string artist { "Artist" };
+            constexpr std::string album { "Album" };
+            constexpr std::string albumArtist { "Album Artist" };
+            constexpr std::string trackNumber { "Track Number" };
+            constexpr std::string totalTracks { "Total Tracks" };
+            constexpr std::string discNumber { "Disc Number" };
+            constexpr std::string totalDiscs { "Total Discs" };
+            constexpr std::string year { "Year" };
+            constexpr std::string genre { "Genre" };
+            constexpr std::string composer { "Composer" };
+            constexpr std::string conductor { "Conductor" };
+            constexpr std::string lyricist { "Lyricist" };
+            constexpr std::string lyrics { "Lyrics" };
+            constexpr std::string comment { "Comment" };
+            constexpr std::string bpm { "BPM" };
+            constexpr std::string length { "Length" };
+            constexpr std::string compilation { "Compilation" };
+            constexpr std::string publisherLabel { "Label" };
+            constexpr std::string isrc { "ISRC" };
+            constexpr std::string encoder { "Encoder" };
+            constexpr std::string copyright { "Copyright" };
+            constexpr std::string coverArt { "Cover Art" };
 
-    tagMap& getMapTag();
+        }
+
+        enum format {
+            MP3,
+            FLAC,
+            M4A,
+            OGG,
+            OPUS,
+            AAC,
+            WMA,
+            WAV,
+            AIF,
+            AIFF,
+            ALAC,
+        };
+
+        typedef bimap<
+             unordered_set_of<std::string>,
+             unordered_set_of<std::string>
+         > tagMap;
+
+        tagMap& getMapTag(const format format);
+    }
 
     namespace error {
         enum MESSAGE {

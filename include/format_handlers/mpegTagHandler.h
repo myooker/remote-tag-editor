@@ -11,7 +11,6 @@
 namespace audioFormat {
     class mpegTagHandler : public musicTagHandler {
     public:
-        static std::string IDv3TagToString(const TagLib::ByteVector &frameID);
         static TagLib::ByteVector StringToIDv3Tag(const std::string &frameID);
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc);

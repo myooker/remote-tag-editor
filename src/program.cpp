@@ -7,111 +7,103 @@
 using namespace boost::bimaps;
 using namespace program;
 
-namespace program {
-    tagMap &getMapTag() {
-        static tagMap mapTag;
+namespace program::music {
 
-        // TITLE
-        mapTag.insert({"TITLE", "Title"});
-        mapTag.insert({"TIT2", "Title"});
-        mapTag.insert({"©nam", "Title"});
 
-        // ARTIST
-        mapTag.insert({"ARTIST", "Artist"});
-        mapTag.insert({"TPE1", "Artist"});
-        mapTag.insert({"©ART", "Artist"});
+    tagMap &getMapTag(const format format) {
+        static tagMap mp3 = []{
+            tagMap temp;
 
-        // ALBUM
-        mapTag.insert({"ALBUM", "Album"});
-        mapTag.insert({"TALB", "Album"});
-        mapTag.insert({"©alb", "Album"});
+            temp.insert({typeField::title, "TIT2"});
+            temp.insert({typeField::artist, "TPE1"});
+            temp.insert({typeField::albumArtist, "TPE2"});
+            temp.insert({typeField::album, "TALB"});
+            temp.insert({typeField::trackNumber, "TRCK"});
+            temp.insert({typeField::totalTracks, "TRCK"});
+            temp.insert({typeField::discNumber, "TPOS"});
+            temp.insert({typeField::totalDiscs, "TPOS"});
+            temp.insert({typeField::year, "TDRC"});
+            temp.insert({typeField::genre, "TCON"});
+            temp.insert({typeField::composer, "TCOM"});
+            temp.insert({typeField::conductor, "TPE3"});
+            temp.insert({typeField::lyricist, "TEXT"});
+            temp.insert({typeField::lyrics, "USLT"});
+            temp.insert({typeField::comment, "COMM"});
+            temp.insert({typeField::bpm, "TBPM"});
+            temp.insert({typeField::length, "TLEN"});
+            temp.insert({typeField::compilation, "TCMP"});
+            temp.insert({typeField::publisherLabel, "TPUB"});
+            temp.insert({typeField::isrc, "TSRC"});
+            temp.insert({typeField::encoder, "TENC"});
+            temp.insert({typeField::copyright, "TCOP"});
 
-        // ALBUM ARTIST
-        mapTag.insert({"ALBUMARTIST", "Album Artist"});
-        mapTag.insert({"TPE2", "Album Artist"});
-        mapTag.insert({"aART", "Album Artist"});
+            return temp;
+        }();
 
-        // TRACK NUMBER
-        mapTag.insert({"TRACKNUMBER", "Track Number"});
-        mapTag.insert({"TRCK", "Track Number"});
-        mapTag.insert({"trkn", "Track Number"});
+        static tagMap mp4 = [] {
+            tagMap temp;
 
-        // DISC NUMBER
-        mapTag.insert({"DISCNUMBER", "Disc Number"});
-        mapTag.insert({"TPOS", "Disc Number"});
-        mapTag.insert({"disk", "Disc Number"});
+            temp.insert({typeField::title, "@nam"});
+            temp.insert({typeField::artist, "@ART"});
+            temp.insert({typeField::albumArtist, "aART"});
+            temp.insert({typeField::album, "@alb"});
+            temp.insert({typeField::trackNumber, "trkn"});
+            temp.insert({typeField::totalTracks, "trkn (pair)"});
+            temp.insert({typeField::discNumber, "disk"});
+            temp.insert({typeField::totalDiscs, "disk (pair)"});
+            temp.insert({typeField::year, "@day"});
+            temp.insert({typeField::genre, "@gen"});
+            temp.insert({typeField::composer, "@wrt"});
+            // Conductor is not directly supported in M4A/MP4 Atom format
+            temp.insert({typeField::lyricist, "@lyr"});
+            temp.insert({typeField::lyrics, "@lyr"});
+            temp.insert({typeField::comment, "@cmt"});
+            temp.insert({typeField::bpm, "tmpo"});
+            temp.insert({typeField::compilation, "cpil"});
+            temp.insert({typeField::publisherLabel, "@pub"});
+            // ISRC is not directly supported in M4A/MP4 Atom format
+            temp.insert({typeField::encoder, "@too"});
+            temp.insert({typeField::copyright, "cprt"});
 
-        // YEAR
-        mapTag.insert({"DATE", "Year"});
-        mapTag.insert({"TDRC", "Year"});
-        mapTag.insert({"TYER", "Year"});
-        mapTag.insert({"©day", "Year"});
+            return temp;
+        }();
 
-        // GENRE
-        mapTag.insert({"GENRE", "Genre"});
-        mapTag.insert({"TCON", "Genre"});
-        mapTag.insert({"©gen", "Genre"});
+        static tagMap flac = [] {
+            tagMap temp;
 
-        // COMPOSER
-        mapTag.insert({"COMPOSER", "Composer"});
-        mapTag.insert({"TCOM", "Composer"});
-        mapTag.insert({"©wrt", "Composer"});
+            temp.insert({typeField::title, "TITLE"});
+            temp.insert({typeField::artist, "ARTIST"});
+            temp.insert({typeField::albumArtist, "ALBUMARTIST"});
+            temp.insert({typeField::album, "ALBUM"});
+            temp.insert({typeField::trackNumber, "TRACKNUMBER"});
+            temp.insert({typeField::totalTracks, "TRACKTOTAL"});
+            temp.insert({typeField::discNumber, "DISCNUMBER"});
+            temp.insert({typeField::totalDiscs, "DISCTOTAL"});
+            temp.insert({typeField::year, "DATE"});
+            temp.insert({typeField::genre, "GENRE"});
+            temp.insert({typeField::composer, "COMPOSER"});
+            // Conductor is supported but not explicitly shown in the table (likely stored under ARTIST or ALBUMARTIST)
+            temp.insert({typeField::lyricist, "LYRICIST"});
+            temp.insert({typeField::lyrics, "LYRICS"});
+            temp.insert({typeField::comment, "COMMENT"});
+            // BPM is not directly supported in FLAC Vorbis Comment format
+            temp.insert({typeField::compilation, "COMPILATION"});
+            temp.insert({typeField::publisherLabel, "LABEL"});
+            temp.insert({typeField::isrc, "ISRC"});
+            temp.insert({typeField::encoder, "ENCODER"});
+            temp.insert({typeField::copyright, "COPYRIGHT"});
+            // Cover Art is stored as METADATA_BLOCK_PICTURE
 
-        // CONDUCTOR
-        mapTag.insert({"CONDUCTOR", "Conductor"});
-        mapTag.insert({"TPE3", "Conductor"});
-        mapTag.insert({"----:com.apple.iTunes:CONDUCTOR", "Conductor"});
+            return temp;
+        }();
 
-        // LYRICIST
-        mapTag.insert({"LYRICIST", "Lyricist"});
-        mapTag.insert({"TEXT", "Lyricist"});
-        mapTag.insert({"©lyr", "Lyricist"});
-
-        // LYRICS
-        mapTag.insert({"LYRICS", "Lyrics"});
-        mapTag.insert({"USLT", "Lyrics"});
-        mapTag.insert({"©lyr", "Lyrics"});
-
-        // COMMENT
-        mapTag.insert({"COMMENT", "Comment"});
-        mapTag.insert({"COMM", "Comment"});
-        mapTag.insert({"©cmt", "Comment"});
-
-        // BPM
-        mapTag.insert({"BPM", "BPM"});
-        mapTag.insert({"TBPM", "BPM"});
-        mapTag.insert({"tmpo", "BPM"});
-
-        // COMPILATION
-        mapTag.insert({"COMPILATION", "Compilation"});
-        mapTag.insert({"TCMP", "Compilation"});
-        mapTag.insert({"cpil", "Compilation"});
-
-        // PUBLISHER / LABEL
-        mapTag.insert({"LABEL", "Label"});
-        mapTag.insert({"TPUB", "Label"});
-        mapTag.insert({"©pub", "Label"});
-
-        // ISRC
-        mapTag.insert({"ISRC", "ISRC"});
-        mapTag.insert({"TSRC", "ISRC"});
-        mapTag.insert({"----:com.apple.iTunes:ISRC", "ISRC"});
-
-        // ENCODER
-        mapTag.insert({"ENCODER", "Encoder"});
-        mapTag.insert({"TENC", "Encoder"});
-        mapTag.insert({"©too", "Encoder"});
-
-        // COPYRIGHT
-        mapTag.insert({"COPYRIGHT", "Copyright"});
-        mapTag.insert({"TCOP", "Copyright"});
-        mapTag.insert({"cprt", "Copyright"});
-
-        // COVER ART
-        mapTag.insert({"METADATA_BLOCK_PICTURE", "Cover Art"});
-        mapTag.insert({"APIC", "Cover Art"});
-        mapTag.insert({"covr", "Cover Art"});
-
-        return mapTag;
+        switch (format) {
+            case MP3: return mp3;
+            case FLAC: return flac;
+            case M4A: return mp4;
+            case OGG: return flac;
+            case OPUS: return flac;
+            default: return mp3;
+        }
     }
 }

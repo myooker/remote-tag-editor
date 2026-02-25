@@ -3,6 +3,7 @@
 //
 
 #include "../../include/format_handlers/mpegTagHandler.h"
+#include "../../include/program.h"
 
 #include <mpegfile.h>
 #include <textidentificationframe.h>
@@ -10,34 +11,6 @@
 #include <id3v1tag.h>
 
 using namespace audioFormat;
-
-std::string mpegTagHandler::IDv3TagToString(const TagLib::ByteVector &frameID) {
-    const std::string temp { frameID.data() };
-    const std::unordered_map<std::string, std::string> tagMap = {
-        {"TALB", "ALBUM"},
-        {"TCON", "GENRE"},
-        {"TDOR", "ORIGYEAR"},
-        {"TDRC", "YEAR"},
-        {"TIT2", "TITLE"},
-        {"TLEN", "LENGTH"},
-        {"TMED", "MEDIATYPE"},
-        {"TPE1", "ARTIST"},
-        {"TPE2", "ALBUMARTIST"},
-        {"TPOS", "DISCNUMBER"},
-        {"TPUB", "PUBLISHER"},
-        {"TRCK", "TRACK"},
-        {"TSO2", "ALBUMARTISTSORT"},
-        {"TSOP", "ARTISTSORT"},
-        {"TSRC", "ISRC"},
-        {"TXXX", "USERDEF"}
-    };
-
-    if (auto it = tagMap.find(temp); it != tagMap.end()) {
-        return it->second;
-    } else {
-        return "UNKNTAG";
-    }
-}
 
 TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
     TagLib::ByteVector frame{};
@@ -71,6 +44,8 @@ TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
 std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::MPEG::File file { filePath.c_str() };
 
+    auto &tagMap = program::music::getMapTag(program::music::MP3);
+
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
         return std::unexpected("The file is not valid");
@@ -84,13 +59,6 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     json base = json::object();
     json userdef = json::object();
     const auto tag = file.ID3v2Tag();
-
-    // .ID3v2Tag() will return a nullptr if there are no such tags
-    // Here we handle it
-    if (!tag) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have ID3v2Tag";
-        return std::unexpected("The file does not have ID3v2Tag");
-    }
 
     const auto map = tag->frameListMap();
     for (const auto &pair : map) {
@@ -110,7 +78,15 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
             const auto *textFrame = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(frame);
             if (textFrame) {
                 const auto list = textFrame->fieldList();
-                const std::string frameKey { IDv3TagToString(frameID) };
+                std::string frameKey { frameID.data() };
+                std::string frameIDString (frameID.data(), frameID.size());
+
+                const auto it = tagMap.right.find(frameIDString);
+                const bool itBool = it != tagMap.right.end() ? true : false;
+
+                if (itBool)
+                    frameKey = it->get_left();
+
                 // If there's only one frame, just assign it to the id
                 // Otherwise make an array of frames of frameID name
                 if (list.size() == 1) {
@@ -118,7 +94,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
                 } else if (list.size() > 1) {
                     base[frameKey] = json::array();
                     for (const auto &a : list) {
-                        base[IDv3TagToString(frameID)] += a.to8Bit(true);
+                        base[frameKey] += a.to8Bit(true);
                     }
                 }
             }
