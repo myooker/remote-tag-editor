@@ -49,7 +49,9 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
 }
 
 crow::response flacTagHandler::removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
+    using namespace program::music;
     const fs::path path { filePath };
+    const std::string denormFieldType = tag::denormalize(fieldType, format::FLAC);
     scopeTimer scopeTimer { path.filename().string() };
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
@@ -62,7 +64,7 @@ crow::response flacTagHandler::removeMusicTag(const std::string &filePath, const
     }
 
     auto *tag = file.xiphComment();
-    tag->removeFields(fieldType, TagLib::String{value, TagLib::String::UTF8});
+    tag->removeFields(denormFieldType, TagLib::String{value, TagLib::String::UTF8});
     CROW_LOG_INFO << "(" << __func__ << ") " << fieldType << " field was removed!";
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << path.c_str() << " saved!";
@@ -70,7 +72,9 @@ crow::response flacTagHandler::removeMusicTag(const std::string &filePath, const
 }
 
 crow::response flacTagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
+    using namespace program::music;
     const fs::path path { filePath };
+    const std::string denormFieldType = tag::denormalize(fieldType, format::FLAC);
     scopeTimer scopeTimer { path.filename().string() };
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
@@ -90,7 +94,9 @@ crow::response flacTagHandler::addMusicTag(const std::string &filePath, const st
 }
 
 crow::response flacTagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {
+    using namespace program::music;
     const fs::path path { filePath };
+    const std::string denormFieldType = tag::denormalize(fieldType, format::FLAC);
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " is not valid";
@@ -102,14 +108,16 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
     }
 
     auto *tag = file.xiphComment();
-    tag->addField(fieldType, TagLib::String{replaceWith, TagLib::String::UTF8});
+    tag->addField(denormFieldType, TagLib::String{replaceWith, TagLib::String::UTF8});
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << path.c_str() << " saved!";
     return { 200, "OK" };
 }
 
 crow::response flacTagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
+    using namespace program::music;
     const fs::path path { filePath };
+    const std::string denormFieldType = tag::denormalize(fieldType, format::FLAC);
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " is not valid";
@@ -120,7 +128,7 @@ crow::response flacTagHandler::editMusicTags(const std::string &filePath, const 
         return { 500, "The file does not have Xiph Comments"};
     }
     auto *tag = file.xiphComment();
-    const auto filedType_it = tag->fieldListMap().find(fieldType);
+    const auto filedType_it = tag->fieldListMap().find(denormFieldType);
     TagLib::StringList oldValues {}; // Here we store old values of a music file
     TagLib::StringList newValues {}; // Here we will store new values for a music files
 

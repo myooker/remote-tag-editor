@@ -3,44 +3,55 @@
 //
 
 #include "../include/program.h"
+#include <crow/logging.h>
 
 namespace program::music::tag {
     const tagRegistry& getTagRegistry() {
         static tagRegistry registry = [] {
             tagRegistry temp;
 
-            auto reg = [&](const music::format format, const std::string &normalized, const std::string &raw) {
-                temp.rawToNormalized[raw] = normalized;
-                temp.normalizedToRaw[format][normalized] = raw;
+            auto reg = [&](const music::format format, const std::string_view normalized, const std::string_view raw) {
+                temp.rawToNormalized[std::string(raw)] = normalized;
+                temp.normalizedToRaw[format][std::string(normalized)] = raw;
             };
 
             // -----------------------------------------------------
             //  Title
             // -----------------------------------------------------
-            reg(format::MP3, tag::title,       "TIT2");
-            reg(format::M4A, tag::title,       "©nam");
-            reg(format::FLAC, tag::title,      "TITLE");
+            reg(format::MP3, tag::title,        "TIT2");
+            reg(format::M4A, tag::title,        "©nam");
+            reg(format::FLAC, tag::title,       "TITLE");
 
             // -----------------------------------------------------
             //  Artist
             // -----------------------------------------------------
-            reg(format::MP3, tag::artist,      "TPE1");
-            reg(format::M4A, tag::artist,      "©ART");
-            reg(format::FLAC, tag::artist,     "ARTIST");
+            reg(format::MP3, tag::artist,       "TPE1");
+            reg(format::M4A, tag::artist,       "©ART");
+            reg(format::FLAC, tag::artist,      "ARTIST");
+
+            // -----------------------------------------------------
+            //  Artist Sort
+            // -----------------------------------------------------
+            reg(format::MP3, tag::artistSort,   "TSOP");
 
             // -----------------------------------------------------
             //  Album
             // -----------------------------------------------------
-            reg(format::MP3, tag::album,       "TALB");
-            reg(format::M4A, tag::album,       "©alb");
-            reg(format::FLAC, tag::album,      "ALBUM");
+            reg(format::MP3, tag::album,        "TALB");
+            reg(format::M4A, tag::album,        "©alb");
+            reg(format::FLAC, tag::album,       "ALBUM");
 
             // -----------------------------------------------------
             //  Album Artist
             // -----------------------------------------------------
-            reg(format::MP3, tag::albumArtist, "TPE2");
-            reg(format::M4A, tag::albumArtist, "aART");
+            reg(format::MP3, tag::albumArtist,  "TPE2");
+            reg(format::M4A, tag::albumArtist,  "aART");
             reg(format::FLAC, tag::albumArtist, "ALBUMARTIST");
+
+            // -----------------------------------------------------
+            // Album Artist Sort
+            // -----------------------------------------------------
+            reg(format::MP3, tag::albumArtistSort,"TSO2");
 
             // -----------------------------------------------------
             //  Track Number (x of y)
@@ -74,8 +85,19 @@ namespace program::music::tag {
             //  Year
             // -----------------------------------------------------
             reg(format::MP3, tag::year,          "TYER");   // ID3v2.3 (fallback)
+            reg(format::MP3, tag::year,          "TDRC");   // ID3v2.4
             reg(format::M4A, tag::year,          "©day");
             reg(format::FLAC, tag::year,         "DATE");
+
+            // -----------------------------------------------------
+            //  Original release time (ORIGYEAR) - ID3v2.4
+            // -----------------------------------------------------
+            reg(format::MP3, tag::origyear,      "TDOR");
+
+            // -----------------------------------------------------
+            // Media Type - ID3v2.4
+            // -----------------------------------------------------
+            reg(format::MP3, tag::mediatype,     "TMED");
 
             // -----------------------------------------------------
             //  Genre

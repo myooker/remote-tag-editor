@@ -39,29 +39,33 @@ namespace program {
         enum class format;
 
         namespace tag {
-            constexpr std::string title { "Title" };
-            constexpr std::string artist { "Artist" };
-            constexpr std::string album { "Album" };
-            constexpr std::string albumArtist { "Album Artist" };
-            constexpr std::string trackNumber { "Track Number" };
-            constexpr std::string totalTracks { "Total Tracks" };
-            constexpr std::string discNumber { "Disc Number" };
-            constexpr std::string totalDiscs { "Total Discs" };
-            constexpr std::string year { "Year" };
-            constexpr std::string genre { "Genre" };
-            constexpr std::string composer { "Composer" };
-            constexpr std::string conductor { "Conductor" };
-            constexpr std::string lyricist { "Lyricist" };
-            constexpr std::string lyrics { "Lyrics" };
-            constexpr std::string comment { "Comment" };
-            constexpr std::string bpm { "BPM" };
-            constexpr std::string length { "Length" };
-            constexpr std::string compilation { "Compilation" };
-            constexpr std::string publisherLabel { "Label" };
-            constexpr std::string isrc { "ISRC" };
-            constexpr std::string encoder { "Encoder" };
-            constexpr std::string copyright { "Copyright" };
-            constexpr std::string coverArt { "Cover Art" };
+            constexpr std::string_view title { "Title" };
+            constexpr std::string_view artist { "Artist" };
+            constexpr std::string_view artistSort { "AritstSort" };
+            constexpr std::string_view album { "Album" };
+            constexpr std::string_view albumArtist { "AlbumArtist" };
+            constexpr std::string_view albumArtistSort { "AlbumArtistSort" };
+            constexpr std::string_view trackNumber { "Track Number" };
+            constexpr std::string_view totalTracks { "Total Tracks" };
+            constexpr std::string_view discNumber { "Disc Number" };
+            constexpr std::string_view totalDiscs { "Total Discs" };
+            constexpr std::string_view year { "Year" };
+            constexpr std::string_view origyear { "Original Year" };
+            constexpr std::string_view genre { "Genre" };
+            constexpr std::string_view composer { "Composer" };
+            constexpr std::string_view conductor { "Conductor" };
+            constexpr std::string_view lyricist { "Lyricist" };
+            constexpr std::string_view lyrics { "Lyrics" };
+            constexpr std::string_view comment { "Comment" };
+            constexpr std::string_view bpm { "BPM" };
+            constexpr std::string_view length { "Length" };
+            constexpr std::string_view mediatype { "Mediatype" };
+            constexpr std::string_view compilation { "Compilation" };
+            constexpr std::string_view publisherLabel { "Label" };
+            constexpr std::string_view isrc { "ISRC" };
+            constexpr std::string_view encoder { "Encoder" };
+            constexpr std::string_view copyright { "Copyright" };
+            constexpr std::string_view coverArt { "Cover Art" };
 
             struct tagRegistry {
                 std::unordered_map<std::string, std::string> rawToNormalized;

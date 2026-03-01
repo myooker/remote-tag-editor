@@ -199,9 +199,6 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("tagType", "none");
-            stringToUpper(tempFieldType);
-
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
             const std::string fieldType = body.value("tagType", "none");
@@ -226,12 +223,9 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("fieldType", "none");
-            stringToUpper(tempFieldType);
-
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = tempFieldType;
+            const std::string fieldType = body.value("fieldType", "none");
             const std::string value = body.value("value", "none");
 
             CROW_LOG_INFO << "(api/addfieldtag) requested path: " << filePath;
@@ -247,12 +241,9 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("fieldType", "none");
-            stringToUpper(tempFieldType);
-
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = tempFieldType;
+            const std::string fieldType = body.value("fieldType", "none");
             const std::string value = body.value("value", "none");
 
             CROW_LOG_INFO << "(api/removefieldtag) requested path: " << filePath;
