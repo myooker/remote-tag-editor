@@ -44,8 +44,6 @@ TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
 std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::MPEG::File file { filePath.c_str() };
 
-    auto &tagMap = program::music::getMapTag(program::music::MP3);
-
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
         return std::unexpected("The file is not valid");
@@ -79,13 +77,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
             if (textFrame) {
                 const auto list = textFrame->fieldList();
                 std::string frameKey { frameID.data() };
-                std::string frameIDString (frameID.data(), frameID.size());
-
-                const auto it = tagMap.right.find(frameIDString);
-                const bool itBool = it != tagMap.right.end() ? true : false;
-
-                if (itBool)
-                    frameKey = it->get_left();
+                frameKey = program::music::tag::normalize(frameKey);
 
                 // If there's only one frame, just assign it to the id
                 // Otherwise make an array of frames of frameID name

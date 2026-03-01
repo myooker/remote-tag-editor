@@ -14,7 +14,7 @@ using namespace audioFormat;
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
 
-    auto &tagMap = program::music::getMapTag(program::music::format::FLAC);
+    auto &tagRegistry = program::music::tag::getTagRegistry();
 
     scopeTimer scopeTimer { filePath };
 
@@ -32,24 +32,17 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
     const auto tag = file.xiphComment();
     for (const auto &a : tag->fieldListMap()) {
         const std::string key = a.first.to8Bit(true);
-        auto it = tagMap.left.find(key);
-        bool itBool = it != tagMap.left.end() ? true : false;
+        const std::string normalizedKey = program::music::tag::normalize(key);
         if (a.second.size() > 1) {
             const std::size_t temp { a.second.size() };
             for (std::size_t i { 0 }; i < temp; ++i) {
                 std::string value { a.second[i].to8Bit(true) };
-                if (itBool)
-                    j[it->get_right()] += value;
-                else
-                    j[key] += value;
+                j[normalizedKey] += value;
             }
             continue;
         }
         std::string value { a.second[0].to8Bit(true) };
-        if (itBool)
-            j[it->get_right()] = value;
-        else
-            j[key] = value;
+        j[normalizedKey] = value;
     }
     CROW_LOG_DEBUG << "(" << __func__ << ") returning JSON";
     return j;

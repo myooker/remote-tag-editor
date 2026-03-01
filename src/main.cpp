@@ -176,7 +176,8 @@ int main (int argc, char **argv) {
         std::exit(-1);
     }
 
-    auto handler = musicTagHandlerFactory::createHandler(".mp3");
+    std::string ext { getExtension(application.debugFile) };
+    auto handler = musicTagHandlerFactory::createHandler(ext);
     std::cout << handler->listMusicTags(application.debugFile)->dump(4);
 
     if (!application.disableCrowServer) {

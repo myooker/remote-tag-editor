@@ -36,7 +36,9 @@ namespace program {
     };
 
     namespace music {
-        namespace typeField {
+        enum class format;
+
+        namespace tag {
             constexpr std::string title { "Title" };
             constexpr std::string artist { "Artist" };
             constexpr std::string album { "Album" };
@@ -61,28 +63,23 @@ namespace program {
             constexpr std::string copyright { "Copyright" };
             constexpr std::string coverArt { "Cover Art" };
 
+            struct tagRegistry {
+                std::unordered_map<std::string, std::string> rawToNormalized;
+
+                std::unordered_map<format, std::unordered_map<std::string, std::string>> normalizedToRaw;
+            };
+
+            const tagRegistry& getTagRegistry();
+            std::string normalize(const std::string &rawTag);
+            std::string denormalize(const std::string &normalizedTag, format format);
         }
 
-        enum format {
-            MP3,
-            FLAC,
-            M4A,
-            OGG,
-            OPUS,
-            AAC,
-            WMA,
-            WAV,
-            AIF,
-            AIFF,
-            ALAC,
+        enum class format {
+            MP3, FLAC, M4A,
+            OGG, OPUS, AAC,
+            WMA, WAV, AIF,
+            AIFF, ALAC,
         };
-
-        typedef bimap<
-             unordered_set_of<std::string>,
-             unordered_set_of<std::string>
-         > tagMap;
-
-        tagMap& getMapTag(const format format);
     }
 
     namespace error {
