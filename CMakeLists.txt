@@ -33,13 +33,13 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggSpeexTagHandler.cpp
         include/format_handlers/oggSpeexTagHandler.h
         src/tagNormalization.cpp
+        include/music.h
 )
 
 # Include headers
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})
 target_link_libraries(web_tag_editor PRIVATE ${TAGLIB_LIBRARIES})
 target_link_libraries(web_tag_editor PRIVATE nlohmann_json::nlohmann_json)
-target_link_libraries(web_tag_editor PRIVATE Boost::boost)
 
 # Compiler flags (if needed)
 target_compile_options(web_tag_editor PRIVATE ${TAGLIB_CFLAGS_OTHER})

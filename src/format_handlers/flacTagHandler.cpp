@@ -4,7 +4,7 @@
 
 #include "../../include/format_handlers/flacTagHandler.h"
 #include "../../include/scopeTimer.h"
-#include "../../include/program.h"
+#include "../../include/music.h"
 
 #include <flacfile.h>
 #include <xiphcomment.h>
