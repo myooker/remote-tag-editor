@@ -21,7 +21,7 @@ using ordered_json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
 
 std::string fileExtensionToType(const std::string &ext) {
-    const std::unordered_map<std::string, std::string> extensionsMap {
+    const static std::unordered_map<std::string, std::string> extensionsMap {
         {".mp3", "music"},      // done
         {".flac", "music"},     // done
         {".m4a", "music"},      // done
@@ -45,13 +45,13 @@ std::string fileExtensionToType(const std::string &ext) {
 }
 
 int typeOrder(const std::string &type) {
-    const std::unordered_map<std::string, int> map {
+    const static std::unordered_map<std::string, int> typeOrderMap {
         {"directory", 0},
         {"music", 1},
         {"picture", 2},
         {"file", 3},
     };
-    if (const auto it = map.find(type); it != map.end()) {
+    if (const auto it = typeOrderMap.find(type); it != typeOrderMap.end()) {
         return it->second;
     } else {
         return 4;
@@ -61,13 +61,6 @@ int typeOrder(const std::string &type) {
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     return fs::path{path}.extension().string();
-}
-
-void stringToUpper(std::string &str) {
-    if (str == "none")
-        return;
-
-    std::ranges::transform(str, str.begin(), toupper);
 }
 
 bool naturalSorting(const std::string &a, const std::string &b) {
@@ -176,9 +169,9 @@ int main (int argc, char **argv) {
         std::exit(-1);
     }
 
-    std::string ext { getExtension(application.debugFile) };
-    auto handler = musicTagHandlerFactory::createHandler(ext);
-    std::cout << handler->listMusicTags(application.debugFile)->dump(4);
+    // std::string ext { getExtension(application.debugFile) };
+    // auto handler = musicTagHandlerFactory::createHandler(ext);
+    // std::cout << handler->listMusicTags(application.debugFile)->dump(4);
 
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
