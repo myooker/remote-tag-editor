@@ -2,7 +2,7 @@
 // Created by myooker on 2/10/26.
 //
 
-#include "../../include/format_handlers/oggTagHandler.h"
+#include "oggTagHandler.h"
 #include "../../include/scopeTimer.h"
 
 #include <fileref.h>
@@ -11,10 +11,10 @@
 #include <opusfile.h>
 #include <speexfile.h>
 
-#include "../../include/format_handlers/oggFlacTagHandler.h"
-#include "../../include/format_handlers/oggOpusTagHandler.h"
-#include "../../include/format_handlers/oggSpeexTagHandler.h"
-#include "../../include/format_handlers/oggVorbisTagHandler.h"
+#include "oggFlacTagHandler.h"
+#include "oggOpusTagHandler.h"
+#include "oggSpeexTagHandler.h"
+#include "oggVorbisTagHandler.h"
 
 using namespace audioFormat;
 
@@ -47,19 +47,18 @@ std::expected<json, std::string> oggTagHandler::listMusicTags(const std::string 
     return codecHandler(filePath)->listMusicTags(filePath);
 }
 
-crow::response oggTagHandler::removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
-   return codecHandler(filePath)->removeMusicTag(filePath, fieldType, value);
+crow::response oggTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
+   return codecHandler(tagStruct.filePath)->removeMusicTag(tagStruct);
 }
 
-crow::response oggTagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
-   return codecHandler(filePath)->addMusicTag(filePath, fieldType, value);
+crow::response oggTagHandler::addMusicTag(const program::TagModification &tagStruct) {
+   return codecHandler(tagStruct.filePath)->addMusicTag(tagStruct);
 }
 
-crow::response oggTagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {
-   return codecHandler(filePath)->editMusicTags(filePath, fieldType, replaceWith);
+crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct) {
+   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct);
 }
 
-crow::response oggTagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWhat, const std::string &replaceWith) {
-   return codecHandler(filePath)->editMusicTags(filePath, fieldType, replaceWhat, replaceWith);
+crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
+   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, true);
 }
-

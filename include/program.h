@@ -30,6 +30,14 @@ namespace program {
         std::string extension { path.extension() };
     };
 
+    struct TagModification {
+        std::string filePath { "none" };
+        std::string fieldType { "none" };
+        std::string replaceWhat { "none" };
+        std::string replaceWith { "none" };
+        std::string value { "none" };
+    };
+
     namespace error {
         enum MESSAGE {
             MOUNT_POINT_NOT_EXISTS,

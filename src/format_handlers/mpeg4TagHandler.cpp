@@ -2,7 +2,7 @@
 // Created by myooker on 1/27/26.
 //
 
-#include "../../include/format_handlers/mpeg4TagHandler.h"
+#include "mpeg4TagHandler.h"
 #include <mp4file.h>
 
 using namespace audioFormat;
@@ -155,59 +155,59 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
     return base;
 }
 
-crow::response mpeg4TagHandler::removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
-    TagLib::MP4::File file { filePath.c_str() };
+crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &tagStruct) {
+    TagLib::MP4::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
         return {500, "Not valid"};
     }
 
     if (!file.hasMP4Tag()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
+        CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " does not have mp4 tags";
         return {500, "does not have mp4 tags"};
     }
 
     auto *tag = file.tag();
     //tag->removeItem(TagLib::String(fieldType, TagLib::String::UTF8));
-    tag->removeItem(stringToAtom(fieldType));
+    tag->removeItem(stringToAtom(tagStruct.fieldType));
 
     file.save();
 
     return {200, "OK"};
 }
 
-crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) {
-    TagLib::MP4::File file { filePath.c_str() };
+crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagStruct) {
+    TagLib::MP4::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
         return {500, "Not valid"};
     }
 
     if (!file.hasMP4Tag()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " does not have mp4 tags";
+        CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " does not have mp4 tags";
         return {500, "does not have mp4 tags"};
     }
 
     auto *tag = file.tag();
-    const auto fieldTypeTS = stringToAtom(fieldType);
+    const auto fieldTypeTS = stringToAtom(tagStruct.fieldType);
     CROW_LOG_DEBUG << "(" << __func__ << ") fieldTypeTS: " << fieldTypeTS;
-    const auto type = atomToString(stringToAtom(fieldType).toCString(true)).flag;
+    const auto type = atomToString(stringToAtom(tagStruct.fieldType).toCString(true)).flag;
     switch (type) {
         case atomType::TEXT: {
-            const TagLib::StringList tags { TagLib::String{ value, TagLib::String::UTF8 } };
+            const TagLib::StringList tags { TagLib::String{ tagStruct.value, TagLib::String::UTF8 } };
             const TagLib::MP4::Item temp(tags.toString());
             tag->setItem(fieldTypeTS, temp);
             file.save();
-            CROW_LOG_INFO << "(" << __func__ << ") " << filePath << " has been saved!";
+            CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " has been saved!";
             return {200, "OK"};
         }
         case atomType::UINT8: {
-            const TagLib::MP4::Item mp4ItemTemp(std::stoi(value));
+            const TagLib::MP4::Item mp4ItemTemp(std::stoi(tagStruct.value));
             tag->setItem(fieldTypeTS, mp4ItemTemp);
             file.save();
-            CROW_LOG_INFO << "(" << __func__ << ") " << filePath << " has been saved!";
+            CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " has been saved!";
             return {200, "OK"};
         }
         case atomType::PICTURE:
@@ -215,7 +215,7 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
             return {200, "Not implemented"};
         case atomType::UNDEFINED:
             CROW_LOG_ERROR << "(" << __func__ << ") The specified fieldType fallback to atomType::UNDEFINED: ";
-            CROW_LOG_ERROR << "(" << __func__ << ") fieldType: " << fieldType;
+            CROW_LOG_ERROR << "(" << __func__ << ") fieldType: " << tagStruct.fieldType;
             CROW_LOG_ERROR << "(" << __func__ << ") fieldTypeTS: " << fieldTypeTS;
             return {500, "Not valid"};
         default:
@@ -224,6 +224,6 @@ crow::response mpeg4TagHandler::addMusicTag(const std::string &filePath, const s
     }
 }
 
-crow::response mpeg4TagHandler::editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) {
-    return addMusicTag(filePath, fieldType, replaceWith);
+crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &tagStruct) {
+    return addMusicTag(tagStruct);
 }

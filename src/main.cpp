@@ -169,9 +169,6 @@ int main (int argc, char **argv) {
         std::exit(-1);
     }
 
-    // std::string ext { getExtension(application.debugFile) };
-    // auto handler = musicTagHandlerFactory::createHandler(ext);
-    // std::cout << handler->listMusicTags(application.debugFile)->dump(4);
 
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
@@ -192,6 +189,14 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("tagType", "none"),
+                body.value("replaceWhat", "none"),
+                body.value("replaceWith", "none"),
+                ""
+            };
+
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
             const std::string fieldType = body.value("tagType", "none");
@@ -206,15 +211,25 @@ int main (int argc, char **argv) {
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
             if (replaceWhat == "none") {
-                return handler->editMusicTags(filePath, fieldType, replaceWith);
+                //return handler->editMusicTags(filePath, fieldType, replaceWith);
+                return handler->editMusicTags(tagStruct);
             } else {
-                return handler->editMusicTags(filePath, fieldType, replaceWhat, replaceWith);
+                //return handler->editMusicTags(filePath, fieldType, replaceWhat, replaceWith);
+                return handler->editMusicTags(tagStruct, true);
             }
         });
 
         CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
+
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("fieldType", "none"),
+                "",
+                "",
+                body.value("value", "none")
+            };
 
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
@@ -227,12 +242,21 @@ int main (int argc, char **argv) {
             CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->addMusicTag(filePath, fieldType, value);
+            //return handler->addMusicTag(filePath, fieldType, value);
+            return handler->addMusicTag(tagStruct);
         });
 
         CROW_ROUTE(app, "/api/removefieldtag").methods("POST"_method)
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
+
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("fieldType", "none"),
+                "",
+                "",
+                body.value("value", "none")
+            };
 
             const std::string filePath = body.value("path", "none");
             const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
@@ -245,7 +269,8 @@ int main (int argc, char **argv) {
             CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->removeMusicTag(filePath, fieldType, value);
+            //return handler->removeMusicTag(filePath, fieldType, value);
+            return handler->removeMusicTag(tagStruct);
         });
 
         CROW_ROUTE(app, "/api/store").methods("POST"_method)
