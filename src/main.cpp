@@ -21,7 +21,7 @@ using ordered_json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
 
 std::string fileExtensionToType(const std::string &ext) {
-    const static std::unordered_map<std::string, std::string> extensionsMap {
+    const static std::unordered_map<std::string, std::string> s_extensionsMap {
         {".mp3", "music"},      // done
         {".flac", "music"},     // done
         {".m4a", "music"},      // done
@@ -37,7 +37,7 @@ std::string fileExtensionToType(const std::string &ext) {
         {".png", "picture"}
     };
 
-    if (const auto it = extensionsMap.find(ext); it != extensionsMap.end()) {
+    if (const auto it = s_extensionsMap.find(ext); it != s_extensionsMap.end()) {
         return it->second;
     } else {
         return "file";
@@ -45,13 +45,13 @@ std::string fileExtensionToType(const std::string &ext) {
 }
 
 int typeOrder(const std::string &type) {
-    const static std::unordered_map<std::string, int> typeOrderMap {
+    const static std::unordered_map<std::string, int> s_typeOrderMap {
         {"directory", 0},
         {"music", 1},
         {"picture", 2},
         {"file", 3},
     };
-    if (const auto it = typeOrderMap.find(type); it != typeOrderMap.end()) {
+    if (const auto it = s_typeOrderMap.find(type); it != s_typeOrderMap.end()) {
         return it->second;
     } else {
         return 4;
@@ -134,7 +134,7 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
 }
 
 int main (int argc, char **argv) {
-    program::settings application {};
+    program::Settings application {};
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
     CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.", "app name"};

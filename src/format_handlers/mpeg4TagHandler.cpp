@@ -9,7 +9,7 @@ using namespace audioFormat;
 
 atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
     CROW_LOG_DEBUG << "(" << __func__ << ") atom: " << atom;
-    const std::unordered_map<std::string, atomEntity> atomMap = {
+    const static std::unordered_map<std::string, atomEntity> s_atomMap = {
     // TEXT atoms -------------------------------------------------------------
     { "©alb", {"ALBUM",                     atomType::TEXT } },
     { "©art", {"ARTIST",                    atomType::TEXT } },
@@ -55,7 +55,7 @@ atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
     { "pgap", {"GAPLESS PLAYBACK",          atomType::UINT8 } }
     };
 
-    if (const auto it = atomMap.find(atom); it != atomMap.end()) {
+    if (const auto it = s_atomMap.find(atom); it != s_atomMap.end()) {
         return it->second;
     } else {
         return {"unkn", atomType::UNDEFINED};
@@ -63,7 +63,7 @@ atomEntity mpeg4TagHandler::atomToString(const std::string &atom) {
 }
 
 TagLib::String mpeg4TagHandler::stringToAtom(const std::string &atom) {
-    const std::unordered_map<std::string, TagLib::String> atomMap = {
+    const static std::unordered_map<std::string, TagLib::String> s_atomMap = {
         // TEXT atoms -------------------------------------------------------
         {"ALBUM",                {"©alb",          TagLib::String::UTF8}},
         {"ARTIST",               {"©art",          TagLib::String::UTF8}},
@@ -99,7 +99,7 @@ TagLib::String mpeg4TagHandler::stringToAtom(const std::string &atom) {
         {"ARTWORK",              {"covr",          TagLib::String::UTF8}}
     };
 
-    if (const auto it = atomMap.find(atom); it != atomMap.end()) {
+    if (const auto it = s_atomMap.find(atom); it != s_atomMap.end()) {
         return it->second;
     } else {
         return TagLib::String{ "Unknown", TagLib::String::UTF8 };

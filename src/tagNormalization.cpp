@@ -7,7 +7,7 @@
 
 namespace program::music::tag {
     const tagRegistry& getTagRegistry() {
-        static tagRegistry registry = [] {
+        static tagRegistry s_registry = [] {
             tagRegistry temp;
 
             auto reg = [&](const music::format format, const std::string_view normalized, const std::string_view raw) {
@@ -200,7 +200,7 @@ namespace program::music::tag {
             return temp;
         }();
 
-        return registry;
+        return s_registry;
     }
 
     std::string normalize(const std::string &rawTag) {

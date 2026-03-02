@@ -12,6 +12,7 @@
 
 using namespace audioFormat;
 
+// Should be deleted soon after testing tag normalization functionality
 TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
     TagLib::ByteVector frame{};
 

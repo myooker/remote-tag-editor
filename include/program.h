@@ -14,7 +14,7 @@ namespace program {
         ALL = 100,
     };
 
-    struct settings {
+    struct Settings {
         bool disableCrowServer { false };
         int port{ 18080 };
         std::string mountpoint { "/music" };
@@ -25,7 +25,7 @@ namespace program {
         }
     };
 
-    struct filePath {
+    struct FilePath {
         fs::path path {};
         std::string extension { path.extension() };
     };
