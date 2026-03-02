@@ -14,8 +14,6 @@ using namespace audioFormat;
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
 
-    auto &tagRegistry = program::music::tag::getTagRegistry();
-
     scopeTimer scopeTimer { filePath };
 
     if (!file.isValid()) {
