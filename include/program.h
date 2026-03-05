@@ -19,6 +19,7 @@ namespace program {
         int port{ 18080 };
         std::string mountpoint { "/music" };
         std::string debugFile {};
+        std::string debugDirectory {};
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);

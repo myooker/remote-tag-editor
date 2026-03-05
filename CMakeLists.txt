@@ -34,6 +34,15 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggSpeexTagHandler.h
         src/tagNormalization.cpp
         include/music.h
+        src/tests/tagJsonTest.cpp
+        src/tests/tagJsonTest.h
+        src/tests/removeFieldTagTest.cpp
+        src/tests/removeFieldTagTest.h
+        src/tests/addFieldTagTest.cpp
+        src/tests/addFieldTagTest.h
+        src/tests/editTagTest.cpp
+        src/tests/editTagTest.h
+        src/tests/tests.h
 )
 
 # Include headers
