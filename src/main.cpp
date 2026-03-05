@@ -14,11 +14,6 @@
 
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
-#include "tests/tagJsonTest.h"
-#include "tests/removeFieldTagTest.h"
-#include "tests/addFieldTagTest.h"
-#include "tests/editTagTest.h"
-#include "tests/tests.h"
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -154,7 +149,6 @@ int main (int argc, char **argv) {
         "Disables Crow server.");
     cli.add_option("--test-file", application.debugFile,
             "Path to the test directory");
-    cli.add_option("--test-directory", application.debugDirectory);
 #endif
     CLI11_PARSE(cli, argc, argv);
 
@@ -175,13 +169,8 @@ int main (int argc, char **argv) {
         std::exit(-1);
     }
 
-    if (!application.debugDirectory.ends_with("/")) {
-        application.debugDirectory.push_back('/');
-    }
-
-    program::tests::listMusicTags(application.debugDirectory);
-    program::tests::addMusicTag(application.debugDirectory);
-    program::tests::listMusicTags(application.debugDirectory);
+    auto handler = musicTagHandlerFactory::createHandler(".m4a");
+    std::cout << handler->listMusicTags(application.debugFile).value().dump(4) << '\n';
 
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;

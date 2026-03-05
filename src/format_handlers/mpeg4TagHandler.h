@@ -51,6 +51,7 @@ namespace audioFormat {
         static atomEntity atomToString(const std::string &atom);
         static TagLib::String stringToAtom(const std::string &atom);
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
+        static void addUserDefinedAtom(const program::TagModification &tagStruct);
         crow::response removeMusicTag(const program::TagModification &tagStruct) override;
         crow::response addMusicTag(const program::TagModification &tagStruct) override;
         crow::response editMusicTags(const program::TagModification &tagStruct) override;
