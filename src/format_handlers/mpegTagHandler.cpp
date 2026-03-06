@@ -200,7 +200,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
     newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
 
-    if (frameIDstr == "TXXX") {
+    if (frameIDstr == "TXXX" || tagStruct.fieldType == denormFieldType) {
         addTXXXFrame(tag, tagStruct.fieldType, tagStruct.value);
         file.save();
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
