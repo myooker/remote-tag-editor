@@ -14,8 +14,6 @@ using namespace audioFormat;
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
 
-    scopeTimer scopeTimer { filePath };
-
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
         return std::unexpected(filePath + " is not valid");
@@ -73,7 +71,6 @@ crow::response flacTagHandler::addMusicTag(const program::TagModification &tagSt
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
-    scopeTimer scopeTimer { path.filename().string() };
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << path.c_str() << " is not valid";
