@@ -14,8 +14,7 @@ struct scopeTimer {
         const auto end = std::chrono::steady_clock::now();
         const auto us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
         const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        //CROW_LOG_DEBUG << "(Chrono) " << name << ": " << us << " us\n";
-        std::cout << "TIME SPENT: " << us << "us, " << ms << "ms\n\n";
+        std::cout << "TIME SPENT: " << us << "us, " << ms << "ms\n";
     }
 };
 

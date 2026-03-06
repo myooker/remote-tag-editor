@@ -14,6 +14,9 @@
 
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
+#include "tests/tests.h"
+
+#define APP_TESTING
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -138,8 +141,10 @@ int main (int argc, char **argv) {
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
     CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.", "app name"};
+#ifndef APP_TESTING
     cli.add_option("-m,--mount-point", application.mountpoint,
             "The directory of your music library")->required();
+#endif
     cli.add_option("-p,--port", application.port,
         "The application's port to bind in. Default is 18080.")->default_val(18080);
     cli.add_option("-l,--log-level", debugLevel,
@@ -147,8 +152,9 @@ int main (int argc, char **argv) {
 #ifdef APP_DEBUG
     cli.add_flag("--no-crow", application.disableCrowServer,
         "Disables Crow server.");
-    cli.add_option("--test-file", application.debugFile,
+    cli.add_option("--test-file", application.testFile,
             "Path to the test directory");
+    cli.add_option("--test-directory", application.testDirectory);
 #endif
     CLI11_PARSE(cli, argc, argv);
 
@@ -161,13 +167,15 @@ int main (int argc, char **argv) {
         default: logLevel = crow::LogLevel::INFO; break;
     }
 
-    CROW_LOG_DEBUG << "debugFile: " << application.debugFile << '\n';
+    CROW_LOG_DEBUG << "debugFile: " << application.testFile << '\n';
     CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
+#ifndef APP_TESTING
     if (application.isExist()) {
         CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";
         std::exit(-1);
     }
+#endif
 
     auto handler = musicTagHandlerFactory::createHandler(".m4a");
     std::cout << handler->listMusicTags(application.debugFile).value().dump(4) << '\n';

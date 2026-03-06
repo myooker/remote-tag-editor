@@ -205,8 +205,15 @@ namespace program::music::tag {
 
     std::string normalize(const std::string &rawTag) {
         const auto &reg = getTagRegistry();
-
+        const std::string prefix { "----:com.apple.iTunes:" };
         auto it = reg.rawToNormalized.find(rawTag);
+
+        if (rawTag.starts_with(prefix)) {
+            std::string normalized { rawTag };
+            normalized = normalized.substr(prefix.size());
+            return normalized;
+        }
+
         return it != reg.rawToNormalized.end() ? it->second : rawTag;
     }
 

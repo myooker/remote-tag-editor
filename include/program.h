@@ -18,8 +18,8 @@ namespace program {
         bool disableCrowServer { false };
         int port{ 18080 };
         std::string mountpoint { "/music" };
-        std::string debugFile {};
-        std::string debugDirectory {};
+        std::string testFile {};
+        std::string testDirectory {};
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);

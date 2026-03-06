@@ -12,36 +12,6 @@
 
 using namespace audioFormat;
 
-// Should be deleted soon after testing tag normalization functionality
-TagLib::ByteVector mpegTagHandler::StringToIDv3Tag(const std::string &frameID) {
-    TagLib::ByteVector frame{};
-
-    const std::unordered_map<std::string, std::string> tagMap = {
-        {"ALBUM", "TALB"},
-        {"GENRE", "TCON"},
-        {"ORIGYEAR", "TDOR"},
-        {"YEAR", "TDRC"},
-        {"TITLE", "TIT2"},
-        {"LENGTH", "TLEN"},
-        {"MEDIATYPE", "TMED"},
-        {"ARTIST", "TPE1"},
-        {"ALBUMARTIST", "TPE2"},
-        {"DISCNUMBER", "TPOS"},
-        {"PUBLISHER", "TPUB"},
-        {"TRACK", "TRCK"},
-        {"ALBUMARTISTSORT", "TSO2"},
-        {"ARTISTSORT", "TSOP"},
-        {"ISRC", "TSRC"},
-        {"USERDEF", "TXXX"}
-    };
-
-    if (const auto it = tagMap.find(frameID); it != tagMap.end()) {
-        return TagLib::ByteVector { it->second.c_str() };
-    } else {
-        return TagLib::ByteVector { "TXXX" };
-    }
-}
-
 std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::MPEG::File file { filePath.c_str() };
 
@@ -136,10 +106,10 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     const std::string frameIDstr { frameID.data(), frameID.size() };
     auto frames = tag->frameList(frameID);
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " fieldtype is " << tagStruct.fieldType;
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " fildtype to idv3tag " << StringToIDv3Tag(tagStruct.fieldType).data();
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " fildtype to idv3tag " << denormFieldType;
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " frames are " << frames.size() << " frames";
 
-    if (frameIDstr == "TXXX") {
+    if (frameIDstr == "TXXX" || tagStruct.fieldType == denormFieldType) {
         removeTXXXFrame(tag, tagStruct.fieldType);
         file.save();
     } else if (!frames.isEmpty()) {

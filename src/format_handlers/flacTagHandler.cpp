@@ -133,7 +133,6 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
         oldValues = filedType_it->second;
     } else {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType.c_str() << " was not found in " << path.c_str();
-        // return { path, tagStruct.fieldType + " was not found" , 500 };
         return { 500, "Field type does not exist" };
     }
 
