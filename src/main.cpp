@@ -177,9 +177,6 @@ int main (int argc, char **argv) {
     }
 #endif
 
-    auto handler = musicTagHandlerFactory::createHandler(".m4a");
-    std::cout << handler->listMusicTags(application.debugFile).value().dump(4) << '\n';
-
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
         CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
