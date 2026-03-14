@@ -9,8 +9,12 @@
 #include <string_view>
 #include <unordered_map>
 
+#include <nlohmann/json.hpp>
+#include <nlohmann/json_fwd.hpp>
+
 namespace program::music {
     enum class format;
+    using json = nlohmann::json;
 
     namespace tag {
         constexpr std::string_view title { "Title" };
@@ -47,7 +51,8 @@ namespace program::music {
             std::unordered_map<format, std::unordered_map<std::string, std::string>> normalizedToRaw;
         };
 
-        const tagRegistry& getTagRegistry();
+        const tagRegistry &getTagRegistry();
+        const json &getJsonTagRegistry();
         std::string normalize(const std::string &rawTag);
         std::string denormalize(const std::string &normalizedTag, format format);
     }

@@ -4,9 +4,12 @@
 
 #include "../include/music.h"
 #include <crow/logging.h>
+#include <unordered_set>
 
 namespace program::music::tag {
-    const tagRegistry& getTagRegistry() {
+    using json = nlohmann::json;
+
+    const tagRegistry &getTagRegistry() {
         static tagRegistry s_registry = [] {
             tagRegistry temp;
 
@@ -201,6 +204,22 @@ namespace program::music::tag {
         }();
 
         return s_registry;
+    }
+
+    const json &getJsonTagRegistry() {
+        static json j = json::array();
+        std::unordered_set<std::string> s;
+        const auto &reg = getTagRegistry();
+
+        for (const auto &entity : reg.rawToNormalized) {
+            s.insert(entity.second);
+        }
+
+        for (const auto &entity : s) {
+            j.push_back(entity);
+        }
+
+        return j;
     }
 
     std::string normalize(const std::string &rawTag) {
