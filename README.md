@@ -5,7 +5,9 @@ WIP
 
 # Features
 
-WIP
+TODO:
+- [ ] Tag normalization (unified tag names)
+- [ ] Change history
 
 - Edit multi-valued tags
 - Easy to setup
@@ -18,16 +20,26 @@ git pull https://github.com/myooker/remote-tag-editor.git
 cd remote-tag-editor
 ```
 
-Specify the path to the music directory in `docker-compose.yml` before building:
+Example `docker-compose.yml`:
 ```yaml
-volumes:
-  - /path/to/music:/music  # change this line
+services:
+  remote-tag-editor:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    ports:
+      - "8080:80"
+    volumes:
+      - /path/to/music:/music
+    restart: unless-stopped
 ```
 
 ```bash
 docker compose build
 docker compose up -d
 ```
+
+The application should be accessible on `localhost:8080`.
 
 # About AI
 
