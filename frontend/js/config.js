@@ -1,6 +1,6 @@
 // Config
-const APIBASE = window.location.origin;
-//const APIBASE = "http://localhost:18080";
+//const APIBASE = window.location.origin;
+const APIBASE = "http://localhost:18080";
 const POLL_INTERVAL_MS = 5000;
 
 // State
@@ -13,6 +13,7 @@ let selectedFiles = []; // Changed from selectedFile to support multi-selection
 let lastSelectedIndex = -1; // For Shift+Click range selection
 let currentTags = null;
 let dragDepth = 0;
+let tagRegistryHints = [];
 
 // Upload Progress State
 let uploadState = {
