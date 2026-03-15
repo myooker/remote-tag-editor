@@ -204,24 +204,18 @@ int main (int argc, char **argv) {
                 ""
             };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = body.value("tagType", "none");
-            const std::string replaceWhat = body.value("replaceWhat", "none");
-            const std::string replaceWith = body.value("replaceWith", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/edittag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/edittag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/edittag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/edittag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << replaceWhat;
-            CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << replaceWith;
+            CROW_LOG_DEBUG << "(api/edittag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << tagStruct.replaceWhat;
+            CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << tagStruct.replaceWith;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            if (replaceWhat == "none") {
-                //return handler->editMusicTags(filePath, fieldType, replaceWith);
+            if (tagStruct.replaceWhat == "none") {
                 return handler->editMusicTags(tagStruct);
             } else {
-                //return handler->editMusicTags(filePath, fieldType, replaceWhat, replaceWith);
                 return handler->editMusicTags(tagStruct, true);
             }
         });
@@ -238,18 +232,14 @@ int main (int argc, char **argv) {
                 body.value("value", "none")
             };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = body.value("fieldType", "none");
-            const std::string value = body.value("value", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/addfieldtag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/addfieldtag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/addfieldtag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/addfieldtag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << value;
+            CROW_LOG_DEBUG << "(api/addfieldtag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            //return handler->addMusicTag(filePath, fieldType, value);
             return handler->addMusicTag(tagStruct);
         });
 
@@ -265,18 +255,14 @@ int main (int argc, char **argv) {
                 body.value("value", "none")
             };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = body.value("fieldType", "none");
-            const std::string value = body.value("value", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/removefieldtag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/removefieldtag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/removefieldtag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << value;
+            CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            //return handler->removeMusicTag(filePath, fieldType, value);
             return handler->removeMusicTag(tagStruct);
         });
 
