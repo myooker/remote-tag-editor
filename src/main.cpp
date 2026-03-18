@@ -16,7 +16,7 @@
 #include "../include/musicTagHandlerFactory.h"
 #include "tests/tests.h"
 
-#define APP_TESTING
+//#define APP_TESTING
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
