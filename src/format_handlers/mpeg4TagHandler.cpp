@@ -90,7 +90,6 @@ crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &t
     }
 
     auto *tag = file.tag();
-    //tag->removeItem(TagLib::String(fieldType, TagLib::String::UTF8));
 
     if (tagStruct.fieldType == rawAtom)
         rawAtom = "----:com.apple.iTunes:" + rawAtom;
@@ -193,5 +192,7 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
 }
 
 crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &tagStruct) {
-    return addMusicTag(tagStruct);
+    auto modified = tagStruct;
+    modified.value = tagStruct.replaceWith;
+    return addMusicTag(modified);
 }
