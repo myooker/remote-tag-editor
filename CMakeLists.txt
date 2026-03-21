@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.25)
 project(web_tag_editor)
 
 set(CMAKE_CXX_STANDARD 23)
@@ -6,8 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 # Find TagLib using pkg-config
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
-find_package(Boost REQUIRED)
-pkg_check_modules(TAGLIB REQUIRED taglib)
+pkg_check_modules(TAGLIB REQUIRED taglib>=2.0)
 
 # Your executable
 add_executable(web_tag_editor src/main.cpp
