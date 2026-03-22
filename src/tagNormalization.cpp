@@ -207,17 +207,22 @@ namespace program::music::tag {
     }
 
     const json &getJsonTagRegistry() {
-        static json j = json::array();
-        std::unordered_set<std::string> s;
-        const auto &reg = getTagRegistry();
+        static json j = []() {
+            json t;
 
-        for (const auto &entity : reg.rawToNormalized) {
-            s.insert(entity.second);
-        }
+            std::unordered_set<std::string> s;
+            const auto &reg = getTagRegistry();
 
-        for (const auto &entity : s) {
-            j.push_back(entity);
-        }
+            for (const auto &entity : reg.rawToNormalized) {
+                s.insert(entity.second);
+            }
+
+            for (const auto &entity : s) {
+                t.push_back(entity);
+            }
+
+            return t;
+        }();
 
         return j;
     }
