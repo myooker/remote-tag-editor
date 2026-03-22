@@ -279,6 +279,14 @@ int main (int argc, char **argv) {
                 if (entry.first == "path") {
                     filepath = entry.second.body;
                     CROW_LOG_INFO << "(api/store) path = " << filepath;
+
+                    auto requestedPath { fs::canonical(filepath) };
+                    auto mountPoint { fs::canonical(application.mountpoint) };
+
+                    if (requestedPath != application.mountpoint || !requestedPath.string().starts_with(mountPoint.string())) {
+                        CROW_LOG_WARNING << "(api/store) requested filepath is not a mount-point";
+                        return crow::response{ 500, "The requested path is not a mount-point" };
+                    }
                 }
 
                 // Find "file" in part map, assign binary data to filepart variable
