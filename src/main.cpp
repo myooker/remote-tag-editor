@@ -280,10 +280,7 @@ int main (int argc, char **argv) {
                     filepath = entry.second.body;
                     CROW_LOG_INFO << "(api/store) path = " << filepath;
 
-                    auto requestedPath { fs::canonical(filepath) };
-                    auto mountPoint { fs::canonical(application.mountpoint) };
-
-                    if (requestedPath != application.mountpoint || !requestedPath.string().starts_with(mountPoint.string())) {
+                    if (!application.isMountPoint(std::string(filepath))) {
                         CROW_LOG_WARNING << "(api/store) requested filepath is not a mount-point";
                         return crow::response{ 500, "The requested path is not a mount-point" };
                     }
@@ -339,7 +336,7 @@ int main (int argc, char **argv) {
         CROW_ROUTE(app, "/api/mkdir").methods("POST"_method)
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
-            const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() };
+            const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() }; //ugly as fuck
             if (fs::exists(dir)) {
                 std::cerr << "Error: The specified directory already exist\n";
                 return crow::response { 500, "Error: The specified directory already exist" };
@@ -387,14 +384,8 @@ int main (int argc, char **argv) {
         CROW_ROUTE(app, "/api/list").methods("GET"_method, "OPTIONS"_method)
         ([&] (const crow::request &req){
             std::string filePath = req.url_params.get("path");
-            fs::path requestedPath { filePath };
 
-            auto fsMountPoint { fs::canonical(application.mountpoint) };
-            CROW_LOG_DEBUG << "TEST, fsMountPoint: " << fsMountPoint;
-            auto fsRequestedPath { fs::canonical(filePath) };
-            CROW_LOG_DEBUG << "TEST, fsRequestedPath: " << fsRequestedPath;
-
-            if (fsMountPoint == fsRequestedPath || fsRequestedPath.string().starts_with(fsMountPoint.string())) {
+            if (application.isMountPoint(filePath)) {
                 // Remove trailing slash for buildMainDirectoryTree
                 if (filePath.ends_with('/')) {
                     filePath.pop_back();
