@@ -13,6 +13,7 @@ let selectedFiles = []; // Changed from selectedFile to support multi-selection
 let lastSelectedIndex = -1; // For Shift+Click range selection
 let currentTags = null;
 let dragDepth = 0;
+let tagRegistryHints = [];
 
 // Upload Progress State
 let uploadState = {

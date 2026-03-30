@@ -8,6 +8,7 @@ async function pollMountPoint() {
             setStatus('Connected');
             document.getElementById('mountpoint-label').textContent = mountPoint;
             await loadDirectory(mountPoint, true);
+            try { tagRegistryHints = await jsonGet(`${APIBASE}/api/tag-registry`); } catch (e) { console.error('Failed to fetch tag registry', e); }
             break;
         } catch (e) {
             setStatus('Waiting for backend...');

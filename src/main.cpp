@@ -14,6 +14,9 @@
 
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
+#include "tests/tests.h"
+
+//#define APP_TESTING
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -21,7 +24,7 @@ using ordered_json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
 
 std::string fileExtensionToType(const std::string &ext) {
-    const std::unordered_map<std::string, std::string> extensionsMap {
+    const static std::unordered_map<std::string, std::string> s_extensionsMap {
         {".mp3", "music"},      // done
         {".flac", "music"},     // done
         {".m4a", "music"},      // done
@@ -37,7 +40,7 @@ std::string fileExtensionToType(const std::string &ext) {
         {".png", "picture"}
     };
 
-    if (const auto it = extensionsMap.find(ext); it != extensionsMap.end()) {
+    if (const auto it = s_extensionsMap.find(ext); it != s_extensionsMap.end()) {
         return it->second;
     } else {
         return "file";
@@ -45,13 +48,13 @@ std::string fileExtensionToType(const std::string &ext) {
 }
 
 int typeOrder(const std::string &type) {
-    const std::unordered_map<std::string, int> map {
+    const static std::unordered_map<std::string, int> s_typeOrderMap {
         {"directory", 0},
         {"music", 1},
         {"picture", 2},
         {"file", 3},
     };
-    if (const auto it = map.find(type); it != map.end()) {
+    if (const auto it = s_typeOrderMap.find(type); it != s_typeOrderMap.end()) {
         return it->second;
     } else {
         return 4;
@@ -61,13 +64,6 @@ int typeOrder(const std::string &type) {
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     return fs::path{path}.extension().string();
-}
-
-void stringToUpper(std::string &str) {
-    if (str == "none")
-        return;
-
-    std::ranges::transform(str, str.begin(), toupper);
 }
 
 bool naturalSorting(const std::string &a, const std::string &b) {
@@ -141,12 +137,14 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
 }
 
 int main (int argc, char **argv) {
-    program::settings application {};
+    program::Settings application {};
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
     CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.", "app name"};
+#ifndef APP_TESTING
     cli.add_option("-m,--mount-point", application.mountpoint,
             "The directory of your music library")->required();
+#endif
     cli.add_option("-p,--port", application.port,
         "The application's port to bind in. Default is 18080.")->default_val(18080);
     cli.add_option("-l,--log-level", debugLevel,
@@ -154,8 +152,9 @@ int main (int argc, char **argv) {
 #ifdef APP_DEBUG
     cli.add_flag("--no-crow", application.disableCrowServer,
         "Disables Crow server.");
-    cli.add_option("--test-file", application.debugFile,
+    cli.add_option("--test-file", application.testFile,
             "Path to the test directory");
+    cli.add_option("--test-directory", application.testDirectory);
 #endif
     CLI11_PARSE(cli, argc, argv);
 
@@ -168,13 +167,15 @@ int main (int argc, char **argv) {
         default: logLevel = crow::LogLevel::INFO; break;
     }
 
-    CROW_LOG_DEBUG << "debugFile: " << application.debugFile << '\n';
+    CROW_LOG_DEBUG << "debugFile: " << application.testFile << '\n';
     CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
+#ifndef APP_TESTING
     if (application.isExist()) {
         CROW_LOG_CRITICAL << "Error: The specified mount point does not exist. Please verify the path and try again.";
         std::exit(-1);
     }
+#endif
 
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
@@ -195,26 +196,27 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("tagType", "none");
-            stringToUpper(tempFieldType);
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("tagType", "none"),
+                body.value("replaceWhat", "none"),
+                body.value("replaceWith", "none"),
+                ""
+            };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = body.value("tagType", "none");
-            const std::string replaceWhat = body.value("replaceWhat", "none");
-            const std::string replaceWith = body.value("replaceWith", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/edittag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/edittag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/edittag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/edittag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << replaceWhat;
-            CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << replaceWith;
+            CROW_LOG_DEBUG << "(api/edittag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << tagStruct.replaceWhat;
+            CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << tagStruct.replaceWith;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            if (replaceWhat == "none") {
-                return handler->editMusicTags(filePath, fieldType, replaceWith);
+            if (tagStruct.replaceWhat == "none") {
+                return handler->editMusicTags(tagStruct);
             } else {
-                return handler->editMusicTags(filePath, fieldType, replaceWhat, replaceWith);
+                return handler->editMusicTags(tagStruct, true);
             }
         });
 
@@ -222,42 +224,46 @@ int main (int argc, char **argv) {
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("fieldType", "none");
-            stringToUpper(tempFieldType);
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("fieldType", "none"),
+                "",
+                "",
+                body.value("value", "none")
+            };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = tempFieldType;
-            const std::string value = body.value("value", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/addfieldtag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/addfieldtag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/addfieldtag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/addfieldtag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << value;
+            CROW_LOG_DEBUG << "(api/addfieldtag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->addMusicTag(filePath, fieldType, value);
+            return handler->addMusicTag(tagStruct);
         });
 
         CROW_ROUTE(app, "/api/removefieldtag").methods("POST"_method)
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
 
-            std::string tempFieldType = body.value("fieldType", "none");
-            stringToUpper(tempFieldType);
+            program::TagModification tagStruct {
+                body.value("path", "none"),
+                body.value("fieldType", "none"),
+                "",
+                "",
+                body.value("value", "none")
+            };
 
-            const std::string filePath = body.value("path", "none");
-            const std::string fileExtension = filePath != "none" ? getExtension(filePath) : "none";
-            const std::string fieldType = tempFieldType;
-            const std::string value = body.value("value", "none");
+            const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-            CROW_LOG_INFO << "(api/removefieldtag) requested path: " << filePath;
+            CROW_LOG_INFO << "(api/removefieldtag) requested path: " << tagStruct.filePath;
             CROW_LOG_DEBUG << "(api/removefieldtag) requested file extension: " << fileExtension;
-            CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << fieldType;
-            CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << value;
+            CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << tagStruct.fieldType;
+            CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->removeMusicTag(filePath, fieldType, value);
+            return handler->removeMusicTag(tagStruct);
         });
 
         CROW_ROUTE(app, "/api/store").methods("POST"_method)
@@ -273,6 +279,11 @@ int main (int argc, char **argv) {
                 if (entry.first == "path") {
                     filepath = entry.second.body;
                     CROW_LOG_INFO << "(api/store) path = " << filepath;
+
+                    if (!application.isMountPoint(std::string(filepath))) {
+                        CROW_LOG_WARNING << "(api/store) requested filepath is not a mount-point";
+                        return crow::response{ 500, "The requested path is not a mount-point" };
+                    }
                 }
 
                 // Find "file" in part map, assign binary data to filepart variable
@@ -325,7 +336,7 @@ int main (int argc, char **argv) {
         CROW_ROUTE(app, "/api/mkdir").methods("POST"_method)
         ([&](const crow::request &req) {
             const ordered_json body = json::parse(req.body);
-            const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() };
+            const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() }; //ugly as fuck
             if (fs::exists(dir)) {
                 std::cerr << "Error: The specified directory already exist\n";
                 return crow::response { 500, "Error: The specified directory already exist" };
@@ -356,6 +367,15 @@ int main (int argc, char **argv) {
             }
         });
 
+        CROW_ROUTE(app, "/api/tag-registry")
+        ([]() {
+            using namespace program::music::tag;
+            crow::response response (getJsonTagRegistry().dump());
+            response.set_header("Content-Type", "application/json");
+
+            return response;
+        });
+
         CROW_ROUTE(app, "/api/heartbeat")
         ([]() {
             return crow::response{ 200, "OK"};
@@ -364,14 +384,8 @@ int main (int argc, char **argv) {
         CROW_ROUTE(app, "/api/list").methods("GET"_method, "OPTIONS"_method)
         ([&] (const crow::request &req){
             std::string filePath = req.url_params.get("path");
-            fs::path requestedPath { filePath };
 
-            auto fsMountPoint { fs::canonical(application.mountpoint) };
-            CROW_LOG_DEBUG << "TEST, fsMountPoint: " << fsMountPoint;
-            auto fsRequestedPath { fs::canonical(filePath) };
-            CROW_LOG_DEBUG << "TEST, fsRequestedPath: " << fsRequestedPath;
-
-            if (fsMountPoint == fsRequestedPath || fsRequestedPath.string().starts_with(fsMountPoint.string())) {
+            if (application.isMountPoint(filePath)) {
                 // Remove trailing slash for buildMainDirectoryTree
                 if (filePath.ends_with('/')) {
                     filePath.pop_back();

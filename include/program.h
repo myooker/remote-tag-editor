@@ -1,11 +1,11 @@
 #ifndef WEB_TAG_EDITOR_PROGRAM_H
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
-#include <crow/logging.h>
 
 namespace program {
     namespace fs = std::filesystem;
-    constexpr std::string_view version { "Beta 1.0.1" };
+
+    constexpr std::string_view version { "Beta 1.2.2" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -14,20 +14,41 @@ namespace program {
         ALL = 100,
     };
 
-    struct settings {
+    struct Settings {
         bool disableCrowServer { false };
         int port{ 18080 };
         std::string mountpoint { "/music" };
-        std::string debugFile {};
+        std::string testFile {};
+        std::string testDirectory {};
+
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
             return !std::filesystem::exists(p);
         }
+
+        [[nodiscard]] bool isMountPoint(const std::string &requestedPath) const {
+            const std::string mp { fs::canonical(mountpoint) };        // canonical mount point
+            const std::string rp { fs::canonical(requestedPath) };     // canonical requested path
+
+            if (rp.starts_with(mp)) {
+                return true;
+            }
+
+            return false;
+        }
     };
 
-    struct filePath {
+    struct FilePath {
         fs::path path {};
         std::string extension { path.extension() };
+    };
+
+    struct TagModification {
+        std::string filePath { "none" };
+        std::string fieldType { "none" };
+        std::string replaceWhat { "none" };
+        std::string replaceWith { "none" };
+        std::string value { "none" };
     };
 
     namespace error {
@@ -62,8 +83,6 @@ namespace program {
             }
         }
     }
-
-
 }
 
 #endif //WEB_TAG_EDITOR_PROGRAM_H

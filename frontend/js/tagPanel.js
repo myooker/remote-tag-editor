@@ -226,9 +226,39 @@ function renderTags(tags, filePath) {
     fieldTypeInput.className = 'tag-input';
     fieldTypeInput.id = 'new-field-type';
     fieldTypeInput.placeholder = 'e.g., GENRE';
+    fieldTypeInput.setAttribute('autocomplete', 'off');
+
+    const autocompleteContainer = document.createElement('div');
+    autocompleteContainer.className = 'autocomplete-container';
+
+    const autocompleteList = document.createElement('div');
+    autocompleteList.className = 'autocomplete-list';
+
+    const showHints = (query) => {
+        autocompleteList.innerHTML = '';
+        if (!query) { autocompleteList.classList.remove('visible'); return; }
+        const filtered = tagRegistryHints.filter(h => h.toLowerCase().includes(query.toLowerCase()));
+        if (filtered.length === 0) { autocompleteList.classList.remove('visible'); return; }
+        filtered.forEach(hint => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = hint;
+            item.addEventListener('mousedown', (e) => { e.preventDefault(); fieldTypeInput.value = hint; autocompleteList.classList.remove('visible'); });
+            autocompleteList.appendChild(item);
+        });
+        autocompleteList.classList.add('visible');
+    };
+
+    fieldTypeInput.addEventListener('input', () => showHints(fieldTypeInput.value.trim()));
+    fieldTypeInput.addEventListener('focus', () => { if (fieldTypeInput.value.trim()) showHints(fieldTypeInput.value.trim()); });
+    fieldTypeInput.addEventListener('blur', () => autocompleteList.classList.remove('visible'));
+    fieldTypeInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') autocompleteList.classList.remove('visible'); });
+
+    autocompleteContainer.appendChild(fieldTypeInput);
+    autocompleteContainer.appendChild(autocompleteList);
 
     fieldTypeRow.appendChild(fieldTypeLabel);
-    fieldTypeRow.appendChild(fieldTypeInput);
+    fieldTypeRow.appendChild(autocompleteContainer);
     addFieldSection.appendChild(fieldTypeRow);
 
     const valueRow = document.createElement('div');

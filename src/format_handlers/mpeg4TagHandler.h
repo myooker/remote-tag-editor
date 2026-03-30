@@ -7,7 +7,7 @@
 
 #include <tstring.h>
 
-#include "../musicTagHandler.h"
+#include "../../include/musicTagHandler.h"
 
 namespace audioFormat {
     enum class atomType : int {
@@ -48,13 +48,12 @@ namespace audioFormat {
 
     class mpeg4TagHandler : public musicTagHandler {
     public:
-        static atomEntity atomToString(const std::string &atom);
-        static TagLib::String stringToAtom(const std::string &atom);
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
-        crow::response removeMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
-        crow::response addMusicTag(const std::string &filePath, const std::string &fieldType, const std::string &value) override;
-        crow::response editMusicTags(const std::string &filePath, const std::string &fieldType, const std::string &replaceWith) override;
+        static void addUserDefinedAtom(const program::TagModification &tagStruct);
+        crow::response removeMusicTag(const program::TagModification &tagStruct) override;
+        crow::response addMusicTag(const program::TagModification &tagStruct) override;
+        crow::response editMusicTags(const program::TagModification &tagStruct) override;
     };
 } // audioFormat
 
-#endif //WEB_TAG_EDITOR_MPEG4TAGHANDLER_H
+#endif // WEB_TAG_EDITOR_MPEG4TAGHANDLER_H
