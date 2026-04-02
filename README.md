@@ -6,7 +6,7 @@ WIP
 # Features
 
 TODO:
-- [ ] Tag normalization (unified tag names)
+- [x] Tag normalization (unified tag names)
 - [ ] Change history
 
 - Edit multi-valued tags
