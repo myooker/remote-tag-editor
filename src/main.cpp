@@ -47,54 +47,9 @@ std::string fileExtensionToType(const std::string &ext) {
     }
 }
 
-int typeOrder(const std::string &type) {
-    const static std::unordered_map<std::string, int> s_typeOrderMap {
-        {"directory", 0},
-        {"music", 1},
-        {"picture", 2},
-        {"file", 3},
-    };
-    if (const auto it = s_typeOrderMap.find(type); it != s_typeOrderMap.end()) {
-        return it->second;
-    } else {
-        return 4;
-    }
-}
-
 std::string getExtension(const std::string &path) {
     CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     return fs::path{path}.extension().string();
-}
-
-bool naturalSorting(const std::string &a, const std::string &b) {
-    const auto sa = a.size();
-    const auto sb = b.size();
-
-    std::size_t sta = 0, stb = 0;
-
-    while (sta < sa && stb < sb) {
-        if (std::isdigit(a[sta]) && std::isdigit(b[stb])) {
-            std::size_t sta2 = sta, stb2 = stb;
-
-            while (sta2 < sa && std::isdigit(a[sta2])) ++sta2;
-            while (stb2 < sb && std::isdigit(b[stb2])) ++stb2;
-
-            const int value_a = std::stoi(a.substr(sta, sta2));
-            const int value_b = std::stoi(b.substr(stb, stb2));
-
-            if (value_a != value_b)
-                return value_a < value_b;
-
-            sta = sta2; stb = stb2;
-        } else {
-            if (a[sta] != b[stb]) {
-                return a[sta] < b[stb];
-            }
-            sta++; stb++;
-        }
-    }
-
-    return sa < sb;
 }
 
 ordered_json buildDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
@@ -128,11 +83,6 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
         }
     }
 
-    std::sort(rootTree["content"].begin(), rootTree["content"].end(), [](const ordered_json &a, const ordered_json &b) {
-        return typeOrder(a["type"]) < typeOrder(b["type"]) ||
-                typeOrder(a["type"]) == typeOrder(b["type"]) &&
-                naturalSorting(a["name"], b["name"]);
-    });
     return rootTree;
 }
 
