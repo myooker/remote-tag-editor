@@ -3,4 +3,5 @@
 build/
 /cmake-build-debug/
 /cmake-build-release/
+/_deps/
 docker-compose.yml

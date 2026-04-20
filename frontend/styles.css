@@ -78,7 +78,32 @@ body {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    cursor: pointer;
+    transition: transform 0.15s ease;
 }
+
+@keyframes logo-deflate-spin {
+    0% {
+        transform: scale(1) rotate(0deg);
+    }
+
+    20% {
+        transform: scale(0.55) rotate(120deg);
+    }
+
+    60% {
+        transform: scale(0.55) rotate(300deg);
+    }
+
+    100% {
+        transform: scale(1) rotate(360deg);
+    }
+}
+
+.logo-deflating {
+    animation: logo-deflate-spin 1.2s cubic-bezier(0.075, 0.82, 0.165, 1) forwards !important;
+}
+
 
 .header-info h1 {
     font-size: 17px;

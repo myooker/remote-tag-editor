@@ -5,7 +5,7 @@
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "Beta 1.2.2" };
+    constexpr std::string_view version { "" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -45,7 +45,7 @@ namespace program {
 
     struct TagModification {
         std::string filePath { "none" };
-        std::string fieldType { "none" };
+        std::string tagType { "none" };
         std::string replaceWhat { "none" };
         std::string replaceWith { "none" };
         std::string value { "none" };

@@ -15,7 +15,7 @@
         <header class="app-header">
             <div class="header-left">
                 <div class="app-logo">
-                    <img src="logo.svg" alt="Logo">
+                    <img src="logo.svg" alt="Logo" id="logo-easter-egg">
                 </div>
                 <div class="header-info">
                     <h1>Music Tag Editor</h1>
@@ -239,6 +239,41 @@
     <script src="js/contextMenu.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/navigation.js"></script>
+    <script>
+        /* ---- Logo easter egg ---- */
+        (() => {
+            const TRIGGER_CLICKS = 7;
+            const MAX_SCALE      = 1.45;
+            const GROW_STEP      = (MAX_SCALE - 1) / (TRIGGER_CLICKS - 1);
+
+            const logo  = document.getElementById('logo-easter-egg');
+            let clicks  = 0;
+            let scale   = 1;
+            let locked  = false;
+
+            logo.addEventListener('click', () => {
+                if (locked) return;
+
+                clicks++;
+                scale = 1 + GROW_STEP * (clicks - 1);
+                logo.style.transform = `scale(${scale.toFixed(3)})`;
+
+                if (clicks >= TRIGGER_CLICKS) {
+                    locked = true;
+                    logo.style.transform = '';
+                    logo.classList.add('logo-deflating');
+
+                    logo.addEventListener('animationend', () => {
+                        logo.classList.remove('logo-deflating');
+                        logo.style.transform = '';
+                        clicks = 0;
+                        scale  = 1;
+                        locked = false;
+                    }, { once: true });
+                }
+            });
+        })();
+    </script>
 </body>
 
 </html>
