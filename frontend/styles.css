@@ -359,6 +359,9 @@ input[type="range"]::-moz-range-thumb:hover {
     color: var(--text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.8px;
+    user-select: none;
+    -webkit-user-select: none;
+    white-space: nowrap;
 }
 
 .col-name {
@@ -371,6 +374,54 @@ input[type="range"]::-moz-range-thumb:hover {
 
 .col-size {
     width: 15%;
+}
+
+/* Sortable header styles */
+th.col-name,
+th.col-type {
+    position: relative;
+    transition: color 0.15s;
+}
+
+th.col-name:hover,
+th.col-type:hover {
+    color: var(--text-primary);
+}
+
+th.col-name::after,
+th.col-type::after {
+    content: '';
+    display: inline-block;
+    width: 0;
+    height: 0;
+    margin-left: 6px;
+    vertical-align: middle;
+    opacity: 0.25;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid currentColor;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+th.col-name:hover::after,
+th.col-type:hover::after {
+    opacity: 0.5;
+}
+
+th.sort-active {
+    /* no color change — text stays gray */
+}
+
+th.sort-active::after {
+    opacity: 1;
+}
+
+th.sort-asc::after {
+    transform: rotate(0deg);
+}
+
+th.sort-desc::after {
+    transform: rotate(180deg);
 }
 
 .file-table tbody tr {
@@ -1170,10 +1221,6 @@ input[type="range"]::-moz-range-thumb:hover {
     border: 1px solid #3b82f6;
 }
 
-.windows-95-preview {
-    background: linear-gradient(135deg, #008080 0%, #008080 20%, #c0c0c0 20%, #c0c0c0 100%);
-    border: 2px outset #ffffff;
-}
 
 .theme-name {
     font-size: 13px;
@@ -1182,382 +1229,7 @@ input[type="range"]::-moz-range-thumb:hover {
     text-align: center;
 }
 
-/* ============================================
-   WINDOWS 95 THEME
-   ============================================ */
 
-body.theme-windows-95 {
-    --bg-primary: #008080;
-    --bg-secondary: #c0c0c0;
-    --bg-tertiary: #c0c0c0;
-    --bg-header: #000080;
-    --border-color: #808080;
-    --text-primary: #000000;
-    --text-secondary: #000000;
-    --text-muted: #808080;
-    --accent: #000080;
-    --accent-hover: #000066;
-    --success: #008000;
-    --warning: #ff8c00;
-    --danger: #ff0000;
-    --folder-color: #ffff00;
-    --music-color: #ff00ff;
-    --picture-color: #00ffff;
-    --file-color: #808080;
-    font-family: "MS Sans Serif", Arial, sans-serif;
-}
-
-/* Windows 95 Specific Overrides */
-body.theme-windows-95 .app-header {
-    background: var(--bg-header);
-    border-bottom: 2px outset #ffffff;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .header-info h1 {
-    color: #ffffff;
-    font-weight: bold;
-}
-
-body.theme-windows-95 .header-info span {
-    color: #c0c0c0;
-}
-
-body.theme-windows-95 .app-logo {
-    border-radius: 0;
-    background: #c0c0c0;
-    box-shadow: none;
-    border: 2px outset #ffffff;
-    padding: 2px;
-}
-
-body.theme-windows-95 .search-bar,
-body.theme-windows-95 .status-indicator,
-body.theme-windows-95 .settings-btn {
-    background: var(--bg-secondary);
-    border: 2px inset #ffffff;
-    border-radius: 0;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .search-bar:focus-within {
-    border: 2px inset #ffffff;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .settings-btn:hover,
-body.theme-windows-95 .toolbar-btn:hover:not(:disabled) {
-    background: #dfdfdf;
-    border: 2px outset #ffffff;
-    transform: none;
-}
-
-body.theme-windows-95 .file-explorer,
-body.theme-windows-95 .tags-panel,
-body.theme-windows-95 .explorer-content {
-    background: var(--bg-secondary);
-}
-
-body.theme-windows-95 .explorer-toolbar,
-body.theme-windows-95 .panel-header {
-    background: var(--bg-secondary);
-    border-bottom: 2px groove #ffffff;
-}
-
-body.theme-windows-95 .toolbar-btn {
-    background: var(--bg-secondary);
-    border: 2px outset #ffffff;
-    border-radius: 0;
-}
-
-body.theme-windows-95 .toolbar-btn:disabled {
-    opacity: 0.5;
-}
-
-body.theme-windows-95 .file-table thead {
-    background: var(--bg-secondary);
-    border-bottom: 2px groove #ffffff;
-}
-
-body.theme-windows-95 .file-table tbody tr {
-    border-bottom: 1px solid #808080;
-}
-
-body.theme-windows-95 .file-table tbody tr:hover {
-    background: #dfdfdf;
-}
-
-body.theme-windows-95 .file-table tbody tr.selected {
-    background: #000080;
-    color: #ffffff;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .file-table tbody tr.selected .file-name,
-body.theme-windows-95 .file-table tbody tr.selected .file-type,
-body.theme-windows-95 .file-table tbody tr.selected .file-size {
-    color: #ffffff;
-}
-
-body.theme-windows-95 .file-icon {
-    border-radius: 0;
-    box-shadow: 1px 1px 0 rgba(0, 0, 0, 0.5);
-    border: 1px solid #000000;
-}
-
-body.theme-windows-95 .file-icon.directory {
-    background: #ffff00;
-}
-
-body.theme-windows-95 .file-icon.directory svg {
-    fill: #000000;
-}
-
-body.theme-windows-95 .file-icon.music {
-    background: #ff00ff;
-}
-
-body.theme-windows-95 .file-icon.music svg {
-    fill: #ffffff;
-}
-
-body.theme-windows-95 .file-icon.picture {
-    background: #00ffff;
-}
-
-body.theme-windows-95 .file-icon.picture svg {
-    fill: #000000;
-}
-
-body.theme-windows-95 .file-icon.file {
-    background: #ffffff;
-}
-
-body.theme-windows-95 .file-icon.file svg {
-    fill: #000000;
-}
-
-body.theme-windows-95 .tag-input,
-body.theme-windows-95 .modal-input {
-    background: #ffffff;
-    border: 2px inset #ffffff;
-    border-radius: 0;
-    color: #000000;
-}
-
-body.theme-windows-95 .tag-input:focus,
-body.theme-windows-95 .modal-input:focus {
-    border: 2px inset #ffffff;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .btn {
-    border-radius: 0;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .btn-primary {
-    background: var(--bg-secondary);
-    color: #000000;
-    border: 2px outset #ffffff;
-}
-
-body.theme-windows-95 .btn-primary:hover {
-    background: #dfdfdf;
-    border: 2px outset #ffffff;
-    transform: none;
-    box-shadow: none;
-}
-
-body.theme-windows-95 .btn-secondary {
-    background: var(--bg-secondary);
-    color: #000000;
-    border: 2px outset #ffffff;
-}
-
-body.theme-windows-95 .btn-secondary:hover {
-    background: #dfdfdf;
-    border: 2px outset #ffffff;
-}
-
-body.theme-windows-95 .modal-dialog {
-    background: var(--bg-secondary);
-    border: 2px outset #ffffff;
-    border-radius: 0;
-    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
-}
-
-body.theme-windows-95 .modal-header {
-    background: var(--bg-header);
-    border-bottom: 2px groove #ffffff;
-    border-radius: 0;
-}
-
-body.theme-windows-95 .modal-title {
-    color: #ffffff;
-    font-weight: bold;
-}
-
-body.theme-windows-95 .modal-close {
-    background: var(--bg-secondary);
-    border: 1px outset #ffffff;
-    color: #000000;
-}
-
-body.theme-windows-95 .modal-close:hover {
-    background: #dfdfdf;
-}
-
-body.theme-windows-95 .context-menu {
-    background: var(--bg-secondary);
-    border: 2px outset #ffffff;
-    border-radius: 0;
-    box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
-}
-
-body.theme-windows-95 .context-item:hover {
-    background: #000080;
-    color: #ffffff;
-}
-
-body.theme-windows-95 .status-dot {
-    box-shadow: none;
-}
-
-body.theme-windows-95 input[type="range"] {
-    background: var(--bg-secondary);
-    border: 2px inset #ffffff;
-}
-
-/* Windows 95 - Use authentic .ico files */
-body.theme-windows-95 .file-icon svg {
-    display: none;
-}
-
-body.theme-windows-95 .file-icon::after {
-    content: '';
-    width: 100%;
-    height: 100%;
-    background-size: contain;
-    background-position: center;
-    background-repeat: no-repeat;
-    position: absolute;
-    top: 0;
-    left: 0;
-}
-
-body.theme-windows-95 .file-icon.directory::after {
-    background-image: url('/icons/folder.ico');
-}
-
-body.theme-windows-95 .file-icon.music::after {
-    background-image: url('/icons/music.ico');
-}
-
-body.theme-windows-95 .file-icon.picture::after {
-    background-image: url('/icons/image.ico');
-}
-
-body.theme-windows-95 .file-icon.file::after {
-    background-image: url('/icons/file.ico');
-}
-
-/* Custom Dropdown - Modern Dark Theme */
-.custom-dropdown-wrapper {
-    position: relative;
-    flex: 1;
-}
-
-.custom-dropdown {
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    max-height: 200px;
-    overflow-y: auto;
-    background: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1000;
-    margin-top: 4px;
-}
-
-.dropdown-option {
-    padding: 8px 12px;
-    cursor: pointer;
-    color: var(--text-primary);
-    font-size: 13px;
-    transition: background 0.15s;
-}
-
-.dropdown-option:hover {
-    background: var(--accent);
-    color: white;
-}
-
-/* Windows 95 Theme - Custom Dropdown */
-body.theme-windows-95 .custom-dropdown {
-    background: #ffffff;
-    border: 2px outset #ffffff;
-    border-radius: 0;
-    box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
-}
-
-body.theme-windows-95 .dropdown-option {
-    color: #000000;
-    font-family: "MS Sans Serif", Arial, sans-serif;
-    padding: 4px 8px;
-}
-
-body.theme-windows-95 .dropdown-option:hover {
-    background: #000080;
-    color: #ffffff;
-}
-
-/* Native Select Styling (if used elsewhere) */
-select,
-option {
-    background: var(--bg-secondary);
-    color: var(--text-primary);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    padding: 8px 12px;
-    font-family: inherit;
-    font-size: 13px;
-}
-
-select:focus {
-    outline: none;
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-option:hover,
-option:checked {
-    background: var(--accent);
-    color: white;
-}
-
-body.theme-windows-95 select,
-body.theme-windows-95 option {
-    background: #ffffff;
-    color: #000000;
-    border: 2px inset #ffffff;
-    border-radius: 0;
-    font-family: "MS Sans Serif", Arial, sans-serif;
-}
-
-body.theme-windows-95 select:focus {
-    border: 2px inset #ffffff;
-    box-shadow: none;
-}
-
-body.theme-windows-95 option:hover,
-body.theme-windows-95 option:checked {
-    background: #000080;
-    color: #ffffff;
-}
 
 /* Autocomplete Hints */
 .autocomplete-container {

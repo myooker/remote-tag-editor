@@ -243,7 +243,8 @@ function renderFileList(tree) {
         tbody.appendChild(tr);
         return;
     }
-    tree.content.forEach(node => {
+    const nodes = sortNodes(tree.content);
+    nodes.forEach(node => {
         const tr = document.createElement('tr');
         const fullPath = node.name.startsWith('/') ? node.name : `${currentPath}/${node.name}`;
         tr.dataset.path = fullPath;
