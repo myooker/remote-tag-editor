@@ -427,11 +427,12 @@ th.sort-desc::after {
 .file-table tbody tr {
     border-bottom: 1px solid var(--border-color);
     cursor: pointer;
-    transition: all 0.15s;
+    transition: background-color 0.1s;
     user-select: none;
     -webkit-user-select: none;
     -moz-user-select: none;
     -ms-user-select: none;
+    will-change: background-color;
 }
 
 .file-table tbody tr:hover {
@@ -511,9 +512,8 @@ th.sort-desc::after {
     fill: #ffffff;
 }
 
-/* Hover effect for file rows */
+/* Hover effect for file rows — transform removed to avoid per-row stacking context cost at 900+ items */
 .file-table tbody tr:hover .file-icon {
-    transform: translateY(-1px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
 }
 

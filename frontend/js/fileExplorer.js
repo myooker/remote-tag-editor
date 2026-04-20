@@ -153,12 +153,12 @@ function restoreDirectoryState() {
             lastSelectedIndex = -1;
             allRows.forEach((row, idx) => {
                 if (savedSet.has(row.dataset.path)) {
-                    row.classList.add('selected');
+                    _addSelectedRow(row);
                     selectedFiles.push({
                         path: row.dataset.path,
                         type: row.dataset.type,
                         extension: row.dataset.extension,
-                        name: row.querySelector('.file-name')?.textContent
+                        name: row.dataset.name ?? row.querySelector('.file-name')?.textContent
                     });
                     lastSelectedIndex = idx;
                 }
@@ -228,8 +228,27 @@ async function loadDirectory(path, addToHistory = true) {
     }
 }
 
+// Tracks currently-selected TR elements so we can clear them in O(selection) not O(n).
+const _selectedRows = new Set();
+
+function _clearSelectedRows() {
+    _selectedRows.forEach(r => r.classList.remove('selected'));
+    _selectedRows.clear();
+}
+
+function _addSelectedRow(tr) {
+    tr.classList.add('selected');
+    _selectedRows.add(tr);
+}
+
+function _removeSelectedRow(tr) {
+    tr.classList.remove('selected');
+    _selectedRows.delete(tr);
+}
+
 function renderFileList(tree) {
     const tbody = document.getElementById('file-table-body');
+    _clearSelectedRows();
     tbody.innerHTML = '';
     if (!tree || !tree.content || tree.content.length === 0) {
         const tr = document.createElement('tr');
@@ -244,11 +263,15 @@ function renderFileList(tree) {
         return;
     }
     const nodes = sortNodes(tree.content);
+    // Build all rows in a DocumentFragment to minimize reflows
+    const fragment = document.createDocumentFragment();
     nodes.forEach(node => {
         const tr = document.createElement('tr');
         const fullPath = node.name.startsWith('/') ? node.name : `${currentPath}/${node.name}`;
         tr.dataset.path = fullPath;
         tr.dataset.type = node.type;
+        // Store the display name so delegated handler can read it without querySelector
+        tr.dataset.name = node.name.split('/').pop();
         if (node.extension) tr.dataset.extension = node.extension;
 
         const tdName = document.createElement('td');
@@ -259,7 +282,7 @@ function renderFileList(tree) {
         icon.appendChild(getFileIconSVG(node.type));
         const name = document.createElement('span');
         name.className = 'file-name';
-        name.textContent = node.name.split('/').pop();
+        name.textContent = tr.dataset.name;
         nameCell.appendChild(icon);
         nameCell.appendChild(name);
         tdName.appendChild(nameCell);
@@ -275,27 +298,61 @@ function renderFileList(tree) {
         tr.appendChild(tdName);
         tr.appendChild(tdType);
         tr.appendChild(tdSize);
-
-        tr.addEventListener('click', (e) => handleFileClick(tr, node, e));
-        tr.addEventListener('dblclick', () => handleFileDoubleClick(tr, node));
-        tr.addEventListener('contextmenu', (e) => handleContextMenu(e, tr, node));
-        tbody.appendChild(tr);
+        fragment.appendChild(tr);
     });
+    tbody.appendChild(fragment);
+    _attachTableDelegation(tbody);
 }
 
-function handleFileClick(tr, node, event) {
+// Single delegated handler — attached once after each renderFileList call.
+let _delegationAttached = false;
+function _attachTableDelegation(tbody) {
+    if (_delegationAttached) return;
+    _delegationAttached = true;
+    tbody.addEventListener('click', _onTableClick);
+    tbody.addEventListener('dblclick', _onTableDblClick);
+    tbody.addEventListener('contextmenu', _onTableContextMenu);
+}
+
+function _rowOf(target) {
+    return target.closest('#file-table-body tr');
+}
+
+function _onTableClick(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    handleFileClick(tr, e);
+}
+
+function _onTableDblClick(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    if (tr.dataset.type === 'directory') loadDirectory(tr.dataset.path);
+}
+
+function _onTableContextMenu(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    e.preventDefault();
+    openContextMenu(e.clientX, e.clientY, tr);
+}
+
+function _rowToFileData(row) {
+    return { path: row.dataset.path, type: row.dataset.type, extension: row.dataset.extension, name: row.dataset.name };
+}
+
+function handleFileClick(tr, event) {
     const allRows = Array.from(document.querySelectorAll('#file-table-body tr'));
     const clickedIndex = allRows.indexOf(tr);
 
     if (event.ctrlKey || event.metaKey) {
         // Ctrl+Click: Toggle selection
         if (tr.classList.contains('selected')) {
-            tr.classList.remove('selected');
+            _removeSelectedRow(tr);
             selectedFiles = selectedFiles.filter(f => f.path !== tr.dataset.path);
         } else {
-            tr.classList.add('selected');
-            const fileData = { path: tr.dataset.path, type: node.type, extension: node.extension, name: node.name, ...node };
-            selectedFiles.push(fileData);
+            _addSelectedRow(tr);
+            selectedFiles.push(_rowToFileData(tr));
         }
         lastSelectedIndex = clickedIndex;
     } else if (event.shiftKey && lastSelectedIndex !== -1) {
@@ -305,7 +362,7 @@ function handleFileClick(tr, node, event) {
 
         // Clear previous selection unless Ctrl is also held
         if (!event.ctrlKey && !event.metaKey) {
-            allRows.forEach(r => r.classList.remove('selected'));
+            _clearSelectedRows();
             selectedFiles = [];
         }
 
@@ -313,20 +370,15 @@ function handleFileClick(tr, node, event) {
         for (let i = start; i <= end; i++) {
             const row = allRows[i];
             if (!row.classList.contains('selected')) {
-                row.classList.add('selected');
-                const rowPath = row.dataset.path;
-                const rowType = row.dataset.type;
-                const rowExt = row.dataset.extension;
-                const rowName = row.querySelector('.file-name')?.textContent;
-                const fileData = { path: rowPath, type: rowType, extension: rowExt, name: rowName };
-                selectedFiles.push(fileData);
+                _addSelectedRow(row);
+                selectedFiles.push(_rowToFileData(row));
             }
         }
     } else {
         // Regular click: Select only this item
-        allRows.forEach(r => r.classList.remove('selected'));
-        tr.classList.add('selected');
-        selectedFiles = [{ path: tr.dataset.path, type: node.type, extension: node.extension, name: node.name, ...node }];
+        _clearSelectedRows();
+        _addSelectedRow(tr);
+        selectedFiles = [_rowToFileData(tr)];
         lastSelectedIndex = clickedIndex;
     }
 
@@ -746,7 +798,7 @@ document.getElementById('explorer-content').addEventListener('scroll', () => {
 document.getElementById('file-table-body').addEventListener('click', (e) => {
     // Only deselect if clicking directly on tbody (empty area)
     if (e.target.tagName === 'TBODY') {
-        document.querySelectorAll('#file-table-body tr').forEach(r => r.classList.remove('selected'));
+        _clearSelectedRows();
         selectedFiles = [];
         lastSelectedIndex = -1;
         clearTags();
