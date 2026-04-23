@@ -13,6 +13,7 @@
 using namespace audioFormat;
 
 std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
+    using namespace program::music;
     TagLib::MPEG::File file { filePath.c_str() };
 
     if (!file.isValid()) {
@@ -27,7 +28,10 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
 
     json base = json::object();
     json userdef = json::object();
-    const auto tag = file.ID3v2Tag();
+
+    const auto *tag = file.ID3v2Tag();
+    const auto ver = tag->header()->majorVersion();
+    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
 
     const auto map = tag->frameListMap();
     for (const auto &pair : map) {
@@ -39,8 +43,9 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
                 const auto &fields = user->fieldList();
                 if (fields.size() >= 2) {
                     const std::string key = fields[0].to8Bit(true);
+                    const std::string normalizedKey = tag::normalize(std::string(prefix::mp3) + key, fmt);
                     std::string value = fields[1].to8Bit(true);
-                    userdef[key] = value;
+                    userdef[normalizedKey] = value;
                 }
                 continue;
             }
@@ -48,7 +53,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
             if (textFrame) {
                 const auto list = textFrame->fieldList();
                 std::string frameKey { frameID.data(), frameID.size() };
-                frameKey = program::music::tag::normalize(frameKey);
+                frameKey = tag::normalize(frameKey, fmt);
 
                 // If there's only one frame, just assign it to the id
                 // Otherwise make an array of frames of frameID name
@@ -78,6 +83,7 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
         if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
             const std::string frameDesc = userFrame->description().toCString(true);
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " description " << desc;
             if (frameDesc == desc) {
                 CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
                 tag->removeFrame(frame);
@@ -90,33 +96,39 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
 crow::response mpegTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::MP3);
     TagLib::MPEG::File file { path.c_str() };
+
     if (!file.isValid()) {
         return crow::response {500, "Object is not valid"};
     }
 
     if (!file.hasID3v2Tag()) {
-        return crow::response {500, "Object does not have an ID3v2Tag"};
+        return crow::response {500, "Object does not have an ID3v2.* Tag"};
     }
 
     auto *tag = file.ID3v2Tag();
-    //auto frameID = StringToIDv3Tag(fieldType);
-    auto frameID = TagLib::ByteVector(denormFieldType.c_str());
+
+    const int ver = tag->header()->majorVersion();
+    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
+    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
+
+    const auto frameID = TagLib::ByteVector(denormFieldType.c_str());
     const std::string frameIDstr { frameID.data(), frameID.size() };
     auto frames = tag->frameList(frameID);
+
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " fieldtype is " << tagStruct.fieldType;
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " fildtype to idv3tag " << denormFieldType;
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " frames are " << frames.size() << " frames";
 
-    if (frameIDstr == "TXXX" || tagStruct.fieldType == denormFieldType) {
-        removeTXXXFrame(tag, tagStruct.fieldType);
-        file.save();
+    if (frameIDstr.starts_with(prefix::mp3)) {
+        const std::string desc = denormFieldType.substr(prefix::mp3.size());
+        removeTXXXFrame(tag, desc);
+        file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     } else if (!frames.isEmpty()) {
         auto *frame = frames.front();
         tag->removeFrame(frame);
         file.strip(TagLib::MPEG::File::ID3v1);
-        file.save();
+        file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     }
 
     return crow::response {200, "OK" };
@@ -131,6 +143,7 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
         if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
             const std::string frameDesc = userFrame->description().toCString(true);
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame text: " << desc;
             if (frameDesc == desc) {
                 CROW_LOG_DEBUG << "(" << __func__ << ")" << " found conflicting " << desc;
                 CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing " << desc;
@@ -151,8 +164,8 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
 crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagStruct) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::MP3);
     TagLib::MPEG::File file { path.c_str() };
+
     if (!file.isValid()) {
         CROW_LOG_DEBUG << "(" << __func__ << ")  The file is not valid: " << path;
         return crow::response {500, "File is not valid"};
@@ -163,16 +176,22 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     }
 
     auto *tag = file.ID3v2Tag();
-    //auto frameID = StringToIDv3Tag(fieldType);
+
+    const auto ver = tag->header()->majorVersion();
+    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
+    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
+
     auto frameID = TagLib::ByteVector(denormFieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
+
     TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
     newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
 
-    if (frameIDstr == "TXXX" || tagStruct.fieldType == denormFieldType) {
-        addTXXXFrame(tag, tagStruct.fieldType, tagStruct.value);
-        file.save();
+    if (frameIDstr.starts_with(prefix::mp3)) {
+        const std::string desc = denormFieldType.substr(5);
+        addTXXXFrame(tag, desc, tagStruct.value);
+        file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
     }
@@ -180,7 +199,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     if (frames.isEmpty()) {
         CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame to the file...";
         tag->addFrame(newFrame);
-        file.save();
+        file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
     } else {
         CROW_LOG_DEBUG << "(" << __func__ << ") Frame " << frameID.data() << " already exists in the file: " << path;
@@ -193,7 +212,6 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
 crow::response mpegTagHandler::editMusicTags(const program::TagModification &tagStruct) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::MP3);
     TagLib::MPEG::File file { path.c_str() };
     if (!file.isValid()) {
         CROW_LOG_DEBUG << "(" << __func__ << ")  The file is not valid: " << path;
@@ -205,15 +223,18 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     }
 
     auto *tag = file.ID3v2Tag();
-    //auto frameID = StringToIDv3Tag(fieldType);
+    const auto ver = tag->header()->majorVersion();
+    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
+    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
     auto frameID = TagLib::ByteVector(denormFieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
     TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
 
-    if (frameIDstr == "TXXX") {
-        addTXXXFrame(tag, tagStruct.fieldType, tagStruct.replaceWith);
-        file.save();
+    if (frameIDstr.starts_with(prefix::mp3)) {
+        const std::string desc = denormFieldType.substr(5);
+        addTXXXFrame(tag, desc, tagStruct.replaceWith);
+        file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
     }
@@ -223,7 +244,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     tag->removeFrames(frameID);
     CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame...";
     tag->addFrame(newFrame);
-    file.save();
+    file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
 
     return crow::response {200, "OK" };
