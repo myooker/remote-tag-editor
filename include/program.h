@@ -45,7 +45,7 @@ namespace program {
 
     struct TagModification {
         std::string filePath { "none" };
-        std::string tagType { "none" };
+        std::string fieldType { "none" };
         std::string replaceWhat { "none" };
         std::string replaceWith { "none" };
         std::string value { "none" };
