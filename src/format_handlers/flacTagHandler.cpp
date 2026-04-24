@@ -94,27 +94,6 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::FLAC::File file { path.c_str() };
     if (!file.isValid()) {
-        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " is not valid";
-        return { 500, "The file is not valid" };
-    }
-    if (!file.hasXiphComment()) {
-        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << path.c_str() << " does not have Xiph Comments";
-        return { 500, "The file does not have Xiph Comments"};
-    }
-
-    auto *tag = file.xiphComment();
-    tag->addField(denormFieldType, TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
-    file.save();
-    CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << path.c_str() << " saved!";
-    return { 200, "OK" };
-}
-
-crow::response flacTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
-    using namespace program::music;
-    const fs::path path { tagStruct.filePath };
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
-    TagLib::FLAC::File file { path.c_str() };
-    if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << path.c_str() << " is not valid";
         return { 500, "The file is not valid" };
     }
@@ -124,13 +103,13 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
     }
     auto *tag = file.xiphComment();
     const auto filedType_it = tag->fieldListMap().find(denormFieldType);
-    TagLib::StringList oldValues {}; // Here we store old tagStruct.values of a music file
-    TagLib::StringList newValues {}; // Here we will store new tagStruct.values for a music files
+    TagLib::StringList oldValues {}; // Here we store old values of a music file
+    TagLib::StringList newValues {}; // Here we will store new values for a music files
 
-    // Check whether tagStruct.fieldType was found
-    // If yes, fill oldValues with tagStruct.values
+    // Check whether tagStruct.tagType was found
+    // If yes, fill StringList oldValues with tagStruct.values
     if (filedType_it != tag->fieldListMap().end()) {
-        oldValues = filedType_it->second;
+        oldValues = filedType_it->second; // Get an array of old values inside music file
     } else {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType.c_str() << " was not found in " << path.c_str();
         return { 500, "Field type does not exist" };
@@ -147,8 +126,11 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
 
     // After that we need to clear the field to fill it with new edited tagStruct.values
     tag->removeFields(tagStruct.fieldType);
+    // After filling up StringList newValues, we need to clear current tags inside a file
+    // Then we write newValues to requested tag field (tagStruct.tagType) without replacing.
+    tag->removeFields(denormFieldType);
     for (const auto &a : newValues) {
-        tag->addField(tagStruct.fieldType, a.toCString(), false);
+        tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << path.c_str() << " has changed to " << a.toCString();
     }
     file.save();

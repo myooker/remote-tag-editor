@@ -8,6 +8,14 @@ find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
 pkg_check_modules(TAGLIB REQUIRED taglib>=2.0)
 
+include(FetchContent)
+FetchContent_Declare(
+        SQLiteCpp
+        GIT_REPOSITORY https://github.com/SRombauts/SQLiteCpp.git
+        GIT_TAG 3.3.3
+)
+FetchContent_MakeAvailable(SQLiteCpp)
+
 # Your executable
 add_executable(web_tag_editor src/main.cpp
         include/program.h
@@ -41,6 +49,7 @@ add_executable(web_tag_editor src/main.cpp
 target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})
 target_link_libraries(web_tag_editor PRIVATE ${TAGLIB_LIBRARIES})
 target_link_libraries(web_tag_editor PRIVATE nlohmann_json::nlohmann_json)
+target_link_libraries(web_tag_editor PRIVATE SQLiteCpp sqlite3 pthread dl)
 
 # Compiler flags (if needed)
 target_compile_options(web_tag_editor PRIVATE ${TAGLIB_CFLAGS_OTHER})

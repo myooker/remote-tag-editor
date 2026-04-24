@@ -15,8 +15,13 @@
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
 #include "tests/tests.h"
+#include "SQLiteCpp/SQLiteCpp.h"
 
 //#define APP_TESTING
+
+#define ACTION_ADD "add"
+#define ACTION_REMOVE "remove"
+#define ACTION_CHANGE "change"
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -29,6 +34,7 @@ std::string fileExtensionToType(const std::string &ext) {
         {".flac", "music"},     // done
         {".m4a", "music"},      // done
         {".ogg", "music"},      // done
+        {".opus", "music"},
         {".aac", "music"},      // not implemented
         {".wma", "music"},      // not implemented
         {".wav", "music"},      // not implemented
@@ -127,6 +133,20 @@ int main (int argc, char **argv) {
     }
 #endif
 
+    SQLite::Database db ("test.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+    std::cout << "Opening database " << db.getFilename().c_str() << '\n';
+    db.exec(R"(
+        CREATE TABLE IF NOT EXISTS tag_history (
+            id           INTEGER PRIMARY KEY AUTOINCREMENT,
+            path         TEXT    NOT NULL,
+            action       TEXT    NOT NULL,
+            tag          TEXT    NOT NULL,
+            old_value    TEXT,
+            new_value    TEXT,
+            changed_at   TEXT NOT NULL DEFAULT (datetime('now'))
+        )
+    )");
+
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
         CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
@@ -163,11 +183,21 @@ int main (int argc, char **argv) {
             CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << tagStruct.replaceWith;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            if (tagStruct.replaceWhat == "none") {
-                return handler->editMusicTags(tagStruct);
-            } else {
-                return handler->editMusicTags(tagStruct, true);
+
+            crow::response response(handler->editMusicTags(tagStruct));
+            if (response.code == 200) {
+                SQLite::Statement query(db,
+                "INSERT INTO tag_history (path, action, tag, old_value, new_value) VALUES (?, ?, ?, ?, ?)");
+                query.bind(1, tagStruct.filePath);
+                query.bind(2, ACTION_CHANGE);
+                query.bind(3, tagStruct.fieldType);
+                query.bind(4, tagStruct.replaceWhat);
+                query.bind(5, tagStruct.replaceWith);
+                query.exec();
+
+                return response;
             }
+            return response;
         });
 
         CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
@@ -190,7 +220,20 @@ int main (int argc, char **argv) {
             CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->addMusicTag(tagStruct);
+
+            crow::response response(handler->addMusicTag(tagStruct));
+            if (response.code == 200) {
+                SQLite::Statement query(db,
+                "INSERT INTO tag_history (path, action, tag, new_value) VALUES (?, ?, ?, ?)");
+                query.bind(1, tagStruct.filePath);
+                query.bind(2, ACTION_ADD);
+                query.bind(3, tagStruct.fieldType);
+                query.bind(4, tagStruct.value);
+                query.exec();
+
+                return response;
+            }
+            return response;
         });
 
         CROW_ROUTE(app, "/api/removefieldtag").methods("POST"_method)
@@ -213,7 +256,20 @@ int main (int argc, char **argv) {
             CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
             const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
-            return handler->removeMusicTag(tagStruct);
+
+            crow::response response (handler->removeMusicTag(tagStruct));
+            if (response.code == 200) {
+                SQLite::Statement query(db,
+                "INSERT INTO tag_history (path, action, tag, old_value) VALUES (?, ?, ?, ?)");
+                query.bind(1, tagStruct.filePath);
+                query.bind(2, ACTION_REMOVE);
+                query.bind(3, tagStruct.fieldType);
+                query.bind(4, tagStruct.value);
+                query.exec();
+
+                return response;
+            }
+            return response;
         });
 
         CROW_ROUTE(app, "/api/store").methods("POST"_method)
@@ -331,7 +387,7 @@ int main (int argc, char **argv) {
             return crow::response{ 200, "OK"};
         });
 
-        CROW_ROUTE(app, "/api/list").methods("GET"_method, "OPTIONS"_method)
+        CROW_ROUTE(app, "/api/list").methods("GET"_method)
         ([&] (const crow::request &req){
             std::string filePath = req.url_params.get("path");
 

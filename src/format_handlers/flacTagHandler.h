@@ -15,7 +15,6 @@ namespace audioFormat {
         crow::response removeMusicTag(const program::TagModification &tagStruct) override;
         crow::response addMusicTag(const program::TagModification &tagStruct) override;
         crow::response editMusicTags(const program::TagModification &tagStruct) override;
-        crow::response editMusicTags(const program::TagModification &tagStruct, bool isBulk) override;
     };
 }
 
