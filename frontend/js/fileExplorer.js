@@ -484,10 +484,10 @@ function mergeMultiFileTags(allTags) {
             // All same - use the value directly
             merged[key] = values[0];
         } else {
-            // Different values - store all unique values
+            // Different values - keep all (including undefined) to preserve filePaths index alignment
             merged[key] = {
                 __multiValue: true,
-                values: values.filter(v => v !== undefined && v !== null)
+                values: values
             };
         }
     });
@@ -556,9 +556,10 @@ function renderMultiValueTag(container, tagKey, allValues, filePaths) {
     dropdown.className = 'custom-dropdown';
     dropdown.style.display = 'none';
 
-    // Get all unique values for this tag
+    // Get all unique values for this tag (skip nullish — those files lack the tag)
     const uniqueValues = new Set();
     allValues.forEach(val => {
+        if (val === undefined || val === null) return;
         if (Array.isArray(val)) {
             val.forEach(v => uniqueValues.add(String(v ?? '')));
         } else {
@@ -635,7 +636,9 @@ function renderMultiValueTag(container, tagKey, allValues, filePaths) {
             showToast('Please enter a value', 'error');
             return;
         }
-        saveMultiFileTag(filePaths, tagKey, value);
+        // Build per-file old values (preserves filePaths[i] alignment from mergeMultiFileTags)
+        const oldValues = allValues.map(v => Array.isArray(v) ? String(v[0] ?? '') : String(v ?? ''));
+        saveMultiFileTag(filePaths, tagKey, value, oldValues);
     });
 
     const btnCancel = document.createElement('button');
@@ -685,7 +688,7 @@ function renderSingleValueTag(container, tagKey, value, filePaths, isArray, arra
     const btnSave = document.createElement('button');
     btnSave.className = 'btn btn-success';
     btnSave.textContent = 'Save All';
-    btnSave.addEventListener('click', () => saveMultiFileTag(filePaths, tagKey, input.value));
+    btnSave.addEventListener('click', () => saveMultiFileTag(filePaths, tagKey, input.value, String(value ?? '')));
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'btn btn-secondary';
@@ -712,7 +715,7 @@ function renderSingleValueTag(container, tagKey, value, filePaths, isArray, arra
     container.appendChild(row);
 }
 
-async function saveMultiFileTag(filePaths, tagType, newValue) {
+async function saveMultiFileTag(filePaths, tagType, newValue, oldValues = '') {
     const status = document.getElementById('tag-status');
 
     if (newValue === '__KEEP__') {
@@ -735,9 +738,11 @@ async function saveMultiFileTag(filePaths, tagType, newValue) {
 
     for (let i = 0; i < filePaths.length; i++) {
         const filePath = filePaths[i];
+        const replaceWhat = Array.isArray(oldValues) ? oldValues[i] : oldValues;
         const payload = {
             path: filePath,
             tagType,
+            replaceWhat: replaceWhat ?? '',
             replaceWith: newValue,
         };
 

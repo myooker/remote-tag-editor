@@ -170,7 +170,7 @@ function renderTags(tags, filePath) {
                 const btnSaveFolder = document.createElement('button');
                 btnSaveFolder.className = 'btn btn-success';
                 btnSaveFolder.textContent = 'Save folder';
-                btnSaveFolder.addEventListener('click', () => saveFolderSingleTag(key, input.value));
+                btnSaveFolder.addEventListener('click', () => saveFolderSingleTag(key, String(value ?? ''), input.value));
 
                 const btnCancel = document.createElement('button');
                 btnCancel.className = 'btn btn-secondary';
@@ -317,6 +317,7 @@ async function saveSingleTag(filePath, tagType, originalValue, newValue) {
     const payload = {
         path: filePath,
         tagType,
+        replaceWhat: String(originalValue ?? ''),
         replaceWith: newValue,
     };
     try {
@@ -331,7 +332,7 @@ async function saveSingleTag(filePath, tagType, originalValue, newValue) {
     }
 }
 
-async function saveFolderSingleTag(tagType, newValue) {
+async function saveFolderSingleTag(tagType, oldValue, newValue) {
     const status = document.getElementById('tag-status');
     status.textContent = 'Saving to folder...';
     newValue = newValue.trim();
@@ -352,8 +353,10 @@ async function saveFolderSingleTag(tagType, newValue) {
         const payload = {
             path: musicFiles[i],
             tagType,
+            replaceWhat: oldValue,
             replaceWith: newValue,
         };
+
         try {
             await jsonPost(`${APIBASE}/api/edittag`, payload);
         } catch (err) {
