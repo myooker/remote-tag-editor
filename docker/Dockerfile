@@ -58,4 +58,4 @@ RUN chmod +x /app/start.sh
 EXPOSE 80
 
 ENTRYPOINT ["/app/start.sh"]
-CMD ["--mount-point", "/music"]
+CMD ["--mount-point", "/music", "--database-path", "/data/database.db3"]

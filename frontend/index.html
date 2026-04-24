@@ -225,6 +225,29 @@
         </div>
     </div>
 
+    <!-- History Panel Overlay -->
+    <div class="history-panel-overlay" id="history-panel-overlay">
+        <div class="history-panel">
+            <div class="history-panel-header">
+                <div class="history-panel-title">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    <span>Change History</span>
+                </div>
+                <div class="history-panel-subtitle" id="history-panel-filename"></div>
+                <button class="history-panel-close" id="history-panel-close">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="history-panel-content" id="history-panel-content"></div>
+        </div>
+    </div>
+
     <!-- Toast Container -->
     <div class="toast-container" id="toast-container"></div>
 
@@ -236,6 +259,7 @@
     <script src="js/sort.js"></script>
     <script src="js/fileExplorer.js"></script>
     <script src="js/tagPanel.js"></script>
+    <script src="js/historyPanel.js"></script>
     <script src="js/contextMenu.js"></script>
     <script src="js/upload.js"></script>
     <script src="js/navigation.js"></script>

@@ -5,7 +5,7 @@
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "" };
+    constexpr std::string_view version { "1.1.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -18,6 +18,7 @@ namespace program {
         bool disableCrowServer { false };
         int port{ 18080 };
         std::string mountpoint { "/music" };
+        std::string dbpath { "database.db" };
         std::string testFile {};
         std::string testDirectory {};
 

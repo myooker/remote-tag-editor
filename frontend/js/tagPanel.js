@@ -200,6 +200,18 @@ function renderTags(tags, filePath) {
         });
     }
 
+    const historyBtn = document.createElement('button');
+    historyBtn.className = 'btn-history-panel';
+    historyBtn.title = 'View change history';
+    historyBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+            <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        History`;
+    historyBtn.addEventListener('click', () => openHistoryPanel(filePath));
+    panel.appendChild(historyBtn);
+
     panel.appendChild(tagGroup);
 
     const separator = document.createElement('div');

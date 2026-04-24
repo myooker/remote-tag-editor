@@ -97,14 +97,12 @@ int main (int argc, char **argv) {
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
     CLI::App cli {"Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.", "app name"};
+
 #ifndef APP_TESTING
     cli.add_option("-m,--mount-point", application.mountpoint,
             "The directory of your music library")->required();
 #endif
-    cli.add_option("-p,--port", application.port,
-        "The application's port to bind in. Default is 18080.")->default_val(18080);
-    cli.add_option("-l,--log-level", debugLevel,
-            "temp")->default_val(crow::LogLevel::INFO);
+
 #ifdef APP_DEBUG
     cli.add_flag("--no-crow", application.disableCrowServer,
         "Disables Crow server.");
@@ -112,6 +110,14 @@ int main (int argc, char **argv) {
             "Path to the test directory");
     cli.add_option("--test-directory", application.testDirectory);
 #endif
+
+    cli.add_option("-p,--port", application.port,
+        "The application's port to bind in. Default is 18080.")->default_val(18080);
+    cli.add_option("-l,--log-level", debugLevel,
+            "temp")->default_val(crow::LogLevel::INFO);
+    cli.add_option("--database-path", application.dbpath,
+        "Database path location. Default is /")->default_val("database.db");
+
     CLI11_PARSE(cli, argc, argv);
 
     switch (debugLevel) {
@@ -133,7 +139,7 @@ int main (int argc, char **argv) {
     }
 #endif
 
-    SQLite::Database db ("test.db3", SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
+    SQLite::Database db (application.dbpath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
     std::cout << "Opening database " << db.getFilename().c_str() << '\n';
     db.exec(R"(
         CREATE TABLE IF NOT EXISTS tag_history (
@@ -150,6 +156,31 @@ int main (int argc, char **argv) {
     if (!application.disableCrowServer) {
         crow::App<crow::CORSHandler> app;
         CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
+
+        CROW_ROUTE(app, "/api/gethistory").methods("GET"_method)
+        ([&](const crow::request &req) {
+            std::string filePath = req.url_params.get("path");
+            SQLite::Statement query(db, "SELECT * FROM tag_history WHERE path = ? ORDER BY changed_at DESC");
+            query.bind(1, filePath.c_str());
+            json result = json::array();
+
+            while (query.executeStep()) {
+                result.push_back({
+                    {"id", query.getColumn(0).getInt()},
+                    {"path", query.getColumn(1).getString()},
+                    {"action", query.getColumn(2).getString()},
+                    {"tag", query.getColumn(3).getString()},
+                    {"old_value", query.getColumn(4).getString()},
+                    {"new_value", query.getColumn(5).getString()},
+                    {"changed_at", query.getColumn(6).getString()}
+                });
+            }
+
+            crow::response response { result.dump() };
+            response.set_header("Content-Type", "application/json");
+
+            return response;
+        });
 
         CROW_ROUTE(app, "/api/getmntpoint").methods("GET"_method)
         ([&]() {
