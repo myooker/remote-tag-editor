@@ -6,6 +6,7 @@
 #include <ctime>
 #include <unordered_set>
 #include <cctype>
+#include <random>
 
 #include <nlohmann/json.hpp>
 #include <crow.h>
@@ -92,6 +93,23 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
     return rootTree;
 }
 
+std::string generateId() {
+    static constexpr std::string_view ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    constexpr std::size_t t = 16;
+
+    std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<std::size_t> distribution(0, ALPHABET.size() - 1);
+
+    std::string id;
+    id.reserve(t);
+
+    for (std::size_t i = 0; i < t; i++) {
+        id.push_back(ALPHABET[distribution(rng)]);
+    }
+
+    return id;
+}
+
 int main (int argc, char **argv) {
     program::Settings application {};
     int debugLevel {};
@@ -145,6 +163,7 @@ int main (int argc, char **argv) {
         CREATE TABLE IF NOT EXISTS tag_history (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,
             path         TEXT    NOT NULL,
+            shortid      TEXT    NOT NULL,
             action       TEXT    NOT NULL,
             tag          TEXT    NOT NULL,
             old_value    TEXT,
@@ -160,7 +179,7 @@ int main (int argc, char **argv) {
         CROW_ROUTE(app, "/api/gethistory").methods("GET"_method)
         ([&](const crow::request &req) {
             std::string filePath = req.url_params.get("path");
-            SQLite::Statement query(db, "SELECT * FROM tag_history WHERE path = ? ORDER BY changed_at DESC");
+            SQLite::Statement query(db, "SELECT * FROM tag_history WHERE shortid = ? ORDER BY changed_at DESC");
             query.bind(1, filePath.c_str());
             json result = json::array();
 
@@ -168,11 +187,12 @@ int main (int argc, char **argv) {
                 result.push_back({
                     {"id", query.getColumn(0).getInt()},
                     {"path", query.getColumn(1).getString()},
-                    {"action", query.getColumn(2).getString()},
-                    {"tag", query.getColumn(3).getString()},
-                    {"old_value", query.getColumn(4).getString()},
-                    {"new_value", query.getColumn(5).getString()},
-                    {"changed_at", query.getColumn(6).getString()}
+                    {"shortid", query.getColumn(2).getString()},
+                    {"action", query.getColumn(3).getString()},
+                    {"tag", query.getColumn(4).getString()},
+                    {"old_value", query.getColumn(5).getString()},
+                    {"new_value", query.getColumn(6).getString()},
+                    {"changed_at", query.getColumn(7).getString()},
                 });
             }
 
@@ -217,16 +237,15 @@ int main (int argc, char **argv) {
 
             crow::response response(handler->editMusicTags(tagStruct));
             if (response.code == 200) {
-                SQLite::Statement query(db,
-                "INSERT INTO tag_history (path, action, tag, old_value, new_value) VALUES (?, ?, ?, ?, ?)");
-                query.bind(1, tagStruct.filePath);
-                query.bind(2, ACTION_CHANGE);
-                query.bind(3, tagStruct.fieldType);
-                query.bind(4, tagStruct.replaceWhat);
-                query.bind(5, tagStruct.replaceWith);
-                query.exec();
+                std::string sid { generateId() };
+                const auto RTEID = handler->hasRTEID(tagStruct.filePath);
+                if (RTEID) {
+                    sid = RTEID.value();
+                } else {
+                    handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
+                }
+                program::database::insertEdit(db, tagStruct, sid);
 
-                return response;
             }
             return response;
         });
@@ -254,14 +273,14 @@ int main (int argc, char **argv) {
 
             crow::response response(handler->addMusicTag(tagStruct));
             if (response.code == 200) {
-                SQLite::Statement query(db,
-                "INSERT INTO tag_history (path, action, tag, new_value) VALUES (?, ?, ?, ?)");
-                query.bind(1, tagStruct.filePath);
-                query.bind(2, ACTION_ADD);
-                query.bind(3, tagStruct.fieldType);
-                query.bind(4, tagStruct.value);
-                query.exec();
-
+                std::string sid { generateId() };
+                const auto RTEID = handler->hasRTEID(tagStruct.filePath);
+                if (RTEID) {
+                    sid = RTEID.value();
+                } else {
+                    handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
+                }
+                program::database::insertAdd(db, tagStruct, sid);
                 return response;
             }
             return response;
@@ -290,14 +309,14 @@ int main (int argc, char **argv) {
 
             crow::response response (handler->removeMusicTag(tagStruct));
             if (response.code == 200) {
-                SQLite::Statement query(db,
-                "INSERT INTO tag_history (path, action, tag, old_value) VALUES (?, ?, ?, ?)");
-                query.bind(1, tagStruct.filePath);
-                query.bind(2, ACTION_REMOVE);
-                query.bind(3, tagStruct.fieldType);
-                query.bind(4, tagStruct.value);
-                query.exec();
-
+                std::string sid { generateId() };
+                const auto RTEID = handler->hasRTEID(tagStruct.filePath);
+                if (RTEID) {
+                    sid = RTEID.value();
+                } else {
+                    handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
+                }
+                program::database::insertRemove(db, tagStruct, sid);
                 return response;
             }
             return response;

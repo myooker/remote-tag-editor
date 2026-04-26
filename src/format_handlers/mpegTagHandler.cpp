@@ -249,3 +249,24 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
 
     return crow::response {200, "OK" };
 }
+
+std::expected<std::string, bool> mpegTagHandler::hasRTEID(const std::string &filePath) {
+    using namespace program::music;
+    TagLib::MPEG::File file { filePath.c_str() };
+
+    if (!file.isValid()) {
+        CROW_LOG_DEBUG << "(" << __func__ << ")  The file is not valid: " << filePath;
+        return std::unexpected(false);
+    }
+
+    if (!file.hasID3v2Tag()) return std::unexpected(false);
+
+    const std::string desc { tag::rteID };
+    for (auto *frame : file.ID3v2Tag()->frameList("TXXX")) {
+        if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
+            userFrame && userFrame->description().toCString(true) == desc)
+            return userFrame->fieldList()[1].toCString(true);
+    }
+
+    return std::unexpected(false);
+}

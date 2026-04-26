@@ -69,21 +69,6 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
     TagLib::Ogg::Opus::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
-        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << tagStruct.filePath << " is not valid";
-        return {500, "The file is not valid"};
-    }
-
-    auto *tag = file.tag();
-    tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
-    file.save();
-    CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << tagStruct.filePath << " saved!";
-    return {200, "OK"};
-}
-
-crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
-    TagLib::Ogg::Opus::File file{tagStruct.filePath.c_str()};
-
-    if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " is not valid";
         return {500, "The file is not valid"};
     }
@@ -126,4 +111,19 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " saved!\n";
 
     return {200, "OK"};
+}
+
+std::expected<std::string, bool> oggOpusTagHandler::hasRTEID(const std::string &filePath) {
+    TagLib::Ogg::Opus::File file{filePath.c_str()};
+
+    if (!file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return std::unexpected(false);
+    }
+
+    auto t = file.tag()->fieldListMap().find("RTEID");
+    if (t != file.tag()->fieldListMap().end()) {
+        return t->second.operator[](0).toCString();
+    }
+    return std::unexpected(false);
 }

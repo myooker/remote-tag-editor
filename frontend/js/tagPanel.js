@@ -209,7 +209,7 @@ function renderTags(tags, filePath) {
             <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
         History`;
-    historyBtn.addEventListener('click', () => openHistoryPanel(filePath));
+    historyBtn.addEventListener('click', () => openHistoryPanel(Array.isArray(tags['RTEID']) ? tags['RTEID'][0] : tags['RTEID']));
     panel.appendChild(historyBtn);
 
     panel.appendChild(tagGroup);

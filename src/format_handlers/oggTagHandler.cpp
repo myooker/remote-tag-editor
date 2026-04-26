@@ -59,6 +59,6 @@ crow::response oggTagHandler::editMusicTags(const program::TagModification &tagS
    return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct);
 }
 
-crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
-   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, true);
+std::expected<std::string, bool> oggTagHandler::hasRTEID(const std::string& filePath) {
+    return codecHandler(filePath)->hasRTEID(filePath);
 }

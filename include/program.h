@@ -1,11 +1,14 @@
 #ifndef WEB_TAG_EDITOR_PROGRAM_H
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
+#include <string_view>
+
+#include "SQLiteCpp/Backup.h"
 
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "1.1.0" };
+    constexpr std::string_view version { "1.2.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -52,6 +55,10 @@ namespace program {
         std::string value { "none" };
     };
 
+    inline TagModification getRTEIDStruct (const std::string &path, const std::string &sid) {
+        return TagModification { path, "RTEID", "", "", sid};
+    }
+
     namespace error {
         enum MESSAGE {
             MOUNT_POINT_NOT_EXISTS,
@@ -83,6 +90,16 @@ namespace program {
                 default: return "ERROR_MESSAGE";
             }
         }
+    }
+
+    namespace database {
+        constexpr std::string_view add { "add" };
+        constexpr std::string_view change { "change" };
+        constexpr std::string_view remove { "remove" };
+
+        void insertEdit(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
+        void insertAdd(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
+        void insertRemove(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
     }
 }
 

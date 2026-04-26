@@ -3,6 +3,7 @@
 //
 
 #include "oggFlacTagHandler.h"
+#include "../../include/music.h"
 
 #include <oggflacfile.h>
 
@@ -67,21 +68,8 @@ crow::response oggFlacTagHandler::addMusicTag(const program::TagModification &ta
 }
 
 crow::response oggFlacTagHandler::editMusicTags(const program::TagModification &tagStruct) {
-    TagLib::Ogg::FLAC::File file{tagStruct.filePath.c_str()};
-
-    if (!file.isValid()) {
-        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".single) " << tagStruct.filePath << " is not valid";
-        return {500, "The file is not valid"};
-    }
-
-    auto *tag = file.tag();
-    tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
-    file.save();
-    CROW_LOG_INFO << "(FLAC::" << __func__ << ".single) " << tagStruct.filePath << " saved!";
-    return {200, "OK"};
-}
-
-crow::response oggFlacTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
+    using namespace program::music;
+    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::Ogg::FLAC::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -94,37 +82,51 @@ crow::response oggFlacTagHandler::editMusicTags(const program::TagModification &
     TagLib::StringList oldValues{}; // Here we store old values of a music file
     TagLib::StringList newValues{}; // Here we will store new values for a music files
 
-    // Check whether fieldType was found
-    // If yes, fill oldValues with values
+    // Check whether tagStruct.tagType was found
+    // If yes, fill StringList oldValues with tagStruct.values
     if (filedType_it != tag->fieldListMap().end()) {
-        oldValues = filedType_it->second;
+        oldValues = filedType_it->second; // Get an array of old values inside music file
     } else {
-        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType.c_str() << " was not found in " <<
-            tagStruct.filePath;
-        // return { path, fieldType + " was not found" , 500 };
-        return {500, "Field type does not exist"};
+        CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType.c_str() << " was not found in " << tagStruct.filePath;
+        return { 500, "Field type does not exist" };
     }
 
-    // Here we're edit values
-    for (auto &a: oldValues) {
-        if (a == TagLib::String{tagStruct.replaceWhat, TagLib::String::UTF8}) {
-            // If we find replaceWhat then we will fill replaceWith instead to newValues
-            newValues.append(TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
-        } else {
-            // Otherwise we fill with oldValue
+    // Here we're editing tagStruct.values
+    for (auto &a : oldValues) {
+        if (a == TagLib::String{tagStruct.replaceWhat, TagLib::String::UTF8}) { // If we find tagStruct.replaceWhat then we will fill tagStruct.replaceWith instead to newValues
+            newValues.append(TagLib::String{tagStruct.replaceWith,TagLib::String::UTF8});
+        } else { // Otherwise we fill with oldValue
             newValues.append(a);
         }
     }
 
-    // After that we need to clear the field to fill it with new edited values
+    // After that we need to clear the field to fill it with new edited tagStruct.values
     tag->removeFields(tagStruct.fieldType);
-    for (const auto &a: newValues) {
-        tag->addField(tagStruct.fieldType, a.toCString(), false);
-        CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath <<
-            " has changed to " << a.toCString();
+    // After filling up StringList newValues, we need to clear current tags inside a file
+    // Then we write newValues to requested tag field (tagStruct.tagType) without replacing.
+    tag->removeFields(denormFieldType);
+    for (const auto &a : newValues) {
+        tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
+        CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
     }
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " saved!\n";
 
-    return {200, "OK"};
+    return { 200, "OK" };
+}
+
+std::expected<std::string, bool> oggFlacTagHandler::hasRTEID(const std::string &filePath) {
+    using namespace program::music::tag;
+    TagLib::Ogg::FLAC::File file { filePath.c_str() };
+
+    if (!file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath.c_str() << " is not valid";
+        return std::unexpected(false);
+    }
+
+    auto t = file.tag()->fieldListMap().find(std::string(rteID));
+    if (t != file.tag()->fieldListMap().end()) {
+        return t->second.operator[](0).toCString();
+    }
+    return std::unexpected(false);
 }

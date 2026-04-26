@@ -114,6 +114,9 @@ namespace program::music {
 
         constexpr TagField coverArt                         { "COVERART" };
 
+        // Program-defined tags
+        constexpr TagField rteID                            { "RTEID" };
+
         struct tagRegistry {
             std::unordered_map<std::string, std::string> rawToNormalized;
 

@@ -196,3 +196,23 @@ crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &ta
     modified.value = tagStruct.replaceWith;
     return addMusicTag(modified);
 }
+
+std::expected<std::string, bool> mpeg4TagHandler::hasRTEID(const std::string &filePath) {
+    using namespace program::music;
+    TagLib::MP4::File file { filePath.c_str() };
+
+    if (!file.isValid()) {
+        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
+        return std::unexpected(false);
+    }
+
+    auto *tag = file.tag();
+    auto t = tag->itemMap().find(
+        tag::denormalize(std::string(tag::rteID), format::M4A));
+
+    if (t != tag->itemMap().end()) {
+        return t->second.toStringList()[0].toCString(false);
+    }
+
+    return std::unexpected(false);
+}
