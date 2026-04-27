@@ -8,7 +8,7 @@
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "1.2.0" };
+    constexpr std::string_view version { "1.3.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -100,6 +100,7 @@ namespace program {
         void insertEdit(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
         void insertAdd(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
         void insertRemove(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
+        void deleteFile(const SQLite::Database& db, const std::string &path);
     }
 }
 

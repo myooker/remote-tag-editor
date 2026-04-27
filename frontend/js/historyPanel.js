@@ -5,6 +5,7 @@ function openHistoryPanel(filePath) {
     historyPanelFilePath = filePath;
     const overlay = document.getElementById('history-panel-overlay');
     overlay.classList.add('visible');
+    if (!filePath) { renderNoRteid(); return; }
     loadHistory(filePath);
 }
 
@@ -38,6 +39,21 @@ async function loadHistory(filePath) {
                 <p>Failed to load history</p>
             </div>`;
     }
+}
+
+function renderNoRteid() {
+    const content = document.getElementById('history-panel-content');
+    const title = document.getElementById('history-panel-filename');
+    title.textContent = 'No RTEID';
+    content.innerHTML = `
+        <div class="history-empty">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+            </svg>
+            <p>No RTEID</p>
+            <span>This file has no Remote Tag ID — history is unavailable</span>
+        </div>`;
 }
 
 function renderHistory(history) {

@@ -9,7 +9,7 @@
 namespace program::database {
     void insertEdit(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid) {
         SQLite::Statement query(db,
-        "INSERT INTO tag_history (shortid, action, path, tag, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)");
+        "INSERT INTO tag_history (rteid, action, path, tag, old_value, new_value) VALUES (?, ?, ?, ?, ?, ?)");
         query.bind(1, sid);
         query.bind(2, change.begin());
         query.bind(3, tagStruct.filePath);
@@ -21,7 +21,7 @@ namespace program::database {
 
     void insertAdd(const SQLite::Database& db, const TagModification& tagStruct, const std::string& sid) {
         SQLite::Statement query(db,
-        "INSERT INTO tag_history (shortid, action, path, tag, new_value) VALUES (?, ?, ?, ?, ?)");
+        "INSERT INTO tag_history (rteid, action, path, tag, new_value) VALUES (?, ?, ?, ?, ?)");
         query.bind(1, sid);
         query.bind(2, add.begin());
         query.bind(3, tagStruct.filePath);
@@ -32,12 +32,19 @@ namespace program::database {
 
     void insertRemove(const SQLite::Database& db, const TagModification& tagStruct, const std::string& sid) {
         SQLite::Statement query(db,
-            "INSERT INTO tag_history (shortid, action, path, tag, old_value) VALUES (?, ?, ?, ?, ?)");
+            "INSERT INTO tag_history (rteid, action, path, tag, old_value) VALUES (?, ?, ?, ?, ?)");
         query.bind(1, sid);
         query.bind(2, remove.begin());
         query.bind(3, tagStruct.filePath);
         query.bind(4, tagStruct.fieldType);
         query.bind(5, tagStruct.value);
         query.exec();
+    }
+
+    void deleteFile(const SQLite::Database& db, const std::string &path) {
+        SQLite::Statement deletePath(db,
+        "DELETE FROM tag_history WHERE path = ?");
+        deletePath.bind(1, path);
+        deletePath.exec();
     }
 }

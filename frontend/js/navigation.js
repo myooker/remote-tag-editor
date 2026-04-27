@@ -20,7 +20,7 @@ async function pollMountPoint() {
     startHealthCheck();
 }
 
-// Periodic backend health check
+// Periodic backend health check every 5 minutes
 function startHealthCheck() {
     setInterval(async () => {
         try {
@@ -40,7 +40,7 @@ function startHealthCheck() {
         } catch (e) {
             setStatus('Disconnected');
         }
-    }, POLL_INTERVAL_MS);
+    }, 5 * 60 * 1000);
 }
 
 // Navigation Buttons
@@ -76,12 +76,6 @@ document.getElementById('search-input').addEventListener('input', (e) => {
         const name = row.querySelector('.file-name')?.textContent.toLowerCase();
         row.style.display = name && name.includes(query) ? '' : 'none';
     });
-});
-
-// Icon Size Control
-document.getElementById('icon-size-range').addEventListener('input', (e) => {
-    const size = Number(e.target.value);
-    document.documentElement.style.setProperty('--icon-size', size + 'px');
 });
 
 // Keyboard Navigation

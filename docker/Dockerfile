@@ -46,6 +46,8 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libtag1v5 \
     nginx \
+    inotify-tools \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /usr/local /usr/local

@@ -200,16 +200,19 @@ function renderTags(tags, filePath) {
         });
     }
 
+    const rteid = Array.isArray(tags['RTEID']) ? tags['RTEID'][0] : (tags['RTEID'] ?? null);
+
     const historyBtn = document.createElement('button');
-    historyBtn.className = 'btn-history-panel';
-    historyBtn.title = 'View change history';
+    historyBtn.className = 'btn-history-panel' + (rteid ? '' : ' btn-history-panel--disabled');
+    historyBtn.title = rteid ? 'View change history' : 'No RTEID — history unavailable';
+    historyBtn.disabled = !rteid;
     historyBtn.innerHTML = `
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
             <polyline points="12 6 12 12 16 14"></polyline>
         </svg>
         History`;
-    historyBtn.addEventListener('click', () => openHistoryPanel(Array.isArray(tags['RTEID']) ? tags['RTEID'][0] : tags['RTEID']));
+    if (rteid) historyBtn.addEventListener('click', () => openHistoryPanel(rteid));
     panel.appendChild(historyBtn);
 
     panel.appendChild(tagGroup);

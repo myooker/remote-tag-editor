@@ -1,6 +1,6 @@
 // Config
-//const APIBASE = window.location.origin;
-const APIBASE = "http://localhost:18080";
+const APIBASE = window.location.origin;
+//const APIBASE = "http://localhost:18080";
 const POLL_INTERVAL_MS = 5000;
 
 // State

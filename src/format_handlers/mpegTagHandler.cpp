@@ -127,7 +127,6 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     } else if (!frames.isEmpty()) {
         auto *frame = frames.front();
         tag->removeFrame(frame);
-        file.strip(TagLib::MPEG::File::ID3v1);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     }
 
@@ -185,9 +184,6 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
 
-    TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
-    newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
-
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.value);
@@ -198,6 +194,8 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
 
     if (frames.isEmpty()) {
         CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame to the file...";
+        auto *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
+        newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
         tag->addFrame(newFrame);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
@@ -229,8 +227,6 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     auto frameID = TagLib::ByteVector(denormFieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
-    TagLib::ID3v2::Frame *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
-
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.replaceWith);
@@ -239,6 +235,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
         return crow::response {200, "OK" };
     }
 
+    auto *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
     newFrame->setText(TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
     CROW_LOG_DEBUG << "(" << __func__ << ") Removing existing frame...";
     tag->removeFrames(frameID);

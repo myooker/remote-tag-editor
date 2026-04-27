@@ -23,7 +23,6 @@
     --music-color: #8b5cf6;
     --picture-color: #f472b6;
     --file-color: #6b7280;
-    --icon-size: 24px;
     --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.4);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
@@ -300,60 +299,7 @@ body {
     font-weight: 500;
 }
 
-.toolbar-right {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
 
-.toolbar-label {
-    font-size: 12px;
-    color: var(--text-secondary);
-    font-weight: 500;
-}
-
-input[type="range"] {
-    width: 100px;
-    height: 4px;
-    background: var(--bg-primary);
-    border-radius: 2px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-    background: var(--accent-hover);
-    transform: scale(1.1);
-}
-
-input[type="range"]::-moz-range-thumb {
-    width: 16px;
-    height: 16px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
-    border: none;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    transition: all 0.2s;
-}
-
-input[type="range"]::-moz-range-thumb:hover {
-    background: var(--accent-hover);
-    transform: scale(1.1);
-}
 
 .explorer-content {
     flex: 1;
@@ -486,8 +432,8 @@ th.sort-desc::after {
 
 /* File Icons - Enhanced with vibrant colors */
 .file-icon {
-    width: var(--icon-size);
-    height: var(--icon-size);
+    width: 24px;
+    height: 24px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -499,8 +445,8 @@ th.sort-desc::after {
 }
 
 .file-icon svg {
-    width: calc(var(--icon-size) * 0.6);
-    height: calc(var(--icon-size) * 0.6);
+    width: 14px;
+    height: 14px;
     fill: white;
     filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
@@ -1381,12 +1327,19 @@ th.sort-desc::after {
     flex-shrink: 0;
 }
 
-.btn-history-panel:hover {
+.btn-history-panel:hover:not(:disabled) {
     background: rgba(139, 92, 246, 0.1);
     border-color: var(--music-color);
     color: var(--music-color);
     transform: translateY(-1px);
     box-shadow: 0 3px 10px rgba(139, 92, 246, 0.15);
+}
+
+.btn-history-panel--disabled,
+.btn-history-panel:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    filter: grayscale(0.6);
 }
 
 /* ── History Panel Overlay ── */
