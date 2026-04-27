@@ -42,21 +42,22 @@ function formatBytes(bytes) {
     return Math.round(bytes / Math.pow(k, i) * 10) / 10 + ' ' + sizes[i];
 }
 
+// ── API Response Cache ──────────────────────────────────────────────────────
+const _apiCache = new Map(); // url → parsed JSON value
+
+function _cacheFlushByPrefix(prefix) { _apiCache.forEach((_, k) => { if (k.startsWith(prefix)) _apiCache.delete(k); }); }
+
 async function jsonGet(url) {
+    if (_apiCache.has(url)) return _apiCache.get(url);
     const res = await fetch(url);
     if (!res.ok) {
         let errorMessage = `HTTP ${res.status}`;
-        try {
-            const text = await res.text();
-            if (text) {
-                errorMessage += `: ${text}`;
-            }
-        } catch (e) {
-            // Ignore if can't read response
-        }
+        try { const text = await res.text(); if (text) errorMessage += `: ${text}`; } catch (e) { /* ignore */ }
         throw new Error(errorMessage);
     }
-    return res.json();
+    const data = await res.json();
+    _apiCache.set(url, data);
+    return data;
 }
 
 async function jsonPost(url, body) {
@@ -67,15 +68,23 @@ async function jsonPost(url, body) {
     });
     if (!res.ok) {
         let errorMessage = `HTTP ${res.status}`;
-        try {
-            const text = await res.text();
-            if (text) {
-                errorMessage += `: ${text}`;
-            }
-        } catch (e) {
-            // Ignore if can't read response
-        }
+        try { const text = await res.text(); if (text) errorMessage += `: ${text}`; } catch (e) { /* ignore */ }
         throw new Error(errorMessage);
+    }
+    // ── Cache invalidation ──────────────────────────────────────────────────
+    const endpoint = url.split('?')[0].split('/').pop();
+    if (endpoint === 'edittag' || endpoint === 'addfieldtag' || endpoint === 'removefieldtag') {
+        // Flush cached tags for the specific file path
+        const filePath = body?.path ?? body?.filePath;
+        if (filePath) { const key = `${APIBASE}/api/tag?path=${encodeURIComponent(filePath)}`; _apiCache.delete(key); }
+    } else if (endpoint === 'delete') {
+        // Flush cached history for the RTEID
+        const rteid = body?.path;
+        if (rteid) { const key = `${APIBASE}/api/gethistory?path=${encodeURIComponent(rteid)}`; _apiCache.delete(key); }
+    } else if (endpoint === 'mkdir' || endpoint === 'rename' || endpoint === 'store') {
+        // Flush all directory listings
+        _cacheFlushByPrefix(`${APIBASE}/api/list`);
     }
     return res;
 }
+

@@ -96,6 +96,7 @@ namespace program {
         constexpr std::string_view add { "add" };
         constexpr std::string_view change { "change" };
         constexpr std::string_view remove { "remove" };
+        constexpr std::string_view rollback { "rollback" };
 
         void insertEdit(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
         void insertAdd(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);

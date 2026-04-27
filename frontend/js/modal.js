@@ -1,5 +1,5 @@
 // Modal Dialog - Enhanced to support confirmation mode
-function showModal(title, placeholder = '', defaultValue = '', isConfirmation = false) {
+function showModal(title, placeholder = '', defaultValue = '', isConfirmation = false, okLabel = null) {
     return new Promise((resolve) => {
         const overlay = document.getElementById('modal-overlay');
         const dialog = document.getElementById('modal-dialog');
@@ -25,7 +25,7 @@ function showModal(title, placeholder = '', defaultValue = '', isConfirmation = 
                 messageDiv.textContent = placeholder;
                 input.parentNode.insertBefore(messageDiv, input);
             }
-            okBtn.textContent = 'Remove';
+            okBtn.textContent = okLabel ?? 'Remove';
             okBtn.style.background = 'var(--danger)';
         } else {
             input.style.display = 'block';

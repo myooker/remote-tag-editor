@@ -1,17 +1,22 @@
 // History Panel
 let historyPanelFilePath = null;
+let historyData = [];
+let historyActiveFilters = new Set(); // empty = show all
+let historySortNewest = true;
 
 function openHistoryPanel(filePath) {
     historyPanelFilePath = filePath;
-    const overlay = document.getElementById('history-panel-overlay');
-    overlay.classList.add('visible');
+    historyData = [];
+    historyActiveFilters = new Set();
+    historySortNewest = true;
+    document.getElementById('history-panel-overlay').classList.add('visible');
+    document.getElementById('history-panel-toolbar').style.display = 'none';
     if (!filePath) { renderNoRteid(); return; }
     loadHistory(filePath);
 }
 
 function closeHistoryPanel() {
-    const overlay = document.getElementById('history-panel-overlay');
-    overlay.classList.remove('visible');
+    document.getElementById('history-panel-overlay').classList.remove('visible');
     historyPanelFilePath = null;
 }
 
@@ -26,9 +31,12 @@ async function loadHistory(filePath) {
         </div>`;
     try {
         const history = await jsonGet(`${APIBASE}/api/gethistory?path=${encodeURIComponent(filePath)}`);
-        renderHistory(history);
+        historyData = Array.isArray(history) ? history : [];
+        buildFilterChips();
+        applyAndRender();
     } catch (err) {
         console.error('Failed to load history', err);
+        document.getElementById('history-panel-toolbar').style.display = 'none';
         content.innerHTML = `
             <div class="history-empty">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -41,7 +49,54 @@ async function loadHistory(filePath) {
     }
 }
 
+function buildFilterChips() {
+    const toolbar = document.getElementById('history-panel-toolbar');
+    const chipsEl = document.getElementById('history-filter-chips');
+    chipsEl.innerHTML = '';
+
+    const tags = [...new Set(historyData.map(e => (e.tag ?? '').toUpperCase()))].filter(Boolean).sort();
+
+    if (historyData.length === 0) { toolbar.style.display = 'none'; return; }
+
+    toolbar.style.display = 'flex';
+
+    tags.forEach(tag => {
+        const chip = document.createElement('button');
+        chip.className = 'history-chip';
+        chip.textContent = tag;
+        chip.dataset.tag = tag;
+        chip.addEventListener('click', () => toggleFilterChip(tag, chip));
+        chipsEl.appendChild(chip);
+    });
+}
+
+function toggleFilterChip(tag, chipEl) {
+    if (historyActiveFilters.has(tag)) {
+        historyActiveFilters.delete(tag);
+        chipEl.classList.remove('active');
+    } else {
+        historyActiveFilters.add(tag);
+        chipEl.classList.add('active');
+    }
+    applyAndRender();
+}
+
+function applyAndRender() {
+    let filtered = historyActiveFilters.size === 0
+        ? [...historyData]
+        : historyData.filter(e => historyActiveFilters.has((e.tag ?? '').toUpperCase()));
+
+    filtered.sort((a, b) => {
+        const ta = new Date(a.changed_at.replace(' ', 'T') + 'Z').getTime();
+        const tb = new Date(b.changed_at.replace(' ', 'T') + 'Z').getTime();
+        return historySortNewest ? tb - ta : ta - tb;
+    });
+
+    renderHistory(filtered);
+}
+
 function renderNoRteid() {
+    document.getElementById('history-panel-toolbar').style.display = 'none';
     const content = document.getElementById('history-panel-content');
     const title = document.getElementById('history-panel-filename');
     title.textContent = 'No RTEID';
@@ -67,8 +122,8 @@ function renderHistory(history) {
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
-                <p>No history yet</p>
-                <span>Changes will appear here after you edit tags</span>
+                <p>No matching entries</p>
+                <span>Try adjusting the filters above</span>
             </div>`;
         return;
     }
@@ -139,4 +194,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('history-panel-close').addEventListener('click', closeHistoryPanel);
     document.getElementById('history-panel-overlay').addEventListener('click', (e) => { if (e.target === e.currentTarget) closeHistoryPanel(); });
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeHistoryPanel(); });
+
+    document.getElementById('history-sort-btn').addEventListener('click', () => {
+        historySortNewest = !historySortNewest;
+        document.getElementById('history-sort-label').textContent = historySortNewest ? 'Newest' : 'Oldest';
+        document.getElementById('history-sort-btn').classList.toggle('sort-asc', !historySortNewest);
+        applyAndRender();
+    });
 });

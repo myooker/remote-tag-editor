@@ -3,6 +3,8 @@ function clearTags() {
     const panel = document.getElementById('panel-content');
     const status = document.getElementById('tag-status');
     status.textContent = 'No file selected';
+    document.getElementById('rteid-badge').style.display = 'none';
+    document.getElementById('rteid-value').textContent = '';
     panel.innerHTML = `
         <div class="empty-state">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -64,6 +66,7 @@ function renderTags(tags, filePath) {
         tagGroup.appendChild(emptyMsg);
     } else {
         entries.forEach(([key, value]) => {
+            if (key === 'RTEID') return;
             if (Array.isArray(value)) {
                 value.forEach((item, index) => {
                     const row = document.createElement('div');
@@ -201,6 +204,38 @@ function renderTags(tags, filePath) {
     }
 
     const rteid = Array.isArray(tags['RTEID']) ? tags['RTEID'][0] : (tags['RTEID'] ?? null);
+
+    const rteidBadge = document.getElementById('rteid-badge');
+    const rteidValueEl = document.getElementById('rteid-value');
+    const rteidDeleteBtn = document.getElementById('rteid-delete-btn');
+
+    if (rteid) {
+        rteidValueEl.textContent = rteid;
+        rteidBadge.style.display = 'flex';
+        rteidDeleteBtn.onclick = null;
+        rteidDeleteBtn.onclick = async () => {
+            const confirmed = await showModal(
+                'Delete RTEID',
+                'Are you sure? This will permanently erase ALL change history for this file from the database. This cannot be undone.',
+                '',
+                true,
+                'Delete'
+            );
+            if (!confirmed) return;
+            try {
+                await jsonPost(`${APIBASE}/api/removefieldtag`, { path: filePath, fieldType: 'RTEID', value: rteid });
+                await jsonPost(`${APIBASE}/api/events/delete`, { path: rteid });
+                showToast('RTEID deleted and history purged', 'success');
+                await loadTags(filePath);
+            } catch (err) {
+                console.error('Failed to delete RTEID', err);
+                showToast(`Failed to delete RTEID: ${err.message}`, 'error');
+            }
+        };
+    } else {
+        rteidBadge.style.display = 'none';
+        rteidValueEl.textContent = '';
+    }
 
     const historyBtn = document.createElement('button');
     historyBtn.className = 'btn-history-panel' + (rteid ? '' : ' btn-history-panel--disabled');

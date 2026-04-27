@@ -188,9 +188,7 @@ async function loadDirectory(path, addToHistory = true) {
         // Cancel any pending debounced scroll-save so it doesn't fire for the new directory
         clearTimeout(_scrollSaveTimer);
 
-        const res = await fetch(`${APIBASE}/api/list?path=${encodeURIComponent(path)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const tree = await res.json();
+        const tree = await jsonGet(`${APIBASE}/api/list?path=${encodeURIComponent(path)}`);
         fileTreeData = tree;
         currentPath = path;
         if (addToHistory) {
@@ -409,6 +407,9 @@ async function showMultipleFilesSelected() {
     const panel = document.getElementById('panel-content');
     const status = document.getElementById('tag-status');
 
+    document.getElementById('rteid-badge').style.display = 'none';
+    document.getElementById('rteid-value').textContent = '';
+
     // Filter only music files
     const musicFiles = selectedFiles.filter(f => f.type === 'music');
 
@@ -435,11 +436,9 @@ async function showMultipleFilesSelected() {
         </div>`;
 
     try {
-        // Fetch tags for all music files in parallel
+        // Fetch tags for all music files in parallel (via cache-aware jsonGet)
         const tagPromises = musicFiles.map(file =>
-            fetch(`${APIBASE}/api/tag?path=${encodeURIComponent(file.path)}`)
-                .then(res => res.ok ? res.json() : {})
-                .catch(() => ({}))
+            jsonGet(`${APIBASE}/api/tag?path=${encodeURIComponent(file.path)}`).catch(() => ({}))
         );
 
         const allTags = await Promise.all(tagPromises);
@@ -495,6 +494,108 @@ function mergeMultiFileTags(allTags) {
     return merged;
 }
 
+function buildMultiAddFieldSection(filePaths) {
+    const section = document.createElement('div');
+    section.className = 'add-field-section';
+
+    const title = document.createElement('div');
+    title.className = 'add-field-title';
+    title.textContent = 'Add New Field';
+    section.appendChild(title);
+
+    const fieldTypeRow = document.createElement('div');
+    fieldTypeRow.className = 'tag-row';
+    const fieldTypeLabel = document.createElement('label');
+    fieldTypeLabel.className = 'tag-label';
+    fieldTypeLabel.textContent = 'Field Type';
+    const acContainer = document.createElement('div');
+    acContainer.className = 'autocomplete-container';
+    const fieldTypeInput = document.createElement('input');
+    fieldTypeInput.type = 'text';
+    fieldTypeInput.className = 'tag-input';
+    fieldTypeInput.placeholder = 'e.g., GENRE';
+    fieldTypeInput.setAttribute('autocomplete', 'off');
+    const acList = document.createElement('div');
+    acList.className = 'autocomplete-list';
+    const showHints = (q) => {
+        acList.innerHTML = '';
+        if (!q) { acList.classList.remove('visible'); return; }
+        const filtered = tagRegistryHints.filter(h => h.toLowerCase().includes(q.toLowerCase()));
+        if (filtered.length === 0) { acList.classList.remove('visible'); return; }
+        filtered.forEach(hint => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = hint;
+            item.addEventListener('mousedown', (e) => { e.preventDefault(); fieldTypeInput.value = hint; acList.classList.remove('visible'); });
+            acList.appendChild(item);
+        });
+        acList.classList.add('visible');
+    };
+    fieldTypeInput.addEventListener('input', () => showHints(fieldTypeInput.value.trim()));
+    fieldTypeInput.addEventListener('focus', () => { if (fieldTypeInput.value.trim()) showHints(fieldTypeInput.value.trim()); });
+    fieldTypeInput.addEventListener('blur', () => acList.classList.remove('visible'));
+    fieldTypeInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') acList.classList.remove('visible'); });
+    acContainer.appendChild(fieldTypeInput);
+    acContainer.appendChild(acList);
+    fieldTypeRow.appendChild(fieldTypeLabel);
+    fieldTypeRow.appendChild(acContainer);
+    section.appendChild(fieldTypeRow);
+
+    const valueRow = document.createElement('div');
+    valueRow.className = 'tag-row';
+    const valueLabel = document.createElement('label');
+    valueLabel.className = 'tag-label';
+    valueLabel.textContent = 'Value';
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'tag-input';
+    valueInput.placeholder = 'e.g., hardcore (optional)';
+    valueRow.appendChild(valueLabel);
+    valueRow.appendChild(valueInput);
+    section.appendChild(valueRow);
+
+    const actions = document.createElement('div');
+    actions.className = 'tag-actions visible';
+
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn btn-primary';
+    btnAdd.textContent = 'Add to All';
+    btnAdd.addEventListener('click', async () => {
+        const fieldType = fieldTypeInput.value.trim();
+        let value = valueInput.value.trim() || 'none';
+        if (!fieldType) { showToast('Field type is required', 'error'); return; }
+        const status = document.getElementById('tag-status');
+        const errors = [];
+        for (let i = 0; i < filePaths.length; i++) {
+            status.textContent = `Adding field... (${i + 1}/${filePaths.length})`;
+            try {
+                await jsonPost(`${APIBASE}/api/addfieldtag`, { path: filePaths[i], fieldType, value });
+            } catch (err) {
+                errors.push(filePaths[i].split('/').pop());
+            }
+        }
+        if (errors.length > 0) {
+            showToast(`Field added with ${errors.length} error(s)`, 'error');
+        } else {
+            showToast(`Field added to ${filePaths.length} file(s)`, 'success');
+        }
+        fieldTypeInput.value = '';
+        valueInput.value = '';
+        await showMultipleFilesSelected();
+    });
+
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'btn btn-secondary';
+    btnCancel.textContent = 'Cancel';
+    btnCancel.addEventListener('click', () => { fieldTypeInput.value = ''; valueInput.value = ''; });
+
+    actions.appendChild(btnAdd);
+    actions.appendChild(btnCancel);
+    section.appendChild(actions);
+
+    return section;
+}
+
 function renderMergedTags(mergedTags, filePaths) {
     const panel = document.getElementById('panel-content');
     panel.innerHTML = '';
@@ -512,6 +613,7 @@ function renderMergedTags(mergedTags, filePaths) {
         tagGroup.appendChild(emptyMsg);
     } else {
         entries.forEach(([key, value]) => {
+            if (key === 'RTEID') return;
             if (value && value.__multiValue) {
                 // Multi-value field - render with <keep> dropdown
                 renderMultiValueTag(tagGroup, key, value.values, filePaths);
@@ -528,6 +630,12 @@ function renderMergedTags(mergedTags, filePaths) {
     }
 
     panel.appendChild(tagGroup);
+
+    const separator = document.createElement('div');
+    separator.className = 'tag-separator';
+    panel.appendChild(separator);
+
+    panel.appendChild(buildMultiAddFieldSection(filePaths));
 }
 
 function renderMultiValueTag(container, tagKey, allValues, filePaths) {

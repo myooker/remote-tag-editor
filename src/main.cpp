@@ -52,7 +52,6 @@ std::string fileExtensionToType(const std::string &ext) {
 }
 
 std::string getExtension(const std::string &path) {
-    CROW_LOG_DEBUG << "(" << __func__ << ") " << path;
     return fs::path{path}.extension().string();
 }
 
@@ -146,7 +145,7 @@ int main (int argc, char **argv) {
 #endif
 
     SQLite::Database db (application.dbpath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-    std::cout << "Opening database " << db.getFilename().c_str() << '\n';
+    CROW_LOG_INFO << "Opening database: " << db.getFilename().c_str();
     db.exec(R"(
         CREATE TABLE IF NOT EXISTS tag_history (
             id           INTEGER PRIMARY KEY AUTOINCREMENT,

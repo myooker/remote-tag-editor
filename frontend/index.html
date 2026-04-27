@@ -94,7 +94,21 @@
             <aside class="tags-panel">
                 <div class="panel-header">
                     <h3>Properties</h3>
-                    <div class="tag-status" id="tag-status">No file selected</div>
+                    <div class="panel-status-row">
+                        <div class="tag-status" id="tag-status">No file selected</div>
+                        <div class="rteid-badge" id="rteid-badge" style="display:none;"
+                            title="Remote Tag Editor ID — identifies this file in the change history database">
+                            <span class="rteid-value" id="rteid-value"></span>
+                            <button class="rteid-delete-btn" id="rteid-delete-btn"
+                                title="Delete RTEID and erase all history">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                                    stroke-linecap="round">
+                                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
                 </div>
                 <div class="panel-content" id="panel-content">
                     <div class="empty-state">
@@ -227,7 +241,8 @@
         <div class="history-panel">
             <div class="history-panel-header">
                 <div class="history-panel-title">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round">
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
                         <polyline points="12 6 12 12 16 14"></polyline>
                     </svg>
@@ -239,6 +254,18 @@
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg>
+                </button>
+            </div>
+            <div class="history-panel-toolbar" id="history-panel-toolbar" style="display:none;">
+                <div class="history-filter-chips" id="history-filter-chips"></div>
+                <button class="history-sort-btn" id="history-sort-btn" title="Sort order">
+                    <svg id="history-sort-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="15" y2="12"></line>
+                        <line x1="3" y1="18" x2="9" y2="18"></line>
+                    </svg>
+                    <span id="history-sort-label">Newest</span>
                 </button>
             </div>
             <div class="history-panel-content" id="history-panel-content"></div>
@@ -264,13 +291,13 @@
         /* ---- Logo easter egg ---- */
         (() => {
             const TRIGGER_CLICKS = 7;
-            const MAX_SCALE      = 1.45;
-            const GROW_STEP      = (MAX_SCALE - 1) / (TRIGGER_CLICKS - 1);
+            const MAX_SCALE = 1.45;
+            const GROW_STEP = (MAX_SCALE - 1) / (TRIGGER_CLICKS - 1);
 
-            const logo  = document.getElementById('logo-easter-egg');
-            let clicks  = 0;
-            let scale   = 1;
-            let locked  = false;
+            const logo = document.getElementById('logo-easter-egg');
+            let clicks = 0;
+            let scale = 1;
+            let locked = false;
 
             logo.addEventListener('click', () => {
                 if (locked) return;
@@ -288,7 +315,7 @@
                         logo.classList.remove('logo-deflating');
                         logo.style.transform = '';
                         clicks = 0;
-                        scale  = 1;
+                        scale = 1;
                         locked = false;
                     }, { once: true });
                 }

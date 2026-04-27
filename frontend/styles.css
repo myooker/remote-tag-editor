@@ -538,6 +538,76 @@ th.sort-desc::after {
 .tag-status {
     font-size: 12px;
     color: var(--text-secondary);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.panel-status-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+/* ── RTEID Badge (panel header) ── */
+.rteid-badge {
+    display: none;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+    border-radius: 5px;
+    border: 1px solid transparent;
+    padding: 3px 6px 3px 8px;
+    background: var(--bg-secondary);
+    max-width: 50%;
+    transition: border-color 0.15s, background 0.15s;
+    cursor: default;
+    overflow: hidden;
+}
+
+.rteid-badge:hover {
+    border-color: var(--border-color);
+    background: var(--bg-tertiary);
+}
+
+.rteid-value {
+    font-size: 11px;
+    font-family: inherit;
+    color: var(--text-muted);
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+    min-width: 0;
+}
+
+.rteid-delete-btn {
+    flex-shrink: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 3px;
+    color: var(--danger);
+    transition: background 0.15s;
+    margin-left: 4px;
+}
+
+.rteid-delete-btn svg {
+    width: 11px;
+    height: 11px;
+}
+
+
+
+.rteid-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.12);
 }
 
 .panel-content {
@@ -1632,4 +1702,88 @@ th.sort-desc::after {
 
 @keyframes historySpinner {
     to { transform: rotate(360deg); }
+}
+
+/* ── History Filter / Sort Toolbar ── */
+.history-panel-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    background: var(--bg-header);
+    flex-shrink: 0;
+    flex-wrap: wrap;
+}
+
+.history-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.history-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'Courier New', Courier, monospace;
+    letter-spacing: 0.4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.history-chip:hover {
+    border-color: var(--music-color);
+    color: var(--music-color);
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.history-chip.active {
+    border-color: var(--music-color);
+    background: rgba(139, 92, 246, 0.18);
+    color: var(--music-color);
+    box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.15);
+}
+
+.history-sort-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-secondary);
+    color: var(--text-secondary);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.history-sort-btn svg {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    transition: transform 0.25s ease;
+}
+
+.history-sort-btn.sort-asc svg {
+    transform: scaleY(-1);
+}
+
+.history-sort-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
 }
