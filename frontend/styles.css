@@ -1554,6 +1554,18 @@ th.sort-desc::after {
     flex-wrap: wrap;
 }
 
+.history-action-id {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--accent);
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    padding: 2px 7px;
+    border-radius: 999px;
+    flex-shrink: 0;
+    letter-spacing: 0.3px;
+}
+
 .history-badge {
     font-size: 10px;
     font-weight: 700;
@@ -1783,6 +1795,36 @@ th.sort-desc::after {
 }
 
 .history-sort-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(59, 130, 246, 0.08);
+}
+
+.history-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid var(--border-color);
+}
+
+.btn-undo-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-primary);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-undo-entry:hover {
     border-color: var(--accent);
     color: var(--accent);
     background: rgba(59, 130, 246, 0.08);

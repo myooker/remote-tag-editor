@@ -1,7 +1,21 @@
 // Config
-const APIBASE = window.location.origin;
-//const APIBASE = "http://localhost:18080";
+//const APIBASE = window.location.origin;
+const APIBASE = "http://localhost:18080";
 const POLL_INTERVAL_MS = 5000;
+
+// App settings fetched from backend
+let appSettings = { rteid: false, mountpoint: '' };
+
+async function fetchAppSettings() {
+    try {
+        const data = await jsonGet(`${APIBASE}/api/settings`);
+        appSettings = Array.isArray(data) ? data[0] : data;
+    } catch (err) {
+        console.error('Failed to fetch app settings', err);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', fetchAppSettings);
 
 // State
 let mountPoint = null;

@@ -127,6 +127,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     } else if (!frames.isEmpty()) {
         auto *frame = frames.front();
         tag->removeFrame(frame);
+        file.strip(TagLib::MPEG::File::ID3v1);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     }
 

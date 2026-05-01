@@ -8,7 +8,7 @@
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "1.3.0" };
+    constexpr std::string_view version { "1.4.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -18,12 +18,14 @@ namespace program {
     };
 
     struct Settings {
-        bool disableCrowServer { false };
-        int port{ 18080 };
         std::string mountpoint { "/music" };
         std::string dbpath { "database.db" };
         std::string testFile {};
         std::string testDirectory {};
+        bool disableCrowServer { false };
+        bool useRteid { false };
+        int port{ 18080 };
+
 
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
@@ -90,18 +92,6 @@ namespace program {
                 default: return "ERROR_MESSAGE";
             }
         }
-    }
-
-    namespace database {
-        constexpr std::string_view add { "add" };
-        constexpr std::string_view change { "change" };
-        constexpr std::string_view remove { "remove" };
-        constexpr std::string_view rollback { "rollback" };
-
-        void insertEdit(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
-        void insertAdd(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
-        void insertRemove(const SQLite::Database &db, const TagModification &tagStruct, const std::string &sid);
-        void deleteFile(const SQLite::Database& db, const std::string &path);
     }
 }
 

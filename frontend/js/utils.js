@@ -74,13 +74,18 @@ async function jsonPost(url, body) {
     // ── Cache invalidation ──────────────────────────────────────────────────
     const endpoint = url.split('?')[0].split('/').pop();
     if (endpoint === 'edittag' || endpoint === 'addfieldtag' || endpoint === 'removefieldtag') {
-        // Flush cached tags for the specific file path
+        // Flush cached tags and history for the specific file path
+        const filePath = body?.path ?? body?.filePath;
+        if (filePath) { const key = `${APIBASE}/api/tag?path=${encodeURIComponent(filePath)}`; _apiCache.delete(key); }
+        _cacheFlushByPrefix(`${APIBASE}/api/gethistory`);
+    } else if (endpoint === 'undo') {
+        _cacheFlushByPrefix(`${APIBASE}/api/gethistory`);
         const filePath = body?.path ?? body?.filePath;
         if (filePath) { const key = `${APIBASE}/api/tag?path=${encodeURIComponent(filePath)}`; _apiCache.delete(key); }
     } else if (endpoint === 'delete') {
         // Flush cached history for the RTEID
         const rteid = body?.path;
-        if (rteid) { const key = `${APIBASE}/api/gethistory?path=${encodeURIComponent(rteid)}`; _apiCache.delete(key); }
+        if (rteid) { const key = `${APIBASE}/api/gethistory?identifier=${encodeURIComponent(rteid)}`; _apiCache.delete(key); }
     } else if (endpoint === 'mkdir' || endpoint === 'rename' || endpoint === 'store') {
         // Flush all directory listings
         _cacheFlushByPrefix(`${APIBASE}/api/list`);

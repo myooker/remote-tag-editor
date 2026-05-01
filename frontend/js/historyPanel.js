@@ -30,7 +30,7 @@ async function loadHistory(filePath) {
             <span>Loading history...</span>
         </div>`;
     try {
-        const history = await jsonGet(`${APIBASE}/api/gethistory?path=${encodeURIComponent(filePath)}`);
+        const history = await jsonGet(`${APIBASE}/api/gethistory?identifier=${encodeURIComponent(filePath)}`);
         historyData = Array.isArray(history) ? history : [];
         buildFilterChips();
         applyAndRender();
@@ -173,12 +173,32 @@ function renderHistory(history) {
                         <span class="history-value-text">${escapeHtml(entry.old_value ?? '')}</span>
                     </div>
                 `}
+            </div>
+            <div class="history-item-footer">
+                <span class="history-action-id">#${entry.id}</span>
+                <button class="btn-undo-entry" data-id="${entry.id}">Undo</button>
             </div>`;
 
+        item.querySelector('.btn-undo-entry').addEventListener('click', () => doUndo(entry));
         list.appendChild(item);
     });
 
     content.appendChild(list);
+}
+
+async function doUndo(entry) {
+    try {
+        const currentValue = currentTags?.tags?.[entry.tag] ?? 'NULL';
+        const res = await jsonPost(`${APIBASE}/api/undo`, { ...entry, current_value: currentValue });
+        if (res.ok) {
+            showToast('Undo applied successfully', 'success');
+            loadHistory(historyPanelFilePath);
+            if (currentTags?.path) loadTags(currentTags.path);
+        }
+    } catch (err) {
+        console.error('Undo failed', err);
+        showToast(`Undo failed: ${err.message}`, 'error');
+    }
 }
 
 function escapeHtml(str) {

@@ -13,6 +13,7 @@
 #include <crow/middlewares/cors.h>
 #include <CLI/CLI.hpp>
 
+#include "../include/history.h"
 #include "../include/program.h"
 #include "../include/musicTagHandlerFactory.h"
 #include "tests/tests.h"
@@ -122,7 +123,7 @@ int main (int argc, char **argv) {
             "temp")->default_val(crow::LogLevel::WARNING);
     cli.add_option("--database-path", application.dbpath,
         "Database path location. Default is /")->default_val("database.db");
-
+    cli.add_flag("--use-rteid", application.useRteid, "");
     CLI11_PARSE(cli, argc, argv);
 
     switch (debugLevel) {
@@ -144,20 +145,7 @@ int main (int argc, char **argv) {
     }
 #endif
 
-    SQLite::Database db (application.dbpath, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE);
-    CROW_LOG_INFO << "Opening database: " << db.getFilename().c_str();
-    db.exec(R"(
-        CREATE TABLE IF NOT EXISTS tag_history (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            path         TEXT    NOT NULL,
-            rteid        TEXT    NOT NULL,
-            action       TEXT    NOT NULL,
-            tag          TEXT    NOT NULL,
-            old_value    TEXT,
-            new_value    TEXT,
-            changed_at   TEXT NOT NULL DEFAULT (datetime('now'))
-        )
-    )");
+    program::database::History db { application.dbpath };
 
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
@@ -166,27 +154,89 @@ int main (int argc, char **argv) {
     ([&](const crow::request& req) {
         json j = json::parse(req.body);
         CROW_LOG_WARNING << "(api/events/delete) deletion";
-        program::database::deleteFile(db, j.value("path", "none"));
-        return crow::response { 200, "OK" };
+        return db.deleteFile(j.value("path", "none"));
+    });
+
+    CROW_ROUTE(app, "/api/settings").methods("GET"_method)
+    ([&]() {
+        json j = {
+            {"rteid", application.useRteid},
+            {"mountpoint", application.mountpoint},
+        };
+        crow::response response { j.dump() };
+        response.set_header("Content-Type", "application/json");
+        return response;
+    });
+
+    CROW_ROUTE(app, "/api/undo").methods("POST"_method)
+    ([&](const crow::request& req) {
+        json j = json::parse(req.body);
+
+        const std::string action { j.value("action", "none") };
+        const std::string rteid { j.value("rteid", "none") }; // NULL if a user opt-out using rteid
+        const std::string currentValue { j.value("current_value", "none") };
+        const std::string newValue { j.value("new_value", "none") };
+        const std::string oldValue { j.value("old_value", "none") };
+        const int dbid { j.value("id", 0) };
+
+        crow::response response { 400 };
+
+        const std::string filePath { j.value("path", "none") };
+        const std::string tag { j.value("tag", "none") };
+        const std::string ext { getExtension(filePath) };
+        auto handler = musicTagHandlerFactory::createHandler(ext);
+
+        if (action == "change") {
+            response = handler->editMusicTags(
+                { filePath, tag, currentValue, oldValue, oldValue });
+        } else if (action == "remove") {
+            response = handler->addMusicTag(
+                { filePath, tag, "", "", oldValue });
+        } else if (action == "add") {
+            response = handler->removeMusicTag(
+                { filePath, tag, "", "", newValue });
+        }
+
+        if (response.code == 200) {
+            SQLite::Statement c {db.getDatabase(),
+                "DELETE FROM tag_history "
+                "WHERE (rteid = ? OR path = ?) "
+                "AND tag = ? "
+                "AND id >= ?;"};
+            c.bind(1, rteid);
+            c.bind(2, filePath);
+            c.bind(3, tag);
+            c.bind(4, dbid);
+            c.exec();
+        }
+
+        return response;
     });
 
     CROW_ROUTE(app, "/api/gethistory").methods("GET"_method)
     ([&](const crow::request &req) {
-        std::string filePath = req.url_params.get("path");
-        SQLite::Statement query(db, "SELECT * FROM tag_history WHERE rteid = ? ORDER BY changed_at DESC");
+        std::string filePath = req.url_params.get("identifier");
+        std::string clause { "path = ?" }; // By default, it searches by path
+
+        if (application.useRteid) // If a user don't mind to use RTEID
+            clause = "rteid = ?";
+
+        SQLite::Statement query(db.getDatabase(), "SELECT * FROM tag_history WHERE "
+            +clause +" ORDER BY changed_at DESC");
         query.bind(1, filePath.c_str());
         json result = json::array();
 
         while (query.executeStep()) {
+            int i { -1 };
             result.push_back({
-                {"id", query.getColumn(0).getInt()},
-                {"path", query.getColumn(1).getString()},
-                {"rteid", query.getColumn(2).getString()},
-                {"action", query.getColumn(3).getString()},
-                {"tag", query.getColumn(4).getString()},
-                {"old_value", query.getColumn(5).getString()},
-                {"new_value", query.getColumn(6).getString()},
-                {"changed_at", query.getColumn(7).getString()},
+                {"id",              query.getColumn(++i).getInt()},
+                {"path",            query.getColumn(++i).getString()},
+                {"rteid",           query.getColumn(++i).getString()},
+                {"action",          query.getColumn(++i).getString()},
+                {"tag",             query.getColumn(++i).getString()},
+                {"old_value",       query.getColumn(++i).getString()},
+                {"new_value",       query.getColumn(++i).getString()},
+                {"changed_at",      query.getColumn(++i).getString()},
             });
         }
 
@@ -217,7 +267,7 @@ int main (int argc, char **argv) {
             body.value("replaceWith", "none"),
             ""
         };
-
+        program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/edittag) requested path: " << tagStruct.filePath;
@@ -230,17 +280,27 @@ int main (int argc, char **argv) {
 
         crow::response response(handler->editMusicTags(tagStruct));
         if (response.code == 200) {
-            std::string sid { generateId() };
-            const auto RTEID = handler->hasRTEID(tagStruct.filePath);
-            if (RTEID) {
-                sid = RTEID.value();
-            } else {
-                handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
-            }
-            program::database::insertEdit(db, tagStruct, sid);
+            // If a user opt-out using RTEID
+            // Track history based on file's path
+            if (!application.useRteid)
+                return db.insertEdit(tagStruct, id);
 
+            const auto f = handler->hasRTEID(tagStruct.filePath);
+            const std::string rteid = generateId();
+            if (f) {
+                id.rte = f.value();
+            } else {
+                id.rte = rteid;
+                handler->addMusicTag({
+                    tagStruct.filePath,
+                    "RTEID",
+                    "",
+                    "",
+                    rteid
+                });
+            }
+            return db.insertEdit(tagStruct, id);
         }
-        return response;
     });
 
     CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
@@ -254,7 +314,7 @@ int main (int argc, char **argv) {
             "",
             body.value("value", "none")
         };
-
+        program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/addfieldtag) requested path: " << tagStruct.filePath;
@@ -266,15 +326,26 @@ int main (int argc, char **argv) {
 
         crow::response response(handler->addMusicTag(tagStruct));
         if (response.code == 200) {
-            std::string sid { generateId() };
-            const auto RTEID = handler->hasRTEID(tagStruct.filePath);
-            if (RTEID) {
-                sid = RTEID.value();
+            // If a user opt-out using RTEID
+            // Track history based on file's path
+            if (!application.useRteid)
+                return db.insertAdd(tagStruct, id);
+
+            const auto f = handler->hasRTEID(tagStruct.filePath);
+            const std::string rteid = generateId();
+            if (f) {
+                id.rte = f.value();
             } else {
-                handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
+                id.rte = rteid;
+                handler->addMusicTag({
+                    tagStruct.filePath,
+                    "RTEID",
+                    "",
+                    "",
+                    rteid
+                });
             }
-            program::database::insertAdd(db, tagStruct, sid);
-            return response;
+            return db.insertAdd(tagStruct, id);
         }
         return response;
     });
@@ -290,7 +361,7 @@ int main (int argc, char **argv) {
             "",
             body.value("value", "none")
         };
-
+        program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/removefieldtag) requested path: " << tagStruct.filePath;
@@ -298,21 +369,34 @@ int main (int argc, char **argv) {
         CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << tagStruct.fieldType;
         CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
+        if (tagStruct.fieldType == "RTEID")
+            return crow::response { 400, "You cannot modify RTEID" };
+
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
         crow::response response (handler->removeMusicTag(tagStruct));
         if (response.code == 200) {
-            std::string sid { generateId() };
-            const auto RTEID = handler->hasRTEID(tagStruct.filePath);
-            if (RTEID) {
-                sid = RTEID.value();
+            // If a user opt-out using RTEID
+            // Track history based on file's path
+            if (!application.useRteid)
+                return db.insertRemove(tagStruct, id);
+
+            const auto f = handler->hasRTEID(tagStruct.filePath);
+            const std::string rteid = generateId();
+            if (f) {
+                id.rte = f.value();
             } else {
-                handler->addMusicTag(program::getRTEIDStruct(tagStruct.filePath, sid));
+                id.rte = rteid;
+                handler->addMusicTag({
+                    tagStruct.filePath,
+                    "RTEID",
+                    "",
+                    "",
+                    rteid
+                });
             }
-            program::database::insertRemove(db, tagStruct, sid);
-            return response;
+            return db.insertRemove(tagStruct, id);
         }
-        return response;
     });
 
     CROW_ROUTE(app, "/api/store").methods("POST"_method)
