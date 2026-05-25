@@ -517,10 +517,19 @@ namespace program::music::tag {
                 reg(format::M4A, tag::year, "©day");
                 reg(format::FLAC, tag::year, tag::year);
 
+                // COVERART
                 reg(format::ID3v23, tag::coverArt,      "APIC");
                 reg(format::ID3v24, tag::coverArt,      "APIC");
                 reg(format::M4A, tag::coverArt,      "covr");
                 reg(format::FLAC, tag::coverArt,     "METADATA_BLOCK_PICTURE");
+
+                // Program-defined tags
+                // RTEID
+                reg(format::ID3v23, tag::rteID, "TXXX:RTEID");
+                reg(format::ID3v24, tag::rteID, "TXXX:RTEID");
+                reg(format::M4A, tag::rteID, "----:com.apple.iTunes:RTEID");
+                reg(format::FLAC, tag::rteID, tag::rteID);
+
             }
 
             return temp;

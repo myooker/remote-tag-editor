@@ -20,7 +20,7 @@ async function pollMountPoint() {
     startHealthCheck();
 }
 
-// Periodic backend health check
+// Periodic backend health check every 5 minutes
 function startHealthCheck() {
     setInterval(async () => {
         try {
@@ -40,7 +40,7 @@ function startHealthCheck() {
         } catch (e) {
             setStatus('Disconnected');
         }
-    }, POLL_INTERVAL_MS);
+    }, 5 * 60 * 1000);
 }
 
 // Navigation Buttons
@@ -78,12 +78,6 @@ document.getElementById('search-input').addEventListener('input', (e) => {
     });
 });
 
-// Icon Size Control
-document.getElementById('icon-size-range').addEventListener('input', (e) => {
-    const size = Number(e.target.value);
-    document.documentElement.style.setProperty('--icon-size', size + 'px');
-});
-
 // Keyboard Navigation
 document.addEventListener('keydown', (e) => {
     // Ctrl+F: Focus search box
@@ -108,15 +102,14 @@ document.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
         e.preventDefault();
         const musicRows = allRows.filter(r => r.dataset.type === 'music');
-        allRows.forEach(r => r.classList.remove('selected'));
-        musicRows.forEach(r => r.classList.add('selected'));
-        selectedFiles = musicRows.map(row => {
-            const path = row.dataset.path;
-            const type = row.dataset.type;
-            const extension = row.dataset.extension;
-            const name = row.querySelector('.file-name')?.textContent;
-            return { path, type, extension, name };
-        });
+        _clearSelectedRows();
+        musicRows.forEach(r => _addSelectedRow(r));
+        selectedFiles = musicRows.map(row => ({
+            path: row.dataset.path,
+            type: row.dataset.type,
+            extension: row.dataset.extension,
+            name: row.dataset.name ?? row.querySelector('.file-name')?.textContent
+        }));
         if (selectedFiles.length > 0) {
             lastSelectedIndex = allRows.indexOf(musicRows[musicRows.length - 1]);
             updateTagPanelForSelection();
@@ -128,7 +121,7 @@ document.addEventListener('keydown', (e) => {
     // Escape: Clear selection
     if (e.key === 'Escape') {
         e.preventDefault();
-        allRows.forEach(r => r.classList.remove('selected'));
+        _clearSelectedRows();
         selectedFiles = [];
         lastSelectedIndex = -1;
         clearTags();
@@ -174,13 +167,13 @@ document.addEventListener('keydown', (e) => {
         const targetName = targetRow.querySelector('.file-name')?.textContent;
 
         if (!e.shiftKey) {
-            allRows.forEach(r => r.classList.remove('selected'));
-            targetRow.classList.add('selected');
+            _clearSelectedRows();
+            _addSelectedRow(targetRow);
             selectedFiles = [{ path: targetPath, type: targetType, extension: targetExt, name: targetName }];
             lastSelectedIndex = currentIndex;
         } else {
             if (!targetRow.classList.contains('selected')) {
-                targetRow.classList.add('selected');
+                _addSelectedRow(targetRow);
                 selectedFiles.push({ path: targetPath, type: targetType, extension: targetExt, name: targetName });
             }
             lastSelectedIndex = currentIndex;

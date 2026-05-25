@@ -153,12 +153,12 @@ function restoreDirectoryState() {
             lastSelectedIndex = -1;
             allRows.forEach((row, idx) => {
                 if (savedSet.has(row.dataset.path)) {
-                    row.classList.add('selected');
+                    _addSelectedRow(row);
                     selectedFiles.push({
                         path: row.dataset.path,
                         type: row.dataset.type,
                         extension: row.dataset.extension,
-                        name: row.querySelector('.file-name')?.textContent
+                        name: row.dataset.name ?? row.querySelector('.file-name')?.textContent
                     });
                     lastSelectedIndex = idx;
                 }
@@ -188,9 +188,7 @@ async function loadDirectory(path, addToHistory = true) {
         // Cancel any pending debounced scroll-save so it doesn't fire for the new directory
         clearTimeout(_scrollSaveTimer);
 
-        const res = await fetch(`${APIBASE}/api/list?path=${encodeURIComponent(path)}`);
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const tree = await res.json();
+        const tree = await jsonGet(`${APIBASE}/api/list?path=${encodeURIComponent(path)}`);
         fileTreeData = tree;
         currentPath = path;
         if (addToHistory) {
@@ -228,8 +226,27 @@ async function loadDirectory(path, addToHistory = true) {
     }
 }
 
+// Tracks currently-selected TR elements so we can clear them in O(selection) not O(n).
+const _selectedRows = new Set();
+
+function _clearSelectedRows() {
+    _selectedRows.forEach(r => r.classList.remove('selected'));
+    _selectedRows.clear();
+}
+
+function _addSelectedRow(tr) {
+    tr.classList.add('selected');
+    _selectedRows.add(tr);
+}
+
+function _removeSelectedRow(tr) {
+    tr.classList.remove('selected');
+    _selectedRows.delete(tr);
+}
+
 function renderFileList(tree) {
     const tbody = document.getElementById('file-table-body');
+    _clearSelectedRows();
     tbody.innerHTML = '';
     if (!tree || !tree.content || tree.content.length === 0) {
         const tr = document.createElement('tr');
@@ -243,11 +260,16 @@ function renderFileList(tree) {
         tbody.appendChild(tr);
         return;
     }
-    tree.content.forEach(node => {
+    const nodes = sortNodes(tree.content);
+    // Build all rows in a DocumentFragment to minimize reflows
+    const fragment = document.createDocumentFragment();
+    nodes.forEach(node => {
         const tr = document.createElement('tr');
         const fullPath = node.name.startsWith('/') ? node.name : `${currentPath}/${node.name}`;
         tr.dataset.path = fullPath;
         tr.dataset.type = node.type;
+        // Store the display name so delegated handler can read it without querySelector
+        tr.dataset.name = node.name.split('/').pop();
         if (node.extension) tr.dataset.extension = node.extension;
 
         const tdName = document.createElement('td');
@@ -258,7 +280,7 @@ function renderFileList(tree) {
         icon.appendChild(getFileIconSVG(node.type));
         const name = document.createElement('span');
         name.className = 'file-name';
-        name.textContent = node.name.split('/').pop();
+        name.textContent = tr.dataset.name;
         nameCell.appendChild(icon);
         nameCell.appendChild(name);
         tdName.appendChild(nameCell);
@@ -274,27 +296,61 @@ function renderFileList(tree) {
         tr.appendChild(tdName);
         tr.appendChild(tdType);
         tr.appendChild(tdSize);
-
-        tr.addEventListener('click', (e) => handleFileClick(tr, node, e));
-        tr.addEventListener('dblclick', () => handleFileDoubleClick(tr, node));
-        tr.addEventListener('contextmenu', (e) => handleContextMenu(e, tr, node));
-        tbody.appendChild(tr);
+        fragment.appendChild(tr);
     });
+    tbody.appendChild(fragment);
+    _attachTableDelegation(tbody);
 }
 
-function handleFileClick(tr, node, event) {
+// Single delegated handler — attached once after each renderFileList call.
+let _delegationAttached = false;
+function _attachTableDelegation(tbody) {
+    if (_delegationAttached) return;
+    _delegationAttached = true;
+    tbody.addEventListener('click', _onTableClick);
+    tbody.addEventListener('dblclick', _onTableDblClick);
+    tbody.addEventListener('contextmenu', _onTableContextMenu);
+}
+
+function _rowOf(target) {
+    return target.closest('#file-table-body tr');
+}
+
+function _onTableClick(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    handleFileClick(tr, e);
+}
+
+function _onTableDblClick(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    if (tr.dataset.type === 'directory') loadDirectory(tr.dataset.path);
+}
+
+function _onTableContextMenu(e) {
+    const tr = _rowOf(e.target);
+    if (!tr) return;
+    e.preventDefault();
+    openContextMenu(e.clientX, e.clientY, tr);
+}
+
+function _rowToFileData(row) {
+    return { path: row.dataset.path, type: row.dataset.type, extension: row.dataset.extension, name: row.dataset.name };
+}
+
+function handleFileClick(tr, event) {
     const allRows = Array.from(document.querySelectorAll('#file-table-body tr'));
     const clickedIndex = allRows.indexOf(tr);
 
     if (event.ctrlKey || event.metaKey) {
         // Ctrl+Click: Toggle selection
         if (tr.classList.contains('selected')) {
-            tr.classList.remove('selected');
+            _removeSelectedRow(tr);
             selectedFiles = selectedFiles.filter(f => f.path !== tr.dataset.path);
         } else {
-            tr.classList.add('selected');
-            const fileData = { path: tr.dataset.path, type: node.type, extension: node.extension, name: node.name, ...node };
-            selectedFiles.push(fileData);
+            _addSelectedRow(tr);
+            selectedFiles.push(_rowToFileData(tr));
         }
         lastSelectedIndex = clickedIndex;
     } else if (event.shiftKey && lastSelectedIndex !== -1) {
@@ -304,7 +360,7 @@ function handleFileClick(tr, node, event) {
 
         // Clear previous selection unless Ctrl is also held
         if (!event.ctrlKey && !event.metaKey) {
-            allRows.forEach(r => r.classList.remove('selected'));
+            _clearSelectedRows();
             selectedFiles = [];
         }
 
@@ -312,20 +368,15 @@ function handleFileClick(tr, node, event) {
         for (let i = start; i <= end; i++) {
             const row = allRows[i];
             if (!row.classList.contains('selected')) {
-                row.classList.add('selected');
-                const rowPath = row.dataset.path;
-                const rowType = row.dataset.type;
-                const rowExt = row.dataset.extension;
-                const rowName = row.querySelector('.file-name')?.textContent;
-                const fileData = { path: rowPath, type: rowType, extension: rowExt, name: rowName };
-                selectedFiles.push(fileData);
+                _addSelectedRow(row);
+                selectedFiles.push(_rowToFileData(row));
             }
         }
     } else {
         // Regular click: Select only this item
-        allRows.forEach(r => r.classList.remove('selected'));
-        tr.classList.add('selected');
-        selectedFiles = [{ path: tr.dataset.path, type: node.type, extension: node.extension, name: node.name, ...node }];
+        _clearSelectedRows();
+        _addSelectedRow(tr);
+        selectedFiles = [_rowToFileData(tr)];
         lastSelectedIndex = clickedIndex;
     }
 
@@ -356,6 +407,9 @@ async function showMultipleFilesSelected() {
     const panel = document.getElementById('panel-content');
     const status = document.getElementById('tag-status');
 
+    document.getElementById('rteid-badge').style.display = 'none';
+    document.getElementById('rteid-value').textContent = '';
+
     // Filter only music files
     const musicFiles = selectedFiles.filter(f => f.type === 'music');
 
@@ -384,9 +438,7 @@ async function showMultipleFilesSelected() {
     try {
         // Fetch tags for all music files in parallel
         const tagPromises = musicFiles.map(file =>
-            fetch(`${APIBASE}/api/tag?path=${encodeURIComponent(file.path)}`)
-                .then(res => res.ok ? res.json() : {})
-                .catch(() => ({}))
+            jsonGet(`${APIBASE}/api/tag?path=${encodeURIComponent(file.path)}`).catch(() => ({}))
         );
 
         const allTags = await Promise.all(tagPromises);
@@ -431,15 +483,117 @@ function mergeMultiFileTags(allTags) {
             // All same - use the value directly
             merged[key] = values[0];
         } else {
-            // Different values - store all unique values
+            // Different values - keep all (including undefined) to preserve filePaths index alignment
             merged[key] = {
                 __multiValue: true,
-                values: values.filter(v => v !== undefined && v !== null)
+                values: values
             };
         }
     });
 
     return merged;
+}
+
+function buildMultiAddFieldSection(filePaths) {
+    const section = document.createElement('div');
+    section.className = 'add-field-section';
+
+    const title = document.createElement('div');
+    title.className = 'add-field-title';
+    title.textContent = 'Add New Field';
+    section.appendChild(title);
+
+    const fieldTypeRow = document.createElement('div');
+    fieldTypeRow.className = 'tag-row';
+    const fieldTypeLabel = document.createElement('label');
+    fieldTypeLabel.className = 'tag-label';
+    fieldTypeLabel.textContent = 'Field Type';
+    const acContainer = document.createElement('div');
+    acContainer.className = 'autocomplete-container';
+    const fieldTypeInput = document.createElement('input');
+    fieldTypeInput.type = 'text';
+    fieldTypeInput.className = 'tag-input';
+    fieldTypeInput.placeholder = 'e.g., GENRE';
+    fieldTypeInput.setAttribute('autocomplete', 'off');
+    const acList = document.createElement('div');
+    acList.className = 'autocomplete-list';
+    const showHints = (q) => {
+        acList.innerHTML = '';
+        if (!q) { acList.classList.remove('visible'); return; }
+        const filtered = tagRegistryHints.filter(h => h.toLowerCase().includes(q.toLowerCase()));
+        if (filtered.length === 0) { acList.classList.remove('visible'); return; }
+        filtered.forEach(hint => {
+            const item = document.createElement('div');
+            item.className = 'autocomplete-item';
+            item.textContent = hint;
+            item.addEventListener('mousedown', (e) => { e.preventDefault(); fieldTypeInput.value = hint; acList.classList.remove('visible'); });
+            acList.appendChild(item);
+        });
+        acList.classList.add('visible');
+    };
+    fieldTypeInput.addEventListener('input', () => showHints(fieldTypeInput.value.trim()));
+    fieldTypeInput.addEventListener('focus', () => { if (fieldTypeInput.value.trim()) showHints(fieldTypeInput.value.trim()); });
+    fieldTypeInput.addEventListener('blur', () => acList.classList.remove('visible'));
+    fieldTypeInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') acList.classList.remove('visible'); });
+    acContainer.appendChild(fieldTypeInput);
+    acContainer.appendChild(acList);
+    fieldTypeRow.appendChild(fieldTypeLabel);
+    fieldTypeRow.appendChild(acContainer);
+    section.appendChild(fieldTypeRow);
+
+    const valueRow = document.createElement('div');
+    valueRow.className = 'tag-row';
+    const valueLabel = document.createElement('label');
+    valueLabel.className = 'tag-label';
+    valueLabel.textContent = 'Value';
+    const valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'tag-input';
+    valueInput.placeholder = 'e.g., hardcore (optional)';
+    valueRow.appendChild(valueLabel);
+    valueRow.appendChild(valueInput);
+    section.appendChild(valueRow);
+
+    const actions = document.createElement('div');
+    actions.className = 'tag-actions visible';
+
+    const btnAdd = document.createElement('button');
+    btnAdd.className = 'btn btn-primary';
+    btnAdd.textContent = 'Add to All';
+    btnAdd.addEventListener('click', async () => {
+        const fieldType = fieldTypeInput.value.trim();
+        let value = valueInput.value.trim() || 'none';
+        if (!fieldType) { showToast('Field type is required', 'error'); return; }
+        const status = document.getElementById('tag-status');
+        const errors = [];
+        for (let i = 0; i < filePaths.length; i++) {
+            status.textContent = `Adding field... (${i + 1}/${filePaths.length})`;
+            try {
+                await jsonPost(`${APIBASE}/api/addfieldtag`, { path: filePaths[i], fieldType, value });
+            } catch (err) {
+                errors.push(filePaths[i].split('/').pop());
+            }
+        }
+        if (errors.length > 0) {
+            showToast(`Field added with ${errors.length} error(s)`, 'error');
+        } else {
+            showToast(`Field added to ${filePaths.length} file(s)`, 'success');
+        }
+        fieldTypeInput.value = '';
+        valueInput.value = '';
+        await showMultipleFilesSelected();
+    });
+
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'btn btn-secondary';
+    btnCancel.textContent = 'Cancel';
+    btnCancel.addEventListener('click', () => { fieldTypeInput.value = ''; valueInput.value = ''; });
+
+    actions.appendChild(btnAdd);
+    actions.appendChild(btnCancel);
+    section.appendChild(actions);
+
+    return section;
 }
 
 function renderMergedTags(mergedTags, filePaths) {
@@ -459,6 +613,7 @@ function renderMergedTags(mergedTags, filePaths) {
         tagGroup.appendChild(emptyMsg);
     } else {
         entries.forEach(([key, value]) => {
+            if (key === 'RTEID') return;
             if (value && value.__multiValue) {
                 // Multi-value field - render with <keep> dropdown
                 renderMultiValueTag(tagGroup, key, value.values, filePaths);
@@ -475,6 +630,12 @@ function renderMergedTags(mergedTags, filePaths) {
     }
 
     panel.appendChild(tagGroup);
+
+    const separator = document.createElement('div');
+    separator.className = 'tag-separator';
+    panel.appendChild(separator);
+
+    panel.appendChild(buildMultiAddFieldSection(filePaths));
 }
 
 function renderMultiValueTag(container, tagKey, allValues, filePaths) {
@@ -503,9 +664,10 @@ function renderMultiValueTag(container, tagKey, allValues, filePaths) {
     dropdown.className = 'custom-dropdown';
     dropdown.style.display = 'none';
 
-    // Get all unique values for this tag
+    // Get all unique values for this tag (skip nullish — those files lack the tag)
     const uniqueValues = new Set();
     allValues.forEach(val => {
+        if (val === undefined || val === null) return;
         if (Array.isArray(val)) {
             val.forEach(v => uniqueValues.add(String(v ?? '')));
         } else {
@@ -582,7 +744,9 @@ function renderMultiValueTag(container, tagKey, allValues, filePaths) {
             showToast('Please enter a value', 'error');
             return;
         }
-        saveMultiFileTag(filePaths, tagKey, value);
+        // Build per-file old values (preserves filePaths[i] alignment from mergeMultiFileTags)
+        const oldValues = allValues.map(v => Array.isArray(v) ? String(v[0] ?? '') : String(v ?? ''));
+        saveMultiFileTag(filePaths, tagKey, value, oldValues);
     });
 
     const btnCancel = document.createElement('button');
@@ -632,7 +796,7 @@ function renderSingleValueTag(container, tagKey, value, filePaths, isArray, arra
     const btnSave = document.createElement('button');
     btnSave.className = 'btn btn-success';
     btnSave.textContent = 'Save All';
-    btnSave.addEventListener('click', () => saveMultiFileTag(filePaths, tagKey, input.value));
+    btnSave.addEventListener('click', () => saveMultiFileTag(filePaths, tagKey, input.value, String(value ?? '')));
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'btn btn-secondary';
@@ -659,7 +823,7 @@ function renderSingleValueTag(container, tagKey, value, filePaths, isArray, arra
     container.appendChild(row);
 }
 
-async function saveMultiFileTag(filePaths, tagType, newValue) {
+async function saveMultiFileTag(filePaths, tagType, newValue, oldValues = '') {
     const status = document.getElementById('tag-status');
 
     if (newValue === '__KEEP__') {
@@ -682,9 +846,11 @@ async function saveMultiFileTag(filePaths, tagType, newValue) {
 
     for (let i = 0; i < filePaths.length; i++) {
         const filePath = filePaths[i];
+        const replaceWhat = Array.isArray(oldValues) ? oldValues[i] : oldValues;
         const payload = {
             path: filePath,
             tagType,
+            replaceWhat: replaceWhat ?? '',
             replaceWith: newValue,
         };
 
@@ -745,7 +911,7 @@ document.getElementById('explorer-content').addEventListener('scroll', () => {
 document.getElementById('file-table-body').addEventListener('click', (e) => {
     // Only deselect if clicking directly on tbody (empty area)
     if (e.target.tagName === 'TBODY') {
-        document.querySelectorAll('#file-table-body tr').forEach(r => r.classList.remove('selected'));
+        _clearSelectedRows();
         selectedFiles = [];
         lastSelectedIndex = -1;
         clearTags();

@@ -46,14 +46,7 @@ async function jsonGet(url) {
     const res = await fetch(url);
     if (!res.ok) {
         let errorMessage = `HTTP ${res.status}`;
-        try {
-            const text = await res.text();
-            if (text) {
-                errorMessage += `: ${text}`;
-            }
-        } catch (e) {
-            // Ignore if can't read response
-        }
+        try { const text = await res.text(); if (text) errorMessage += `: ${text}`; } catch (e) { /* ignore */ }
         throw new Error(errorMessage);
     }
     return res.json();
@@ -67,15 +60,9 @@ async function jsonPost(url, body) {
     });
     if (!res.ok) {
         let errorMessage = `HTTP ${res.status}`;
-        try {
-            const text = await res.text();
-            if (text) {
-                errorMessage += `: ${text}`;
-            }
-        } catch (e) {
-            // Ignore if can't read response
-        }
+        try { const text = await res.text(); if (text) errorMessage += `: ${text}`; } catch (e) { /* ignore */ }
         throw new Error(errorMessage);
     }
     return res;
 }
+

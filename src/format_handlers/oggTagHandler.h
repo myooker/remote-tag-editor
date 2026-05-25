@@ -13,10 +13,10 @@ namespace audioFormat {
         std::string m_filePath{};
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
-        crow::response removeMusicTag(const program::TagModification &tagStruct) override;
-        crow::response addMusicTag(const program::TagModification &tagStruct) override;
-        crow::response editMusicTags(const program::TagModification &tagStruct) override;
-        crow::response editMusicTags(const program::TagModification &tagStruct, bool isBulk) override;
+        crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        std::expected<std::string, bool> hasRTEID(const std::string &filePath) override;
     private:
         std::unique_ptr<musicTagHandler> codecHandler(const std::string &filePath);
     };

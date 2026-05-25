@@ -47,18 +47,18 @@ std::expected<json, std::string> oggTagHandler::listMusicTags(const std::string 
     return codecHandler(filePath)->listMusicTags(filePath);
 }
 
-crow::response oggTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
-   return codecHandler(tagStruct.filePath)->removeMusicTag(tagStruct);
+crow::response oggTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
+   return codecHandler(tagStruct.filePath)->removeMusicTag(tagStruct, rteid);
 }
 
-crow::response oggTagHandler::addMusicTag(const program::TagModification &tagStruct) {
-   return codecHandler(tagStruct.filePath)->addMusicTag(tagStruct);
+crow::response oggTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
+   return codecHandler(tagStruct.filePath)->addMusicTag(tagStruct, rteid);
 }
 
-crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct) {
-   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct);
+crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
+   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, rteid);
 }
 
-crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
-   return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, true);
+std::expected<std::string, bool> oggTagHandler::hasRTEID(const std::string& filePath) {
+    return codecHandler(filePath)->hasRTEID(filePath);
 }

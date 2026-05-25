@@ -3,6 +3,8 @@ function clearTags() {
     const panel = document.getElementById('panel-content');
     const status = document.getElementById('tag-status');
     status.textContent = 'No file selected';
+    document.getElementById('rteid-badge').style.display = 'none';
+    document.getElementById('rteid-value').textContent = '';
     panel.innerHTML = `
         <div class="empty-state">
             <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -64,6 +66,7 @@ function renderTags(tags, filePath) {
         tagGroup.appendChild(emptyMsg);
     } else {
         entries.forEach(([key, value]) => {
+            if (key === 'RTEID') return;
             if (Array.isArray(value)) {
                 value.forEach((item, index) => {
                     const row = document.createElement('div');
@@ -170,7 +173,7 @@ function renderTags(tags, filePath) {
                 const btnSaveFolder = document.createElement('button');
                 btnSaveFolder.className = 'btn btn-success';
                 btnSaveFolder.textContent = 'Save folder';
-                btnSaveFolder.addEventListener('click', () => saveFolderSingleTag(key, input.value));
+                btnSaveFolder.addEventListener('click', () => saveFolderSingleTag(key, String(value ?? ''), input.value));
 
                 const btnCancel = document.createElement('button');
                 btnCancel.className = 'btn btn-secondary';
@@ -199,6 +202,54 @@ function renderTags(tags, filePath) {
             }
         });
     }
+
+    const rteid = Array.isArray(tags['RTEID']) ? tags['RTEID'][0] : (tags['RTEID'] ?? null);
+
+    const rteidBadge = document.getElementById('rteid-badge');
+    const rteidValueEl = document.getElementById('rteid-value');
+    const rteidDeleteBtn = document.getElementById('rteid-delete-btn');
+
+    if (rteid) {
+        rteidValueEl.textContent = rteid;
+        rteidBadge.style.display = 'flex';
+        rteidDeleteBtn.onclick = null;
+        rteidDeleteBtn.onclick = async () => {
+            const confirmed = await showModal(
+                'Delete RTEID',
+                'Are you sure? This will permanently erase ALL change history for this file from the database. This cannot be undone.',
+                '',
+                true,
+                'Delete'
+            );
+            if (!confirmed) return;
+            try {
+                await jsonPost(`${APIBASE}/api/removefieldtag`, { path: filePath, fieldType: 'RTEID', value: rteid });
+                await jsonPost(`${APIBASE}/api/events/delete`, { path: rteid });
+                showToast('RTEID deleted and history purged', 'success');
+                await loadTags(filePath);
+            } catch (err) {
+                console.error('Failed to delete RTEID', err);
+                showToast(`Failed to delete RTEID: ${err.message}`, 'error');
+            }
+        };
+    } else {
+        rteidBadge.style.display = 'none';
+        rteidValueEl.textContent = '';
+    }
+
+    const historyBtn = document.createElement('button');
+    const historyAvailable = rteid || !appSettings.rteid;
+    historyBtn.className = 'btn-history-panel' + (historyAvailable ? '' : ' btn-history-panel--disabled');
+    historyBtn.title = historyAvailable ? 'View change history' : 'No RTEID — history unavailable';
+    historyBtn.disabled = !historyAvailable;
+    historyBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"></path>
+            <polyline points="12 6 12 12 16 14"></polyline>
+        </svg>
+        History`;
+    if (historyAvailable) historyBtn.addEventListener('click', () => openHistoryPanel(appSettings.rteid ? rteid : filePath));
+    panel.appendChild(historyBtn);
 
     panel.appendChild(tagGroup);
 
@@ -317,6 +368,7 @@ async function saveSingleTag(filePath, tagType, originalValue, newValue) {
     const payload = {
         path: filePath,
         tagType,
+        replaceWhat: String(originalValue ?? ''),
         replaceWith: newValue,
     };
     try {
@@ -331,7 +383,7 @@ async function saveSingleTag(filePath, tagType, originalValue, newValue) {
     }
 }
 
-async function saveFolderSingleTag(tagType, newValue) {
+async function saveFolderSingleTag(tagType, oldValue, newValue) {
     const status = document.getElementById('tag-status');
     status.textContent = 'Saving to folder...';
     newValue = newValue.trim();
@@ -352,8 +404,10 @@ async function saveFolderSingleTag(tagType, newValue) {
         const payload = {
             path: musicFiles[i],
             tagType,
+            replaceWhat: oldValue,
             replaceWith: newValue,
         };
+
         try {
             await jsonPost(`${APIBASE}/api/edittag`, payload);
         } catch (err) {

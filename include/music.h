@@ -102,6 +102,7 @@ namespace program::music {
         constexpr TagField rating_mm                        { "RATING MM" };
         constexpr TagField rating_wmp                       { "RATING WMP" };
         constexpr TagField releasetime                      { "RELEASETIME" };
+        constexpr TagField releasetype                      { "RELEASETYPE" };
         constexpr TagField setsubtitle                      { "SETSUBTITLE" };
         constexpr TagField subtitle                         { "SUBTITLE" };
         constexpr TagField taggingtime                      { "TAGGINGTIME" };
@@ -113,6 +114,9 @@ namespace program::music {
         constexpr TagField year                             { "YEAR" };
 
         constexpr TagField coverArt                         { "COVERART" };
+
+        // Program-defined tags
+        constexpr TagField rteID                            { "RTEID" };
 
         struct tagRegistry {
             std::unordered_map<std::string, std::string> rawToNormalized;

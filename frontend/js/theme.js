@@ -5,7 +5,7 @@ function getTheme() {
 
 function setTheme(themeName) {
     // Remove all theme classes
-    document.body.classList.remove('theme-modern-dark', 'theme-windows-95');
+    document.body.classList.remove('theme-modern-dark');
 
     // Add new theme class
     if (themeName !== 'modern-dark') {

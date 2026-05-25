@@ -1,11 +1,14 @@
 #ifndef WEB_TAG_EDITOR_PROGRAM_H
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
+#include <string_view>
+
+#include "SQLiteCpp/Backup.h"
 
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "Beta 1.2.2" };
+    constexpr std::string_view version { "1.4.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {
@@ -15,11 +18,14 @@ namespace program {
     };
 
     struct Settings {
-        bool disableCrowServer { false };
-        int port{ 18080 };
         std::string mountpoint { "/music" };
+        std::string dbpath { "database.db" };
         std::string testFile {};
         std::string testDirectory {};
+        bool disableCrowServer { false };
+        bool useRteid { false };
+        int port{ 18080 };
+
 
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
@@ -50,6 +56,10 @@ namespace program {
         std::string replaceWith { "none" };
         std::string value { "none" };
     };
+
+    inline TagModification getRTEIDStruct (const std::string &path, const std::string &sid) {
+        return TagModification { path, "RTEID", "", "", sid};
+    }
 
     namespace error {
         enum MESSAGE {
