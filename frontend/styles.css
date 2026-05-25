@@ -1260,6 +1260,7 @@ th.sort-desc::after {
 /* Settings Modal Styles */
 .settings-body {
     padding: 24px !important;
+    cursor: default;
 }
 
 .settings-section {
@@ -1274,6 +1275,34 @@ th.sort-desc::after {
     margin-bottom: 12px;
     text-transform: uppercase;
     letter-spacing: 0.6px;
+}
+
+.server-info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.server-info-row {
+    display: flex;
+    align-items: center;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    padding: 8px 12px;
+    gap: 12px;
+}
+
+.server-info-key {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 90px;
+}
+
+.server-info-value {
+    font-size: 13px;
+    color: var(--text-primary);
+    font-family: monospace;
 }
 
 .theme-options {

@@ -93,8 +93,8 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
 std::string generateId(const std::size_t t=16) {
     static constexpr std::string_view ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
-    std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<std::size_t> distribution(0, ALPHABET.size() - 1);
+    static std::mt19937 rng(std::random_device{}());
+    static std::uniform_int_distribution<std::size_t> distribution(0, ALPHABET.size() - 1);
 
     std::string id;
     id.reserve(t);
@@ -162,6 +162,7 @@ int main (int argc, char **argv) {
         json j = {
             {"rteid", application.useRteid},
             {"mountpoint", application.mountpoint},
+            {"version", program::version },
         };
         crow::response response { j.dump() };
         response.set_header("Content-Type", "application/json");
@@ -189,12 +190,14 @@ int main (int argc, char **argv) {
         if (action == "change") {
             response = handler->editMusicTags(
                 { filePath, tag, currentValue, oldValue, oldValue });
+            if (response.code != 200)
+                response = handler->addMusicTag({ filePath, tag, "", "", oldValue });
         } else if (action == "remove") {
             response = handler->addMusicTag(
                 { filePath, tag, "", "", oldValue });
         } else if (action == "add") {
             response = handler->removeMusicTag(
-                { filePath, tag, "", "", newValue });
+                { filePath, tag, "", "", "" });
         }
 
         if (response.code == 200) {
@@ -278,27 +281,10 @@ int main (int argc, char **argv) {
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
-        crow::response response(handler->editMusicTags(tagStruct));
-        if (response.code == 200) {
-            // If a user opt-out using RTEID
-            // Track history based on file's path
-            if (!application.useRteid)
-                return db.insertEdit(tagStruct, id);
+        if (application.useRteid) id.rte = generateId();
+        crow::response response(handler->editMusicTags(tagStruct, application.useRteid ? &id.rte : nullptr));
 
-            const auto f = handler->hasRTEID(tagStruct.filePath);
-            const std::string rteid = generateId();
-            if (f) {
-                id.rte = f.value();
-            } else {
-                id.rte = rteid;
-                handler->addMusicTag({
-                    tagStruct.filePath,
-                    "RTEID",
-                    "",
-                    "",
-                    rteid
-                });
-            }
+        if (response.code == 200) {
             return db.insertEdit(tagStruct, id);
         }
     });
@@ -324,27 +310,10 @@ int main (int argc, char **argv) {
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
-        crow::response response(handler->addMusicTag(tagStruct));
-        if (response.code == 200) {
-            // If a user opt-out using RTEID
-            // Track history based on file's path
-            if (!application.useRteid)
-                return db.insertAdd(tagStruct, id);
+        if (application.useRteid) id.rte = generateId();
+        crow::response response(handler->addMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
 
-            const auto f = handler->hasRTEID(tagStruct.filePath);
-            const std::string rteid = generateId();
-            if (f) {
-                id.rte = f.value();
-            } else {
-                id.rte = rteid;
-                handler->addMusicTag({
-                    tagStruct.filePath,
-                    "RTEID",
-                    "",
-                    "",
-                    rteid
-                });
-            }
+        if (response.code == 200) {
             return db.insertAdd(tagStruct, id);
         }
         return response;
@@ -369,32 +338,15 @@ int main (int argc, char **argv) {
         CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << tagStruct.fieldType;
         CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
-        if (tagStruct.fieldType == "RTEID")
+        if (tagStruct.fieldType == "RTEID" && application.useRteid)
             return crow::response { 400, "You cannot modify RTEID" };
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
-        crow::response response (handler->removeMusicTag(tagStruct));
-        if (response.code == 200) {
-            // If a user opt-out using RTEID
-            // Track history based on file's path
-            if (!application.useRteid)
-                return db.insertRemove(tagStruct, id);
+        if (application.useRteid) id.rte = generateId();
+        crow::response response(handler->removeMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
 
-            const auto f = handler->hasRTEID(tagStruct.filePath);
-            const std::string rteid = generateId();
-            if (f) {
-                id.rte = f.value();
-            } else {
-                id.rte = rteid;
-                handler->addMusicTag({
-                    tagStruct.filePath,
-                    "RTEID",
-                    "",
-                    "",
-                    rteid
-                });
-            }
+        if (response.code == 200) {
             return db.insertRemove(tagStruct, id);
         }
     });

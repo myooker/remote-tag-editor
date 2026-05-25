@@ -43,7 +43,7 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
     return j;
 }
 
-crow::response flacTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
+crow::response flacTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
@@ -57,14 +57,24 @@ crow::response flacTagHandler::removeMusicTag(const program::TagModification &ta
     }
 
     auto *tag = file.xiphComment();
-    tag->removeFields(denormFieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8});
+    if (tagStruct.value.empty())
+        tag->removeFields(denormFieldType);
+    else
+        tag->removeFields(denormFieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8});
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.fieldType << " field was removed!";
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
+    }
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
     return {200, "OK"};
 }
 
-crow::response flacTagHandler::addMusicTag(const program::TagModification &tagStruct) {
+crow::response flacTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
@@ -79,12 +89,19 @@ crow::response flacTagHandler::addMusicTag(const program::TagModification &tagSt
 
     auto *tag = file.xiphComment();
     tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8}, false);
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
+    }
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
     return {200, "File/s saved!"};
 }
 
-crow::response flacTagHandler::editMusicTags(const program::TagModification &tagStruct) {
+crow::response flacTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
@@ -130,6 +147,13 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
     for (const auto &a : newValues) {
         tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
+    }
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
     }
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " saved!\n";

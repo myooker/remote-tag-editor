@@ -35,7 +35,7 @@ std::expected<json, std::string> oggSpeexTagHandler::listMusicTags(const std::st
     return j;
 }
 
-crow::response oggSpeexTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
+crow::response oggSpeexTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -44,14 +44,24 @@ crow::response oggSpeexTagHandler::removeMusicTag(const program::TagModification
     }
 
     auto *tag = file.tag();
-    tag->removeFields(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8});
+    if (tagStruct.value.empty())
+        tag->removeFields(tagStruct.fieldType);
+    else
+        tag->removeFields(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8});
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.fieldType << " field was removed!";
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
+    }
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath.c_str() << " saved!";
     return {200, "OK"};
 }
 
-crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &tagStruct) {
+crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -61,12 +71,19 @@ crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &t
 
     auto *tag = file.tag();
     tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8}, false);
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
+    }
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
     return {200, "File/s saved!"};
 }
 
-crow::response oggSpeexTagHandler::editMusicTags(const program::TagModification &tagStruct) {
+crow::response oggSpeexTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
@@ -107,6 +124,13 @@ crow::response oggSpeexTagHandler::editMusicTags(const program::TagModification 
     for (const auto &a : newValues) {
         tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
+    }
+    if (rteid) {
+        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
+        if (it != tag->fieldListMap().end())
+            *rteid = it->second[0].toCString(false);
+        else
+            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
     }
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " saved!\n";

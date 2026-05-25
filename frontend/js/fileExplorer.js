@@ -436,7 +436,7 @@ async function showMultipleFilesSelected() {
         </div>`;
 
     try {
-        // Fetch tags for all music files in parallel (via cache-aware jsonGet)
+        // Fetch tags for all music files in parallel
         const tagPromises = musicFiles.map(file =>
             jsonGet(`${APIBASE}/api/tag?path=${encodeURIComponent(file.path)}`).catch(() => ({}))
         );

@@ -93,7 +93,7 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
     }
 }
 
-crow::response mpegTagHandler::removeMusicTag(const program::TagModification &tagStruct) {
+crow::response mpegTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
     TagLib::MPEG::File file { path.c_str() };
@@ -123,11 +123,41 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(prefix::mp3.size());
         removeTXXXFrame(tag, desc);
+        if (rteid) {
+            const std::string rteDesc { program::music::tag::rteID };
+            bool found = false;
+            for (auto *frame : tag->frameList("TXXX")) {
+                if (const auto *uf = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+                    if (uf->description().toCString(true) == rteDesc) {
+                        *rteid = uf->fieldList()[1].toCString(true);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found)
+                addTXXXFrame(tag, rteDesc, *rteid);
+        }
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     } else if (!frames.isEmpty()) {
         auto *frame = frames.front();
         tag->removeFrame(frame);
         file.strip(TagLib::MPEG::File::ID3v1);
+        if (rteid) {
+            const std::string rteDesc { program::music::tag::rteID };
+            bool found = false;
+            for (auto *frame : tag->frameList("TXXX")) {
+                if (const auto *uf = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+                    if (uf->description().toCString(true) == rteDesc) {
+                        *rteid = uf->fieldList()[1].toCString(true);
+                        found = true;
+                        break;
+                    }
+                }
+            }
+            if (!found)
+                addTXXXFrame(tag, rteDesc, *rteid);
+        }
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     }
 
@@ -161,7 +191,7 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
     tag->addFrame(newFrame);
 }
 
-crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagStruct) {
+crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
     TagLib::MPEG::File file { path.c_str() };
@@ -185,9 +215,27 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
 
+    auto ensureRteid = [&]() {
+        if (!rteid) return;
+        const std::string rteDesc { program::music::tag::rteID };
+        bool found = false;
+        for (auto *frame : tag->frameList("TXXX")) {
+            if (const auto *uf = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+                if (uf->description().toCString(true) == rteDesc) {
+                    *rteid = uf->fieldList()[1].toCString(true);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            addTXXXFrame(tag, rteDesc, *rteid);
+    };
+
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.value);
+        ensureRteid();
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
@@ -198,6 +246,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
         auto *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
         newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
         tag->addFrame(newFrame);
+        ensureRteid();
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
     } else {
@@ -208,7 +257,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     return crow::response {200, "OK" };
 }
 
-crow::response mpegTagHandler::editMusicTags(const program::TagModification &tagStruct) {
+crow::response mpegTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     const fs::path path { tagStruct.filePath };
     TagLib::MPEG::File file { path.c_str() };
@@ -228,9 +277,27 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     auto frameID = TagLib::ByteVector(denormFieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
+    auto ensureRteid = [&]() {
+        if (!rteid) return;
+        const std::string rteDesc { program::music::tag::rteID };
+        bool found = false;
+        for (auto *frame : tag->frameList("TXXX")) {
+            if (const auto *uf = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+                if (uf->description().toCString(true) == rteDesc) {
+                    *rteid = uf->fieldList()[1].toCString(true);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            addTXXXFrame(tag, rteDesc, *rteid);
+    };
+
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.replaceWith);
+        ensureRteid();
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
@@ -242,6 +309,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     tag->removeFrames(frameID);
     CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame...";
     tag->addFrame(newFrame);
+    ensureRteid();
     file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
 

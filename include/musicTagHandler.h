@@ -21,9 +21,9 @@ public:
     virtual ~musicTagHandler() = default;
 
     virtual std::expected<json, std::string> listMusicTags(const std::string &filePath) = 0;
-    virtual crow::response removeMusicTag(const program::TagModification &tagStruct) = 0;
-    virtual crow::response addMusicTag(const program::TagModification &tagStruct) = 0;
-    virtual crow::response editMusicTags(const program::TagModification &tagStruct) = 0;
+    virtual crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) = 0;
+    virtual crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) = 0;
+    virtual crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) = 0;
     virtual crow::response editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
         return { 501, "Multi-valued editing is not supported for this format"};
     };

@@ -14,9 +14,9 @@ namespace audioFormat {
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         static void addUserDefinedAtom(const program::TagModification &tagStruct);
-        crow::response removeMusicTag(const program::TagModification &tagStruct) override;
-        crow::response addMusicTag(const program::TagModification &tagStruct) override;
-        crow::response editMusicTags(const program::TagModification &tagStruct) override;
+        crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         std::expected<std::string, bool> hasRTEID(const std::string &filePath) override;
     };
 } // audioFormat
