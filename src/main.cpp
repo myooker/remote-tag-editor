@@ -110,21 +110,30 @@ int main (int argc, char **argv) {
     program::Settings application {};
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
-    CLI::App cli {
-        "Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.",
-        "app name"
-    };
 
-    cli.add_option("-m,--mount-point", application.mountpoint,
-            "The directory of your music library")->required();
-    cli.add_option("-p,--port", application.port,
-        "The application's port to bind in. Default is 18080.")->default_val(18080);
-    cli.add_option("-l,--log-level", debugLevel,
-            "temp")->default_val(crow::LogLevel::WARNING);
-    cli.add_option("--database-path", application.dbpath,
-        "Database path location. Default is /")->default_val("database.db");
-    cli.add_flag("--use-rteid", application.useRteid, "");
-    CLI11_PARSE(cli, argc, argv);
+    {
+        CLI::App cli {
+            "Backend API that edits music file tags (ID3/Vorbis) on request from a web‑based editor.",
+            "app name"
+        };
+
+        cli.add_option("-m,--mount-point", application.mountpoint,
+                "The directory of your music library")->required();
+        cli.add_option("-p,--port", application.port,
+            "The application's port to bind in. Default is 18080.")->default_val(18080);
+        cli.add_option("-l,--log-level", debugLevel,
+                "temp")->default_val(crow::LogLevel::WARNING);
+        cli.add_option("--database-path", application.dbpath,
+            "Database path location. Default is /")->default_val("database.db");
+        cli.add_flag("--use-rteid", application.useRteid, "");
+        CLI11_PARSE(cli, argc, argv);
+
+        const auto rteid = std::getenv("RTE_USERTEID");
+        if (rteid) {
+            if (strcasecmp(rteid, "true") == 0) application.useRteid = true;
+            if (strcasecmp(rteid, "false") == 0) application.useRteid = false;
+        }
+    }
 
     switch (debugLevel) {
         case 0: logLevel = crow::LogLevel::DEBUG; break;
@@ -149,6 +158,12 @@ int main (int argc, char **argv) {
 
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
+    CROW_LOG_INFO << "===Remote Tag Editor settings===";
+    CROW_LOG_INFO << "Mount-point: " << application.mountpoint;
+    CROW_LOG_INFO << "Database path: " << application.dbpath;
+    CROW_LOG_INFO << "Use RTEID: " << std::boolalpha << application.useRteid;
+    CROW_LOG_INFO << "Port: " << application.port;
+    CROW_LOG_INFO << "===============================\n";
 
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
