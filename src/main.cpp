@@ -158,12 +158,6 @@ int main (int argc, char **argv) {
 
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
-    CROW_LOG_INFO << "===Remote Tag Editor settings===";
-    CROW_LOG_INFO << "Mount-point: " << application.mountpoint;
-    CROW_LOG_INFO << "Database path: " << application.dbpath;
-    CROW_LOG_INFO << "Use RTEID: " << std::boolalpha << application.useRteid;
-    CROW_LOG_INFO << "Port: " << application.port;
-    CROW_LOG_INFO << "===============================\n";
 
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
@@ -190,7 +184,6 @@ int main (int argc, char **argv) {
 
         const std::string action { j.value("action", "none") };
         const std::string rteid { j.value("rteid", "none") }; // NULL if a user opt-out using rteid
-        const std::string currentValue { j.value("current_value", "none") };
         const std::string newValue { j.value("new_value", "none") };
         const std::string oldValue { j.value("old_value", "none") };
         const int dbid { j.value("id", 0) };
@@ -204,7 +197,7 @@ int main (int argc, char **argv) {
 
         if (action == "change") {
             response = handler->editMusicTags(
-                { filePath, tag, currentValue, oldValue, oldValue });
+                { filePath, tag, newValue, oldValue, oldValue });
             if (response.code != 200)
                 response = handler->addMusicTag({ filePath, tag, "", "", oldValue });
         } else if (action == "remove") {
@@ -212,7 +205,7 @@ int main (int argc, char **argv) {
                 { filePath, tag, "", "", oldValue });
         } else if (action == "add") {
             response = handler->removeMusicTag(
-                { filePath, tag, "", "", "" });
+                { filePath, tag, "", "",  newValue});
         }
 
         if (response.code == 200) {

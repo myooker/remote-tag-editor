@@ -188,8 +188,7 @@ function renderHistory(history) {
 
 async function doUndo(entry) {
     try {
-        const currentValue = currentTags?.tags?.[entry.tag] ?? 'NULL';
-        const res = await jsonPost(`${APIBASE}/api/undo`, { ...entry, current_value: currentValue });
+        const res = await jsonPost(`${APIBASE}/api/undo`, entry);
         if (res.ok) {
             showToast('Undo applied successfully', 'success');
             loadHistory(historyPanelFilePath);
