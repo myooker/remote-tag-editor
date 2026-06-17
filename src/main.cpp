@@ -182,13 +182,13 @@ int main (int argc, char **argv) {
     ([&](const crow::request& req) {
         json j = json::parse(req.body);
 
+        crow::response response { 400 };
+
         const std::string action { j.value("action", "none") };
         const std::string rteid { j.value("rteid", "none") }; // NULL if a user opt-out using rteid
         const std::string newValue { j.value("new_value", "none") };
         const std::string oldValue { j.value("old_value", "none") };
         const int dbid { j.value("id", 0) };
-
-        crow::response response { 400 };
 
         const std::string filePath { j.value("path", "none") };
         const std::string tag { j.value("tag", "none") };

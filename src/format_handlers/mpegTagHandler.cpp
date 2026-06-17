@@ -41,11 +41,18 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
             const auto *user = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
             if (user) {
                 const auto &fields = user->fieldList();
-                if (fields.size() >= 2) {
-                    const std::string key = fields[0].to8Bit(true);
-                    const std::string normalizedKey = tag::normalize(std::string(prefix::mp3) + key, fmt);
-                    std::string value = fields[1].to8Bit(true);
+                const auto fieldsSize = fields.size();
+                const std::string key = fields[0].to8Bit(true); // Assign TXXX description
+                const std::string normalizedKey = tag::normalize(std::string(prefix::mp3) + key, fmt);
+
+                if (fieldsSize == 2) { // If there's only description and its value
+                    std::string value = fields[1].to8Bit(true); // Get single-value of TXXX description (tag field)
                     userdef[normalizedKey] = value;
+                } else if (fieldsSize > 2) { // If there's description and multiple value
+                    userdef[normalizedKey] = json::array();
+                    for (unsigned int i { 1 }; i < fieldsSize; ++i) {
+                        userdef[normalizedKey] += fields[i].to8Bit(true);
+                    }
                 }
                 continue;
             }
