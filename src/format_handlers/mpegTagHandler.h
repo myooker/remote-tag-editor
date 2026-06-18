@@ -13,6 +13,7 @@ namespace audioFormat {
     private:
         static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc);
         static void addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &text);
+        static void editTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const program::TagModification &tagStruct);
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
