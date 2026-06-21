@@ -1,17 +1,17 @@
 <img src="frontend/logo.svg" align="right" height="75px"></a>
 # Remote Tag Editor
 
-WIP
+Work in progress - not stable yet (especially change history), expect some funny bugs.
+
+Remote Tag Editor is a self-hosted music metadata editor that you run with Docker and access from your browser. It supports tag normalization, multi-valued tag, and change history with undo.
 
 # Features
 
-TODO:
-- [x] Tag normalization (unified tag names)
-- [ ] Change history
-
-- Edit multi-valued tags
-- Easy to setup
-- Upload files to remote server
+- Multi-valued editing
+- Change history
+- Remote file upload
+- Easy setup
+- Browser-based
 
 # Building
 
@@ -47,10 +47,6 @@ Frontend is fully written by an AI. Please read [this page](frontend/README.md).
 
 # Screenshots
 
-**Modern Dark theme**
 ![modern-dark-theme-01.png](screenshots/modern-dark-theme-01.png)
 ![modern-dark-theme-02.png](screenshots/modern-dark-theme-02.png)
 
-**Windows 95 theme**
-![win-95-theme-01.png](screenshots/win-95-theme-01.png)
-![win-95-theme-02.png](screenshots/win-95-theme-02.png)
