@@ -81,22 +81,45 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     return base;
 }
 
-void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc) {
+void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &value) {
     TagLib::ID3v2::FrameList frames = tag->frameList("TXXX");
 
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
 
     for (auto *frame : frames) {
-        if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
-            const std::string frameDesc = userFrame->description().toCString(true);
-            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
-            CROW_LOG_DEBUG << "(" << __func__ << ")" << " description " << desc;
-            if (frameDesc == desc) {
-                CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
-                tag->removeFrame(frame);
-                return;
-            }
+        auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
+        if (!userFrame) // Continue searching for TXXX frame if it isn't
+            continue;
+
+        const std::string frameDesc = userFrame->description().toCString(true); // Extract description
+        if (frameDesc != desc) // Searching for exact frame description (name)
+            continue;
+
+        // No specific value given - remove the whole frame.
+        if (value.empty()) {
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
+            tag->removeFrame(frame);
+            return;
         }
+
+        // Remove only the matching value, keeping the frame's other values.
+        // fieldList()[0] is the description, so values start at index 1.
+        const TagLib::StringList fields = userFrame->fieldList();
+        TagLib::StringList remaining {};
+        for (unsigned int i { 1 }; i < fields.size(); ++i) {
+            if (fields[i] != TagLib::String{ value, TagLib::String::UTF8 })
+                remaining.append(fields[i]);
+        }
+
+        if (remaining.isEmpty()) {
+            // Nothing left but the description - drop the whole frame.
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
+            tag->removeFrame(frame);
+        } else {
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing value (" << value << ") from frame (" << frameDesc << ")";
+            userFrame->setText(remaining);
+        }
+        return;
     }
 }
 
@@ -129,7 +152,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
 
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(prefix::mp3.size());
-        removeTXXXFrame(tag, desc);
+        removeTXXXFrame(tag, desc, tagStruct.value);
         if (rteid) {
             const std::string rteDesc { program::music::tag::rteID };
             bool found = false;
@@ -177,19 +200,31 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
 
     for (auto *frame : frames) {
-        if (const auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
+        if (auto *userFrame = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
             const std::string frameDesc = userFrame->description().toCString(true);
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame description: " << frameDesc;
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame text: " << desc;
             if (frameDesc == desc) {
-                CROW_LOG_DEBUG << "(" << __func__ << ")" << " found conflicting " << desc;
-                CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing " << desc;
-                tag->removeFrame(frame);
-                break;
+                // A frame already exists, so we need to append new value, keeping old ones
+                const TagLib::StringList fields = userFrame->fieldList();
+                TagLib::StringList values {};
+
+                // fieldList()[0] is the description, so values start at index 1.
+                // Filling values with current values of description
+                for (unsigned int i { 1 }; i < fields.size(); ++i)
+                    values.append(fields[i]);
+
+                // Add our new value to list
+                // and set frame's text with our list (old values + new value)
+                values.append(TagLib::String{ text, TagLib::String::UTF8 });
+                userFrame->setText(values);
+                return;
             }
         }
     }
 
+    // If a frame does not exist, we simply create a new one
+    // Set description and text, adding this new frame to our file (tag)
     auto *newFrame = new TagLib::ID3v2::UserTextIdentificationFrame(TagLib::String::UTF8);
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame desc: " << desc;
     newFrame->setDescription(desc);

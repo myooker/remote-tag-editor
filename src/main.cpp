@@ -182,43 +182,58 @@ int main (int argc, char **argv) {
     ([&](const crow::request& req) {
         json j = json::parse(req.body);
 
-        crow::response response { 400 };
+        crow::response response { 500 };
 
-        const std::string action { j.value("action", "none") };
-        const std::string rteid { j.value("rteid", "none") }; // NULL if a user opt-out using rteid
-        const std::string newValue { j.value("new_value", "none") };
-        const std::string oldValue { j.value("old_value", "none") };
-        const int dbid { j.value("id", 0) };
+        // 1 - Parse information from request to query database
+        // All we need to have is the following variables:
+        const int id                { j.value("id", -1) }; // add enum NOT_FOUND instead of -1
+        const std::string rteid     { j.value("rteid", "none") };
+        const std::string path      { j.value("path", "none") };
+        const std::string tag       { j.value("tag", "none") };
 
-        const std::string filePath { j.value("path", "none") };
-        const std::string tag { j.value("tag", "none") };
-        const std::string ext { getExtension(filePath) };
-        auto handler = musicTagHandlerFactory::createHandler(ext);
+        auto handler = musicTagHandlerFactory::createHandler(getExtension(path));
 
-        if (action == "change") {
-            response = handler->editMusicTags(
-                { filePath, tag, newValue, oldValue, oldValue });
-            if (response.code != 200)
-                response = handler->addMusicTag({ filePath, tag, "", "", oldValue });
-        } else if (action == "remove") {
-            response = handler->addMusicTag(
-                { filePath, tag, "", "", oldValue });
-        } else if (action == "add") {
-            response = handler->removeMusicTag(
-                { filePath, tag, "", "",  newValue});
+        // 2 - Get information from query
+        SQLite::Statement q { db.getDatabase(),
+            "SELECT action, old_value, new_value FROM tag_history "
+            "WHERE id >= ? AND (rteid = ? OR path = ?) AND tag = ? "
+            "ORDER BY id DESC;"
+        };
+        q.bind(1, id);
+        q.bind(2, rteid);
+        q.bind(3, path);
+        q.bind(4, tag);
+
+        bool isGood { true };
+        while (isGood && q.executeStep()) {
+            std::string action     { q.getColumn(0).getString() };
+            std::string oldValue   { q.getColumn(1).getString() };
+            std::string newValue   { q.getColumn(2).getString() };
+
+            if (action == "add") {
+                isGood = handler->removeMusicTag
+                    ({path, tag, "", "", newValue}).code == 200;
+            } else if (action == "change") {
+                isGood = handler->editMusicTags
+                    ({path, tag, newValue, oldValue, ""}).code == 200;
+            } else if (action == "remove") {
+                isGood = handler->addMusicTag
+                    ({path, tag, "", "", oldValue}).code == 200;
+            }
         }
 
-        if (response.code == 200) {
-            SQLite::Statement c {db.getDatabase(),
+        if (isGood) {
+            SQLite::Statement d { db.getDatabase(),
                 "DELETE FROM tag_history "
-                "WHERE (rteid = ? OR path = ?) "
-                "AND tag = ? "
-                "AND id >= ?;"};
-            c.bind(1, rteid);
-            c.bind(2, filePath);
-            c.bind(3, tag);
-            c.bind(4, dbid);
-            c.exec();
+                "WHERE id >= ? AND (rteid = ? OR path = ?) AND tag = ?;"
+            };
+            d.bind(1, id);
+            d.bind(2, rteid);
+            d.bind(3, path);
+            d.bind(4, tag);
+            d.exec();
+
+            response.code = 200;
         }
 
         return response;

@@ -8,7 +8,7 @@
 namespace program {
     namespace fs = std::filesystem;
 
-    constexpr std::string_view version { "1.4.0" };
+    constexpr std::string_view version { "1.5.0" };
     constexpr std::string_view name { "web-tag-editor" };
 
     enum DIR_DEPTH {

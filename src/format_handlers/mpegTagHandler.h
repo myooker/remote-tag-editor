@@ -11,7 +11,7 @@
 namespace audioFormat {
     class mpegTagHandler : public musicTagHandler {
     private:
-        static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc);
+        static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &value = "");
         static void addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &text);
         static void editTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const program::TagModification &tagStruct);
     public:
