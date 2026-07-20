@@ -11,10 +11,12 @@
 #include <crow/http_response.h>
 #include <nlohmann/json.hpp>
 #include "program.h"
+#include "music.h"
 
 namespace fs = std::filesystem;
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
+using namespace program::music;
 
 class musicTagHandler {
 public:
@@ -27,8 +29,8 @@ public:
     virtual crow::response editMusicTags(const program::TagModification &tagStruct, bool isBulk) {
         return { 501, "Multi-valued editing is not supported for this format"};
     };
-    virtual crow::response getAlbumCover(const std::string &filePath) {
-        return { 501, "Returning an album cover from a file is not supported"};
+    virtual tag::Picture getAlbumCover(const std::string &filePath) {
+        return { crow::response { 501, "Retrieving an album cover from a file is not supported" } };
     }
     virtual crow::response removeAlbumCover(const std::string &filePath) {
         return { 501, "Removing an album cover from a file is not supported"};

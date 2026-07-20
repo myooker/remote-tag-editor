@@ -1,7 +1,8 @@
 .idea/
 .vscode/
 build/
-/cmake-build-debug/
-/cmake-build-release/
+cmake-build-debug/
+cmake-build-release/
 docker-compose.yml
 _deps
+app/

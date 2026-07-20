@@ -239,9 +239,27 @@ int main (int argc, char **argv) {
         return response;
     });
 
+    CROW_ROUTE(app, "/api/getalbumcover").methods("GET"_method)
+    ([&](const crow::request& req) {
+        crow::response response{500};
+        const std::string filePath = req.url_params.get("path");
+        if (!application.isMountPoint(filePath)) {
+            return crow::response { 500, "LOL NO" };
+        }
+        auto handler = musicTagHandlerFactory::createHandler(getExtension(filePath));
+        auto picture = handler->getAlbumCover(filePath);
+
+        std::cout << "hash: " << std::hash<std::string>{}(picture.data) << '\n';
+        response.body.assign(picture.data.data(), picture.data.size());
+        response.set_header("Content-Type", picture.mimeType);
+        response.code = 200;
+
+        return response;
+    });
+
     CROW_ROUTE(app, "/api/gethistory").methods("GET"_method)
     ([&](const crow::request &req) {
-        std::string filePath = req.url_params.get("identifier");
+        std::string fileIdentifier = req.url_params.get("identifier");
         std::string clause { "path = ?" }; // By default, it searches by path
 
         if (application.useRteid) // If a user don't mind to use RTEID
@@ -249,7 +267,7 @@ int main (int argc, char **argv) {
 
         SQLite::Statement query(db.getDatabase(), "SELECT * FROM tag_history WHERE "
             +clause +" ORDER BY changed_at DESC");
-        query.bind(1, filePath.c_str());
+        query.bind(1, fileIdentifier.c_str());
         json result = json::array();
 
         while (query.executeStep()) {

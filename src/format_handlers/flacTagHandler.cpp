@@ -6,6 +6,7 @@
 #include "../../include/music.h"
 
 #include <flacfile.h>
+#include <flacpicture.h>
 #include <xiphcomment.h>
 
 using namespace audioFormat;
@@ -175,4 +176,31 @@ std::expected<std::string, bool> flacTagHandler::hasRTEID(const std::string &fil
         return t->second[0].toCString(false);
     }
     return std::unexpected(false);
+}
+
+tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {
+    using namespace program::music;
+
+    TagLib::FLAC::File file { filePath.c_str() };
+
+    if (file.pictureList().isEmpty()) {
+        return tag::Picture {
+            crow::response {500, "Not found" },
+            "", "", 0, 0
+        };
+    }
+
+    auto p = file.pictureList()[0];
+
+    std::cout << "picture size: " << p->data() << '\n';
+
+    tag::Picture picture {
+        crow::response {200, "OK" },
+        p->mimeType().toCString(),
+        std::string(p->data().data(), p->data().size()),
+        p->height(),
+        p->width(),
+    };
+
+    return picture;
 }

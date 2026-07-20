@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
+#include <crow/http_response.h>
 
 namespace program::music {
     enum class format;
@@ -129,6 +130,14 @@ namespace program::music {
         std::string normalize(const std::string &rawTag);
         std::string normalize(const std::string &rawTag, format format);
         std::string denormalize(const std::string &normalizedTag, format format);
+
+        struct Picture {
+            crow::response response { 500, "Not found" };
+            std::string mimeType {};
+            std::string data {};
+            int height {};
+            int width {};
+        };
     }
 
     enum class format {
