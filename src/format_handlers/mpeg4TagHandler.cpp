@@ -8,6 +8,18 @@
 
 using namespace audioFormat;
 
+void mpeg4TagHandler::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
+    using namespace program::music;
+    using namespace TagLib;
+
+    const String rteAtom { tag::denormalize(std::string(tag::rteID), format::M4A), String::UTF8 };
+    const auto it = tag->itemMap().find(rteAtom);
+    if (it != tag->itemMap().end())
+        *rteid = it->second.toStringList()[0].toCString(false);
+    else
+        tag->setItem(rteAtom, MP4::Item{StringList{String{*rteid, String::UTF8}}});
+}
+
 std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
     using namespace program::music;
     const TagLib::MP4::File file { filePath.c_str() };
@@ -32,9 +44,12 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
         CROW_LOG_DEBUG << "(" << __func__ << ") " << key << " -> " << normalizedKey;
 
         switch (value.type()) {
-            case TagLib::MP4::Item::Type::StringList:
-                base[normalizedKey] = value.toStringList().toString().toCString(true);
-                break;
+            case TagLib::MP4::Item::Type::StringList: {
+                    for (const auto x : value.toStringList()) {
+                        base[normalizedKey] += x.toCString(true);
+                    }
+                    break;
+                }
             case TagLib::MP4::Item::Type::Int:
                 base[normalizedKey] = value.toInt();
                 break;
@@ -96,14 +111,7 @@ crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &t
 
     tag->removeItem(TagLib::String{rawAtom, TagLib::String::UTF8});
 
-    if (rteid) {
-        const TagLib::String rteAtom { tag::denormalize(std::string(tag::rteID), format::M4A), TagLib::String::UTF8 };
-        const auto it = tag->itemMap().find(rteAtom);
-        if (it != tag->itemMap().end())
-            *rteid = it->second.toStringList()[0].toCString(false);
-        else
-            tag->setItem(rteAtom, TagLib::MP4::Item{TagLib::StringList{TagLib::String{*rteid, TagLib::String::UTF8}}});
-    }
+    if (rteid) ensureRteid(rteid, tag);
     file.save();
 
     return {200, "OK"};
@@ -176,28 +184,11 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
             tag->setItem(atomKey, Item(static_cast<unsigned char>(std::stoi(tagStruct.value))));
             break;
         }
-        case Item::Type::CoverArtList:
-            CROW_LOG_DEBUG << "(" << __func__ << ") CoverArtList not implemented";
-            return {501, "CoverArtList not implemented"};
-        case Item::Type::ByteVectorList:
-            CROW_LOG_DEBUG << "(" << __func__ << ") ByteVectorList not implemented";
-            return {501, "ByteVectorList not implemented"};
-        case Item::Type::Stem:
-            CROW_LOG_DEBUG << "(" << __func__ << ") Stem not implemented";
-            return {501, "Stem not implemented"};
-        case Item::Type::Void:
-            CROW_LOG_ERROR << "(" << __func__ << ") Void atom type for: " << rawAtom;
-            return {500, "Void atom type"};
+        default:
+            return { 400, "Not implemented method" };
     }
 
-    if (rteid) {
-        const TagLib::String rteAtom { tag::denormalize(std::string(tag::rteID), format::M4A), TagLib::String::UTF8 };
-        const auto it = tag->itemMap().find(rteAtom);
-        if (it != tag->itemMap().end())
-            *rteid = it->second.toStringList()[0].toCString(false);
-        else
-            tag->setItem(rteAtom, TagLib::MP4::Item{TagLib::StringList{TagLib::String{*rteid, TagLib::String::UTF8}}});
-    }
+    if (rteid) ensureRteid(rteid, tag);
     if (file.save()) {
         CROW_LOG_INFO << __PRETTY_FUNCTION__ << ": " << tagStruct.filePath << " has been saved!";
         return { 200, "OK" };
@@ -211,24 +202,4 @@ crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &ta
     auto modified = tagStruct;
     modified.value = tagStruct.replaceWith;
     return addMusicTag(modified, rteid);
-}
-
-std::expected<std::string, bool> mpeg4TagHandler::hasRTEID(const std::string &filePath) {
-    using namespace program::music;
-    TagLib::MP4::File file { filePath.c_str() };
-
-    if (!file.isValid()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
-        return std::unexpected(false);
-    }
-
-    auto *tag = file.tag();
-    auto t = tag->itemMap().find(
-        tag::denormalize(std::string(tag::rteID), format::M4A));
-
-    if (t != tag->itemMap().end()) {
-        return t->second.toStringList()[0].toCString(false);
-    }
-
-    return std::unexpected(false);
 }

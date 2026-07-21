@@ -11,6 +11,15 @@
 
 using namespace audioFormat;
 
+void flacTagHandler::ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *tag) {
+    using namespace program::music::tag;
+    using namespace TagLib;
+
+    const auto it = tag->fieldListMap().find(std::string(rteID));
+    if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
+    else tag->addField(std::string(rteID), String{ *rteid, String::UTF8 }, true);
+}
+
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
 
@@ -63,13 +72,7 @@ crow::response flacTagHandler::removeMusicTag(const program::TagModification &ta
     else
         tag->removeFields(denormFieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8});
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.fieldType << " field was removed!";
-    if (rteid) {
-        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
-        if (it != tag->fieldListMap().end())
-            *rteid = it->second[0].toCString(false);
-        else
-            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
-    }
+    if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
     return {200, "OK"};
@@ -90,13 +93,7 @@ crow::response flacTagHandler::addMusicTag(const program::TagModification &tagSt
 
     auto *tag = file.xiphComment();
     tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8}, false);
-    if (rteid) {
-        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
-        if (it != tag->fieldListMap().end())
-            *rteid = it->second[0].toCString(false);
-        else
-            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
-    }
+    if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
     return {200, "File/s saved!"};
@@ -149,33 +146,11 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
         tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
     }
-    if (rteid) {
-        const auto it = tag->fieldListMap().find(std::string(program::music::tag::rteID));
-        if (it != tag->fieldListMap().end())
-            *rteid = it->second[0].toCString(false);
-        else
-            tag->addField(std::string(program::music::tag::rteID), TagLib::String{*rteid, TagLib::String::UTF8}, true);
-    }
+    if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " saved!\n";
 
     return { 200, "OK" };
-}
-
-std::expected<std::string, bool> flacTagHandler::hasRTEID(const std::string &filePath) {
-    using namespace program::music::tag;
-    TagLib::FLAC::File file { filePath.c_str() };
-
-    if (!file.isValid()) {
-        CROW_LOG_ERROR << "(" << __func__ << ") " << filePath.c_str() << " is not valid";
-        return std::unexpected(false);
-    }
-
-    auto t = file.xiphComment()->fieldListMap().find(std::string(rteID));
-    if (t != file.xiphComment()->fieldListMap().end()) {
-        return t->second[0].toCString(false);
-    }
-    return std::unexpected(false);
 }
 
 tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {

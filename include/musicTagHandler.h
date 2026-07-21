@@ -8,6 +8,7 @@
 #include <filesystem>
 #include <string>
 #include <expected>
+#include <flacfile.h>
 #include <crow/http_response.h>
 #include <nlohmann/json.hpp>
 #include "program.h"
@@ -37,9 +38,6 @@ public:
     }
     virtual crow::response addAlbumCover(const std::string &filePath) {
         return { 501, "Adding an album cover from a file is not supported"};
-    }
-    virtual std::expected<std::string, bool> hasRTEID(const std::string &filePath) {
-        return std::unexpected(false);
     }
 };
 

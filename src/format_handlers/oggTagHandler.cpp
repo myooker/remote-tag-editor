@@ -58,7 +58,3 @@ crow::response oggTagHandler::addMusicTag(const program::TagModification &tagStr
 crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
    return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, rteid);
 }
-
-std::expected<std::string, bool> oggTagHandler::hasRTEID(const std::string& filePath) {
-    return codecHandler(filePath)->hasRTEID(filePath);
-}
