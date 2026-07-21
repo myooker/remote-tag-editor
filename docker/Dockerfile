@@ -1,30 +1,30 @@
-FROM debian:bookworm AS build
+FROM alpine:3.20 as build
 
 LABEL authors="myooker"
-ENV DEBIAN_FRONTEND=noninteractive
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apk add --no-cache \
     git \
-    build-essential \
+    build-base \
     cmake \
-    pkg-config \
+    pkgconf \
     ca-certificates \
     wget \
-    nlohmann-json3-dev \
-    libcli11-dev \
-    libasio-dev \
-    && rm -rf /var/lib/apt/lists/*
+    tar \
+    nlohmann-json
 
-# Install Crow from the official .deb release
-RUN wget -q https://github.com/CrowCpp/Crow/releases/download/v1.3.0/Crow-1.3.0-Linux.deb \
-    && dpkg -i Crow-1.3.0-Linux.deb \
-    && rm Crow-1.3.0-Linux.deb
+# CLI11
+RUN mkdir -p /usr/local/include/CLI \
+    && wget -qO /usr/local/include/CLI/CLI.hpp \
+    https://github.com/CLIUtils/CLI11/releases/download/v2.6.2/CLI11.hpp
 
-# Get latest TagLib
+RUN wget -q https://github.com/CrowCpp/Crow/archive/refs/tags/v1.3.3.tar.gz \
+    && tar xfz v1.3.3.tar.gz \
+    && cp -r Crow-1.3.3/include/* /usr/local/include/ \
+    && rm -rf v1.3.3.tar.gz Crow-1.3.3
+
 WORKDIR /build
 RUN git clone --branch v2.2 --recurse-submodules https://github.com/taglib/taglib.git
 
-# Building TagLib
 WORKDIR /build/taglib
 RUN mkdir build && cd build && \
     cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
@@ -39,16 +39,13 @@ COPY include/ include/
 RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --parallel $(nproc)
 
-FROM debian:bookworm
+FROM alpine:3.20
 
-ENV DEBIAN_FRONTEND=noninteractive
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libtag1v5 \
+RUN apk add --no-cache \
     nginx \
     inotify-tools \
     curl \
-    && rm -rf /var/lib/apt/lists/*
+    libstdc++
 
 COPY --from=build /usr/local /usr/local
 COPY --from=build /app/build/web_tag_editor /usr/local/bin/web_tag_editor
