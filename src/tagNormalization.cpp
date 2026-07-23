@@ -538,7 +538,7 @@ namespace program::music::tag {
         return s_registry;
     }
 
-    const json &getJsonTagRegistry() {
+    const json &buildJsonTagRegistry() {
         static json j = []() {
             json t;
 

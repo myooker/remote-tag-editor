@@ -18,7 +18,7 @@
 
 using namespace audioFormat;
 
-std::unique_ptr<musicTagHandler> oggTagHandler::codecHandler(const std::string &filePath) {
+std::unique_ptr<ImusicTagHandler> oggTagHandler::codecHandler(const std::string &filePath) {
     const TagLib::FileRef fileRef { filePath.c_str() };
 
     if (fileRef.isNull()) {

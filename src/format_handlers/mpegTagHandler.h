@@ -5,11 +5,11 @@
 #ifndef WEB_TAG_EDITOR_MPEGTAGHANDLER_H
 #define WEB_TAG_EDITOR_MPEGTAGHANDLER_H
 
-#include "../../include/musicTagHandler.h"
+#include "../../include/ImusicTagHandler.h"
 #include <id3v2tag.h>
 
 namespace audioFormat {
-    class mpegTagHandler : public musicTagHandler {
+    class mpegTagHandler : public ImusicTagHandler {
     private:
         static void removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &value = "");
         static void addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &text);
@@ -20,6 +20,9 @@ namespace audioFormat {
         crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        tag::Picture getAlbumCover(const std::string& filePath) override {};
+        void removeAlbumCover(const std::string& filePath) override {};
+        void addAlbumCover(const std::string& filePath) override {};
     };
 } // audioFormat
 

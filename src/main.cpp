@@ -497,7 +497,7 @@ int main (int argc, char **argv) {
     CROW_ROUTE(app, "/api/tag-registry")
     ([]() {
         using namespace program::music::tag;
-        crow::response response (getJsonTagRegistry().dump());
+        crow::response response (buildJsonTagRegistry().dump());
         response.set_header("Content-Type", "application/json");
 
         return response;

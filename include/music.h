@@ -126,7 +126,7 @@ namespace program::music {
         };
 
         const tagRegistry &getTagRegistry();
-        const json &getJsonTagRegistry();
+        const json &buildJsonTagRegistry();
         std::string normalize(const std::string &rawTag);
         std::string normalize(const std::string &rawTag, format format);
         std::string denormalize(const std::string &normalizedTag, format format);

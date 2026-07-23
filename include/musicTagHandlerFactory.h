@@ -7,11 +7,11 @@
 
 #include <memory>
 
-#include "musicTagHandler.h"
+#include "ImusicTagHandler.h"
 
 class musicTagHandlerFactory {
 public:
-    static std::unique_ptr<musicTagHandler> createHandler(const std::string &extension);
+    static std::unique_ptr<ImusicTagHandler> createHandler(const std::string &extension);
 };
 
 #endif //WEB_TAG_EDITOR_MUSICTAGHANDLERFACTORY_H

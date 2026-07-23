@@ -9,7 +9,7 @@
 #include "format_handlers/oggOpusTagHandler.h"
 #include "format_handlers/oggTagHandler.h"
 
-std::unique_ptr<musicTagHandler> musicTagHandlerFactory::createHandler(const std::string &extension) {
+std::unique_ptr<ImusicTagHandler> musicTagHandlerFactory::createHandler(const std::string &extension) {
     if (extension == ".mp3")
         return std::make_unique<audioFormat::mpegTagHandler>();
     if (extension == ".flac")
