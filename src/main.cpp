@@ -249,7 +249,7 @@ int main (int argc, char **argv) {
         auto handler = musicTagHandlerFactory::createHandler(getExtension(filePath));
         auto picture = handler->getAlbumCover(filePath);
 
-        std::cout << "hash: " << std::hash<std::string>{}(picture.data) << '\n';
+        //std::cout << "hash: " << std::hash<std::string>{}(picture.data) << '\n';
         response.body.assign(picture.data.data(), picture.data.size());
         response.set_header("Content-Type", picture.mimeType);
         response.code = 200;

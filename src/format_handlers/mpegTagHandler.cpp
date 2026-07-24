@@ -283,7 +283,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.value);
-        ensureRteid(rteid, tag);
+        if (rteid) ensureRteid(rteid, tag);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
@@ -294,7 +294,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
         auto *newFrame = new TagLib::ID3v2::TextIdentificationFrame(frameID);
         newFrame->setText(TagLib::String{tagStruct.value, TagLib::String::UTF8});
         tag->addFrame(newFrame);
-        ensureRteid(rteid, tag);
+        if (rteid) ensureRteid(rteid, tag);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
     } else {
@@ -330,7 +330,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     if (frameIDstr.starts_with(prefix::mp3)) {
         const std::string desc = denormFieldType.substr(5); // TXXX:
         editTXXXFrame(tag, desc, tagStruct);
-        ensureRteid(rteid, tag);
+        if (rteid) ensureRteid(rteid, tag);
         file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
@@ -342,7 +342,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     tag->removeFrames(frameID);
     CROW_LOG_DEBUG << "(" << __func__ << ") Adding new frame...";
     tag->addFrame(newFrame);
-    ensureRteid(rteid, tag);
+    if (rteid) ensureRteid(rteid, tag);
     file.save(TagLib::MPEG::File::AllTags, TagLib::File::StripNone, static_cast<TagLib::ID3v2::Version>(ver));
     CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
 

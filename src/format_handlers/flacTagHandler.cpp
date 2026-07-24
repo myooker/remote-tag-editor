@@ -167,8 +167,6 @@ tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {
 
     auto p = file.pictureList()[0];
 
-    std::cout << "picture size: " << p->data() << '\n';
-
     tag::Picture picture {
         crow::response {200, "OK" },
         p->mimeType().toCString(),
