@@ -105,7 +105,7 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
 
     // Here we're edit values
     for (auto &a: oldValues) {
-        if (a == TagLib::String{tagStruct.replaceWhat, TagLib::String::UTF8}) {
+        if (a.toCString(true) == tagStruct.replaceWhat) {
             // If we find replaceWhat then we will fill replaceWith instead to newValues
             newValues.append(TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8});
         } else {
@@ -117,7 +117,7 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
     // After that we need to clear the field to fill it with new edited values
     tag->removeFields(tagStruct.fieldType);
     for (const auto &a: newValues) {
-        tag->addField(tagStruct.fieldType, a.toCString(), false);
+        tag->addField(tagStruct.fieldType, a, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath <<
             " has changed to " << a.toCString();
     }

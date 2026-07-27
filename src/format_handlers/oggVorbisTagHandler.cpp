@@ -116,7 +116,7 @@ crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification
     // Then we write newValues to requested tag field (tagStruct.tagType) without replacing.
     tag->removeFields(denormFieldType);
     for (const auto &a : newValues) {
-        tag->addField(tagStruct.fieldType, TagLib::String{a.toCString(true), TagLib::String::UTF8}, false);
+        tag->addField(tagStruct.fieldType, a, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
     }
     if (rteid) ensureRteid(rteid, tag);
