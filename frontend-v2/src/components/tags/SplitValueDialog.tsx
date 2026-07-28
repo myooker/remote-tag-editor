@@ -1,0 +1,260 @@
+import * as React from "react";
+import { Scissors, ArrowRight, Check } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { TagRegistryInput } from "./TagRegistryInput";
+import { api } from "@/lib/api";
+import { useExplorer } from "@/context/ExplorerContext";
+import { useToast } from "@/components/ui/toast";
+import {
+  DELIM_PRESETS,
+  splitByRegex,
+  customRegex,
+  detectPreset,
+  pluralField,
+} from "@/lib/splitValue";
+import { cn } from "@/lib/utils";
+import type { TagMap } from "@/lib/types";
+
+function toStrings(raw: TagMap[string] | undefined): string[] {
+  if (raw === undefined || raw === null) return [];
+  return Array.isArray(raw) ? raw.map(String) : [String(raw)];
+}
+
+export function SplitValueDialog({
+  open,
+  onOpenChange,
+  filePath,
+  sourceKey,
+  value,
+  reload,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  filePath: string;
+  sourceKey: string;
+  value: string;
+  reload: () => void;
+}) {
+  const { folderMusicPaths } = useExplorer();
+  const { toast } = useToast();
+
+  const [target, setTarget] = React.useState(() => pluralField(sourceKey));
+  const [delimMode, setDelimMode] = React.useState(() => detectPreset(value));
+  const [customDelim, setCustomDelim] = React.useState("");
+  const [keepOriginal, setKeepOriginal] = React.useState(true);
+  const [busy, setBusy] = React.useState(false);
+
+  const regex = React.useMemo(() => {
+    if (delimMode === "custom") {
+      return customDelim ? customRegex(customDelim) : null;
+    }
+    return DELIM_PRESETS.find((d) => d.id === delimMode)?.regex ?? null;
+  }, [delimMode, customDelim]);
+
+  const parts = React.useMemo(
+    () => (regex ? splitByRegex(value, regex) : [value]),
+    [value, regex],
+  );
+  const canApply = !!target.trim() && parts.length >= 2 && !busy;
+
+  const apply = async (scope: "file" | "folder") => {
+    if (!regex) return;
+    const field = target.trim();
+    setBusy(true);
+    try {
+      if (scope === "file") {
+        for (const part of parts) {
+          await api.addField({ path: filePath, fieldType: field, value: part });
+        }
+        if (!keepOriginal) {
+          await api.removeField({ path: filePath, fieldType: sourceKey, value });
+        }
+        toast(`Split into ${parts.length} values`, "success");
+      } else {
+        // Folder: split each file's OWN value(s) for this field.
+        let touched = 0;
+        let failed = 0;
+        for (const path of folderMusicPaths) {
+          try {
+            const tags = await api.getTags(path);
+            const sources = toStrings(tags[sourceKey]);
+            const fileParts = [
+              ...new Set(sources.flatMap((s) => splitByRegex(s, regex))),
+            ];
+            if (fileParts.length < 2) continue;
+            for (const part of fileParts) {
+              await api.addField({ path, fieldType: field, value: part });
+            }
+            if (!keepOriginal) {
+              for (const s of sources) {
+                await api.removeField({ path, fieldType: sourceKey, value: s });
+              }
+            }
+            touched += 1;
+          } catch {
+            failed += 1;
+          }
+        }
+        toast(
+          failed === 0
+            ? `Split ${sourceKey} in ${touched} file(s)`
+            : `Split ${touched} file(s), ${failed} failed`,
+          failed === 0 ? "success" : "error",
+        );
+      }
+      onOpenChange(false);
+      reload();
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Scissors className="size-4 text-primary" />
+            Split “{sourceKey}” into multiple values
+          </DialogTitle>
+          <DialogDescription className="break-words font-mono text-xs">
+            {value}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-4">
+          {/* Delimiter */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">Split on</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              {DELIM_PRESETS.map((d) => (
+                <button
+                  key={d.id}
+                  onClick={() => setDelimMode(d.id)}
+                  className={cn(
+                    "rounded-md border px-2 py-1 font-mono text-xs transition-colors",
+                    delimMode === d.id
+                      ? "border-primary bg-primary/15 text-primary"
+                      : "border-border text-muted-foreground hover:bg-accent",
+                  )}
+                >
+                  {d.label}
+                </button>
+              ))}
+              <button
+                onClick={() => setDelimMode("custom")}
+                className={cn(
+                  "rounded-md border px-2 py-1 text-xs transition-colors",
+                  delimMode === "custom"
+                    ? "border-primary bg-primary/15 text-primary"
+                    : "border-border text-muted-foreground hover:bg-accent",
+                )}
+              >
+                Custom
+              </button>
+              {delimMode === "custom" && (
+                <Input
+                  autoFocus
+                  value={customDelim}
+                  onChange={(e) => setCustomDelim(e.target.value)}
+                  placeholder="e.g.  ; "
+                  className="h-8 w-24 font-mono"
+                />
+              )}
+            </div>
+          </div>
+
+          {/* Target field */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              Into field
+            </span>
+            <TagRegistryInput
+              value={target}
+              onChange={setTarget}
+              placeholder="e.g. ARTISTS"
+            />
+          </div>
+
+          {/* Preview */}
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-medium text-muted-foreground">
+              Preview ({parts.length} value{parts.length === 1 ? "" : "s"})
+            </span>
+            {parts.length >= 2 ? (
+              <div className="flex flex-wrap items-center gap-1.5 rounded-md border border-border bg-muted/30 p-2">
+                {parts.map((p, i) => (
+                  <span
+                    key={`${i}:${p}`}
+                    className="rounded bg-background px-2 py-0.5 text-xs shadow-sm"
+                  >
+                    {p}
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-md border border-dashed border-border p-2 text-xs text-muted-foreground">
+                This delimiter doesn’t split the value into multiple parts.
+              </p>
+            )}
+          </div>
+
+          {/* Keep original */}
+          <button
+            onClick={() => setKeepOriginal((k) => !k)}
+            className="flex items-center gap-2 self-start text-xs text-muted-foreground"
+          >
+            <span
+              className={cn(
+                "flex size-4 items-center justify-center rounded border transition-colors",
+                keepOriginal
+                  ? "border-primary bg-primary text-primary-foreground"
+                  : "border-border",
+              )}
+            >
+              {keepOriginal && <Check className="size-3" />}
+            </span>
+            Keep the original “{sourceKey}” value
+          </button>
+        </div>
+
+        <div className="flex items-center justify-between gap-2 pt-1">
+          <span className="flex items-center gap-1 text-xs text-muted-foreground">
+            {sourceKey}
+            <ArrowRight className="size-3" />
+            <span className="font-medium text-foreground">{target || "—"}</span>
+          </span>
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => onOpenChange(false)}
+              disabled={busy}
+            >
+              Cancel
+            </Button>
+            <Button size="sm" onClick={() => apply("file")} disabled={!canApply}>
+              Apply to file
+            </Button>
+            <Button
+              size="sm"
+              variant="success"
+              onClick={() => apply("folder")}
+              disabled={!canApply}
+            >
+              Folder
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}

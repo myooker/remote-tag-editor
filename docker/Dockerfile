@@ -10,7 +10,8 @@ RUN apk add --no-cache \
     ca-certificates \
     wget \
     tar \
-    nlohmann-json
+    nlohmann-json \
+    asio-dev
 
 # CLI11
 RUN mkdir -p /usr/local/include/CLI \
@@ -39,6 +40,14 @@ COPY include/ include/
 RUN cmake -B build -DCMAKE_BUILD_TYPE=Release \
     && cmake --build build --parallel $(nproc)
 
+FROM node:22-alpine AS frontend-build
+
+WORKDIR /app/frontend-v2
+COPY frontend-v2/package.json frontend-v2/package-lock.json ./
+RUN npm ci
+COPY frontend-v2/ ./
+RUN npm run build
+
 FROM alpine:3.20
 
 RUN apk add --no-cache \
@@ -49,8 +58,9 @@ RUN apk add --no-cache \
 
 COPY --from=build /usr/local /usr/local
 COPY --from=build /app/build/web_tag_editor /usr/local/bin/web_tag_editor
-COPY frontend/ /app/frontend/
-COPY docker/nginx.conf /etc/nginx/sites-available/default
+#COPY frontend/ /app/frontend/
+COPY --from=frontend-build /app/frontend-v2/dist/ /app/frontend/
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/start.sh /app/start.sh
 RUN chmod +x /app/start.sh
 

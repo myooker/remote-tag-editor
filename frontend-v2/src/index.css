@@ -1,0 +1,87 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222 24% 8%;
+    --foreground: 210 20% 92%;
+
+    --card: 222 22% 11%;
+    --card-foreground: 210 20% 92%;
+
+    --popover: 222 24% 12%;
+    --popover-foreground: 210 20% 94%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 217 18% 20%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 217 16% 17%;
+    --muted-foreground: 215 15% 60%;
+
+    --accent: 217 20% 22%;
+    --accent-foreground: 210 20% 94%;
+
+    --destructive: 0 72% 55%;
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 158 64% 42%;
+    --success-foreground: 210 40% 98%;
+
+    --border: 217 18% 20%;
+    --input: 217 18% 22%;
+    --ring: 217 91% 60%;
+
+    --radius: 0.6rem;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  /* Thin, modern scrollbars */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 8px;
+    border: 2px solid hsl(var(--background));
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+}
+
+@layer utilities {
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
