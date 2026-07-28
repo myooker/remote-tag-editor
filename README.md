@@ -47,6 +47,6 @@ Frontend is fully written by an AI. Please read [this page](frontend/README.md).
 
 # Screenshots
 
-![modern-dark-theme-01.png](screenshots/modern-dark-theme-01.png)
-![modern-dark-theme-02.png](screenshots/modern-dark-theme-02.png)
-
+![overview](screenshots/screenshot-1.png)
+![screenshot-02](screenshots/screenshot-2.png)
+![history-overview](screenshots/screenshot-3.png)
