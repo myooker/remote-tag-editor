@@ -14,7 +14,7 @@ namespace program::database {
         query.bind(++i, add.begin());
         query.bind(++i, tagStruct.filePath);
         query.bind(++i, tagStruct.fieldType);
-        query.bind(++i, tagStruct.value);
+        query.bind(++i, tagStruct.value.to8Bit(true));
         query.exec();
 
         return crow::response{ 200 };
@@ -29,8 +29,8 @@ namespace program::database {
         query.bind(++i, change.begin());
         query.bind(++i, tagStruct.filePath);
         query.bind(++i, tagStruct.fieldType);
-        query.bind(++i, tagStruct.replaceWhat);
-        query.bind(++i, tagStruct.replaceWith);
+        query.bind(++i, tagStruct.replaceWhat.to8Bit(true));
+        query.bind(++i, tagStruct.replaceWith.to8Bit(true));
         query.exec();
 
         return crow::response{ 200 };
@@ -45,7 +45,7 @@ namespace program::database {
         query.bind(++i, remove.begin());
         query.bind(++i, tagStruct.filePath);
         query.bind(++i, tagStruct.fieldType);
-        query.bind(++i, tagStruct.value);
+        query.bind(++i, tagStruct.value.to8Bit(true));
         query.exec();
 
         return crow::response{ 200 };

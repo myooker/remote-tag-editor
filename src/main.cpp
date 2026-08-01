@@ -21,13 +21,11 @@
 
 //#define APP_TESTING
 
-
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
-
 namespace fs = std::filesystem;
 
-std::string fileExtensionToType(const std::string &ext) {
+static std::string fileExtensionToType(const std::string &ext) {
     const static std::unordered_map<std::string, std::string> s_extensionsMap {
         {".mp3", "music"},      // done
         {".flac", "music"},     // done
@@ -52,11 +50,11 @@ std::string fileExtensionToType(const std::string &ext) {
     }
 }
 
-std::string getExtension(const std::string &path) {
+static std::string getExtension(const std::string &path) {
     return fs::path{path}.extension().string();
 }
 
-ordered_json buildDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
+static ordered_json buildDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
     ordered_json rootTree = json::object();
     const fs::path root { basePath };
     rootTree["name"] = root.filename().lexically_normal().string();
@@ -90,7 +88,7 @@ ordered_json buildDirectoryTree(const std::string &basePath, const int depth = p
     return rootTree;
 }
 
-std::string generateId(const std::size_t t=16) {
+static std::string generateId(const std::size_t t=16) {
     static constexpr std::string_view ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     static std::mt19937 rng(std::random_device{}());
@@ -159,6 +157,13 @@ int main (int argc, char **argv) {
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
 
+    // tag::getTagRegistry();
+    //
+    // bool debug = true;
+    // if (debug) {
+    //     return 0;
+    // }
+
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
         json j = json::parse(req.body);
@@ -180,6 +185,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/undo").methods("POST"_method)
     ([&](const crow::request& req) {
+        using namespace TagLib;
         json j = json::parse(req.body);
 
         crow::response response { 500 };
@@ -187,9 +193,9 @@ int main (int argc, char **argv) {
         // 1 - Parse information from request to query database
         // All we need to have is the following variables:
         const int id                { j.value("id", -1) }; // add enum NOT_FOUND instead of -1
-        const std::string rteid     { j.value("rteid", "none") };
-        const std::string path      { j.value("path", "none") };
-        const std::string tag       { j.value("tag", "none") };
+        const std::string rteid     { j.value("rteid", program::jsonMissingValue) };
+        const std::string path      { j.value("path", program::jsonMissingValue) };
+        const std::string tag       { j.value("tag", program::jsonMissingValue) };
 
         auto handler = musicTagHandlerFactory::createHandler(getExtension(path));
 
@@ -206,19 +212,19 @@ int main (int argc, char **argv) {
 
         bool isGood { true };
         while (isGood && q.executeStep()) {
-            std::string action     { q.getColumn(0).getString() };
-            std::string oldValue   { q.getColumn(1).getString() };
-            std::string newValue   { q.getColumn(2).getString() };
+            String action     { q.getColumn(0).getString(), String::UTF8 };
+            String oldValue   { q.getColumn(1).getString(), String::UTF8 };
+            String newValue   { q.getColumn(2).getString(), String::UTF8 };
 
             if (action == "add") {
                 isGood = handler->removeMusicTag
-                    ({path, tag, "", "", newValue}).code == 200;
+                    ({.filePath = path, .fieldType = tag, .value = newValue}).code == 200;
             } else if (action == "change") {
                 isGood = handler->editMusicTags
-                    ({path, tag, newValue, oldValue, ""}).code == 200;
+                    ({.filePath = path, .fieldType = tag, .replaceWhat = newValue, .replaceWith = oldValue}).code == 200;
             } else if (action == "remove") {
                 isGood = handler->addMusicTag
-                    ({path, tag, "", "", oldValue}).code == 200;
+                    ({.filePath = path, .fieldType = tag, .value = oldValue}).code == 200;
             }
         }
 
@@ -302,23 +308,25 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/edittag").methods("POST"_method)
     ([&](const crow::request &req) {
+        using namespace TagLib;
+
+        const std::string logPrefix { "(api/edittag): " };
         const ordered_json body = json::parse(req.body);
 
         program::TagModification tagStruct {
-            body.value("path", "none"),
-            body.value("tagType", "none"),
-            body.value("replaceWhat", "none"),
-            body.value("replaceWith", "none"),
-            ""
+            .filePath = body.value("path", program::jsonMissingValue),
+            .fieldType = body.value("tagType", program::jsonMissingValue),
+            .replaceWhat = { body.value("replaceWhat", program::jsonMissingValue), String::UTF8 },
+            .replaceWith = { body.value("replaceWith", program::jsonMissingValue), String::UTF8 },
         };
+        if (!tagStruct.isValid()) {
+            CROW_LOG_ERROR << logPrefix << "tagStruct is invalid. Please check sending requests.";
+            return crow::response { 400, "Request is not valid. Please check sending request" };
+        }
         program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/edittag) requested path: " << tagStruct.filePath;
-        CROW_LOG_DEBUG << "(api/edittag) requested file extension: " << fileExtension;
-        CROW_LOG_DEBUG << "(api/edittag) requested field: " << tagStruct.fieldType;
-        CROW_LOG_DEBUG << "(api/edittag) requested replaceWhat: " << tagStruct.replaceWhat;
-        CROW_LOG_DEBUG << "(api/edittag) requested replaceWith: " << tagStruct.replaceWith;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
@@ -332,22 +340,24 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
     ([&](const crow::request &req) {
+        using namespace TagLib;
+
+        const std::string logPrefix { "(api/addfieldtag): " };
         const ordered_json body = json::parse(req.body);
 
         program::TagModification tagStruct {
-            body.value("path", "none"),
-            body.value("fieldType", "none"),
-            "",
-            "",
-            body.value("value", "none")
+            .filePath = body.value("path", program::jsonMissingValue),
+            .fieldType = body.value("fieldType", program::jsonMissingValue),
+            .value = { body.value("value", program::jsonMissingValue), String::UTF8 }
         };
+        if (!tagStruct.isValid()) {
+            CROW_LOG_ERROR << logPrefix << "tagStruct is invalid. Please check sending requests.";
+            return crow::response { 400, "Request is not valid. Please check sending request" };
+        }
         program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
-        CROW_LOG_WARNING << "(api/addfieldtag) requested path: " << tagStruct.filePath;
-        CROW_LOG_DEBUG << "(api/addfieldtag) requested file extension: " << fileExtension;
-        CROW_LOG_DEBUG << "(api/addfieldtag) requested field: " << tagStruct.fieldType;
-        CROW_LOG_DEBUG << "(api/addfieldtag) requested value: " << tagStruct.value;
+        CROW_LOG_WARNING << logPrefix << "requested path: " << tagStruct.filePath;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
 
@@ -362,22 +372,20 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/removefieldtag").methods("POST"_method)
     ([&](const crow::request &req) {
+        using namespace TagLib;
+
+        const std::string logPrefix { "(api/removefieldtag): " };
         const ordered_json body = json::parse(req.body);
 
         program::TagModification tagStruct {
-            body.value("path", "none"),
-            body.value("fieldType", "none"),
-            "",
-            "",
-            body.value("value", "none")
+            .filePath = body.value("path", "none"),
+            .fieldType = body.value("fieldType", "none"),
+            .value = { body.value("value", "none"), String::UTF8 }
         };
         program::database::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/removefieldtag) requested path: " << tagStruct.filePath;
-        CROW_LOG_DEBUG << "(api/removefieldtag) requested file extension: " << fileExtension;
-        CROW_LOG_DEBUG << "(api/removefieldtag) requested field: " << tagStruct.fieldType;
-        CROW_LOG_DEBUG << "(api/removefieldtag) requested value: " << tagStruct.value;
 
         if (tagStruct.fieldType == "RTEID" && application.useRteid)
             return crow::response { 400, "You cannot modify RTEID" };
@@ -411,7 +419,6 @@ int main (int argc, char **argv) {
                     return crow::response{ 500, "The requested path is not a mount-point" };
                 }
             }
-
             // Find "file" in part map, assign binary data to filepart variable
             // Search for "Content-Disposition" header, search "filename" in it
             // Assign it to filename variable and log it

@@ -98,7 +98,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     return base;
 }
 
-void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &value) {
+void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &value) {
     using namespace TagLib;
 
     ID3v2::FrameList frames = tag->frameList("TXXX");
@@ -112,7 +112,7 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
             continue;
 
         // No specific value given - remove the whole frame.
-        if (value.empty()) {
+        if (value.to8Bit().empty()) {
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
             tag->removeFrame(frame);
             return;
@@ -129,7 +129,7 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
                 continue;
             }
 
-            if (f.toCString(true) == value && !isDeleted) {
+            if (f == value && !isDeleted) {
                 isDeleted = true;
                 continue;
             }
@@ -188,7 +188,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
         for (auto &a : frames) {
             if (const auto *b = dynamic_cast<ID3v2::TextIdentificationFrame*>(a)) {
                 for (const auto &v : b->fieldList()) {
-                    if (v.toCString(true) == tagStruct.value && !isDeleted) {
+                    if (v == tagStruct.value && !isDeleted) {
                         isDeleted = true;
                         continue;
                     }
@@ -208,7 +208,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     return crow::response {200, "OK" };
 }
 
-void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const std::string &text) {
+void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &text) {
     TagLib::ID3v2::FrameList frames = tag->frameList("TXXX");
 
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
@@ -230,7 +230,7 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
 
                 // Add our new value to list
                 // and set frame's text with our list (old values + new value)
-                values.append(TagLib::String{ text, TagLib::String::UTF8 });
+                values.append(text);
                 userFrame->setText(values);
                 return;
             }
@@ -243,7 +243,7 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame desc: " << desc;
     newFrame->setDescription(desc);
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame text: " << text;
-    newFrame->setText(TagLib::String{text, TagLib::String::UTF8});
+    newFrame->setText(text);
     tag->addFrame(newFrame);
 }
 
@@ -275,8 +275,8 @@ void mpegTagHandler::editTXXXFrame(TagLib::ID3v2::Tag* tag, const std::string& d
             continue;
         }
 
-        if (f.toCString(true) == tagStruct.replaceWhat)
-            newValues.append(TagLib::String{ tagStruct.replaceWith, TagLib::String::UTF8 });
+        if (f == tagStruct.replaceWhat)
+            newValues.append(tagStruct.replaceWith);
         else
             newValues.append(f);
     }
@@ -321,11 +321,11 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
 
     if (frames.isEmpty()) {
         auto *newFrame = new ID3v2::TextIdentificationFrame(frameID);
-        newFrame->setText(String{tagStruct.value, String::UTF8});
+        newFrame->setText(tagStruct.value);
         tag->addFrame(newFrame);
     } else if (auto *f = dynamic_cast<ID3v2::TextIdentificationFrame*>(frames.front())) {
         StringList values { f->fieldList() };
-        values.append(String{tagStruct.value, String::UTF8});
+        values.append(tagStruct.value);
         f->setText(values);
     }
 
@@ -369,11 +369,11 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
 
     CROW_LOG_WARNING << "frames.size(): " << frames.size() << '\n';
     StringList values {};
-    for (auto &a : frames) {
+    for (const auto a : frames) {
         if (const auto *b = dynamic_cast<ID3v2::TextIdentificationFrame*>(a)) {
             for (const auto &v : b->fieldList()) {
-                if (v.toCString(true) == tagStruct.replaceWhat)
-                    values.append(String{tagStruct.replaceWith, String::UTF8});
+                if (v == tagStruct.replaceWhat)
+                    values.append(tagStruct.replaceWith);
                 else
                     values.append(v);
             }

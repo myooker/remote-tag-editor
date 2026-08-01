@@ -68,7 +68,7 @@ crow::response oggFlacTagHandler::removeMusicTag(const program::TagModification 
     }
 
     // Find occurrence of tagStruct.value. If so, delete it.
-    const TagLib::String value { tagStruct.value, TagLib::String::UTF8 };
+    const TagLib::String value { tagStruct.value };
     if (const auto values_it = values.find(value); values_it != values.end()) {
         values.erase(values_it);
     } else {
@@ -99,7 +99,7 @@ crow::response oggFlacTagHandler::addMusicTag(const program::TagModification &ta
     }
 
     auto *tag = file.tag();
-    tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8}, false);
+    tag->addField(tagStruct.fieldType, tagStruct.value, false);
     if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
@@ -129,9 +129,9 @@ crow::response oggFlacTagHandler::editMusicTags(const program::TagModification &
         return { 500, "Field type does not exist" };
     }
 
-    const TagLib::String replaceWhat { tagStruct.replaceWhat, TagLib::String::UTF8 };
+    const TagLib::String replaceWhat { tagStruct.replaceWhat };
     if (const auto v_it = values.find(replaceWhat); v_it != values.end()) {
-        *v_it = TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8};
+        *v_it = tagStruct.replaceWith;
     } else {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.replaceWhat << " was not found in file "
             << tagStruct.filePath;

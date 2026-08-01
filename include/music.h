@@ -8,6 +8,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <expected>
 
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
@@ -121,16 +122,27 @@ namespace program::music {
 
         struct tagRegistry {
             std::unordered_map<std::string, std::string> rawToNormalized;
+            //                 ^           ^
+            //                Raw         Normalized
 
             std::unordered_map<format, std::unordered_map<std::string, std::string>> normalizedToRaw;
+            //                 ^                          ^            ^
+            //               Format                       Normalized   Raw
+            //                type
+
+            void addRegister(const format f, const std::string_view normalized, const std::string_view raw) {
+                rawToNormalized[std::string(raw)] = normalized;
+                normalizedToRaw[f][std::string(normalized)] = raw;
+            }
+
         };
 
-        const tagRegistry &getTagRegistry();
         const json &buildJsonTagRegistry();
         std::string normalize(const std::string &rawTag);
         std::string normalize(const std::string &rawTag, format format);
         std::string denormalize(const std::string &normalizedTag, format format);
 
+        // Demo implementation
         struct Picture {
             crow::response response { 500, "Not found" };
             std::string mimeType {};

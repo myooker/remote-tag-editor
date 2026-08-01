@@ -148,23 +148,23 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
     switch (targetType) {
         using namespace TagLib::MP4;
         case Item::Type::StringList: {
-            const Item item { TagLib::StringList{TagLib::String{tagStruct.value, TagLib::String::UTF8}} };
+            const Item item { TagLib::StringList{ tagStruct.value } };
             tag->setItem(atomKey, item);
             break;
         }
         case Item::Type::Int: {
-            const Item item { std::stoi(tagStruct.value)};
+            const Item item { std::stoi(tagStruct.value.toCString())};
             tag->setItem(atomKey, item);
             break;
         }
         case Item::Type::IntPair: {
             const auto sep = tagStruct.value.find('/');
             if (sep != std::string::npos) {
-                const int first = std::stoi(tagStruct.value.substr(0, sep));
-                const int second = std::stoi(tagStruct.value.substr(sep + 1));
+                const int first = std::stoi(tagStruct.value.to8Bit().substr(0, sep));
+                const int second = std::stoi(tagStruct.value.to8Bit().substr(sep + 1));
                 tag->setItem(atomKey, Item(first, second));
             } else {
-                tag->setItem(atomKey, Item(std::stoi(tagStruct.value)));
+                tag->setItem(atomKey, Item(std::stoi(tagStruct.value.toCString())));
             }
             break;
         }
@@ -173,15 +173,15 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
             break;
         }
         case Item::Type::UInt: {
-            tag->setItem(atomKey, Item(static_cast<unsigned int>(std::stoul(tagStruct.value))));
+            tag->setItem(atomKey, Item(static_cast<unsigned int>(std::stoul(tagStruct.value.toCString()))));
             break;
         }
         case Item::Type::LongLong: {
-            tag->setItem(atomKey, Item(std::stoll(tagStruct.value)));
+            tag->setItem(atomKey, Item(std::stoll(tagStruct.value.toCString())));
             break;
         }
         case Item::Type::Byte: {
-            tag->setItem(atomKey, Item(static_cast<unsigned char>(std::stoi(tagStruct.value))));
+            tag->setItem(atomKey, Item(static_cast<unsigned char>(std::stoi(tagStruct.value.toCString()))));
             break;
         }
         default:

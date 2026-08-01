@@ -2,6 +2,7 @@
 #define WEB_TAG_EDITOR_PROGRAM_H
 #include <filesystem>
 #include <string_view>
+#include <tstring.h>
 
 #include "SQLiteCpp/Backup.h"
 
@@ -10,6 +11,7 @@ namespace program {
 
     constexpr std::string_view version { "1.5.0" };
     constexpr std::string_view name { "web-tag-editor" };
+    constexpr std::string jsonMissingValue { "_json_none" };
 
     enum DIR_DEPTH {
         ARTIST = 1,
@@ -25,7 +27,6 @@ namespace program {
         bool disableCrowServer { false };
         bool useRteid { false };
         int port{ 18080 };
-
 
         [[nodiscard]] bool isExist() const {
             const fs::path p { mountpoint };
@@ -50,16 +51,26 @@ namespace program {
     };
 
     struct TagModification {
-        std::string filePath { "none" };
-        std::string fieldType { "none" };
-        std::string replaceWhat { "none" };
-        std::string replaceWith { "none" };
-        std::string value { "none" };
-    };
+        std::string filePath       { "none" };
+        std::string fieldType      { "none" };
+        TagLib::String replaceWhat { "none", TagLib::String::UTF8 };
+        TagLib::String replaceWith { "none", TagLib::String::UTF8 };
+        TagLib::String value       { "none", TagLib::String::UTF8 };
 
-    inline TagModification getRTEIDStruct (const std::string &path, const std::string &sid) {
-        return TagModification { path, "RTEID", "", "", sid};
-    }
+        /**
+         * @brief This function validates whenever TagModification struct is valid.
+         *
+         * If one of TagModification members is not valid (equal to "_json_none"), then a struct is not valid.
+         *
+         * @return True if a struct doesn't have "_json_none" members, otherwise false.
+         */
+        [[nodiscard]] bool isValid() const {
+            if (const std::string &x { jsonMissingValue };
+                filePath == x || fieldType == x || replaceWhat == x || replaceWith == x || value == x)
+                return false;
+            return true;
+        }
+    };
 
     namespace error {
         enum MESSAGE {

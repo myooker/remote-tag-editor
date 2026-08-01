@@ -9,11 +9,11 @@
 namespace program::music::tag {
     using json = nlohmann::json;
 
-    const tagRegistry &getTagRegistry() {
+    static const tagRegistry &getTagRegistry() {
         static tagRegistry s_registry = [] {
             tagRegistry temp;
 
-            auto reg = [&](const music::format format, const std::string_view normalized, const std::string_view raw) {
+            auto reg = [&](const format format, const std::string_view normalized, const std::string_view raw) {
                 temp.rawToNormalized[std::string(raw)] = normalized;
                 temp.normalizedToRaw[format][std::string(normalized)] = raw;
             };

@@ -26,18 +26,17 @@ std::expected<json, std::string> oggOpusTagHandler::listMusicTags(const std::str
 
     json j;
     const auto tag = file.tag();
-    for (const auto &a: tag->fieldListMap()) {
-        const std::string key = a.first.to8Bit(true);
-        const std::string normalizedKey = tag::normalize(key);
-        if (a.second.size() > 1) {
-            const std::size_t temp{a.second.size()};
+    for (const auto & [key, values]: tag->fieldListMap()) {
+        const std::string normalizedKey = tag::normalize(key.to8Bit(true));
+        if (values.size() > 1) {
+            const std::size_t temp{values.size()};
             for (std::size_t i{0}; i < temp; ++i) {
-                std::string value{a.second[i].to8Bit(true)};
+                std::string value{values[i].to8Bit(true)};
                 j[normalizedKey] += value;
             }
             continue;
         }
-        std::string value{a.second[0].to8Bit(true)};
+        std::string value{values[0].to8Bit(true)};
         j[normalizedKey] = value;
     }
     CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << ": returning JSON";
@@ -68,8 +67,7 @@ crow::response oggOpusTagHandler::removeMusicTag(const program::TagModification 
     }
 
     // Find occurrence of tagStruct.value. If so, delete it.
-    const TagLib::String value { tagStruct.value, TagLib::String::UTF8 };
-    if (const auto values_it = values.find(value); values_it != values.end()) {
+    if (const auto values_it = values.find(tagStruct.value); values_it != values.end()) {
         values.erase(values_it);
     } else {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.value << " was not found in file "
@@ -99,7 +97,7 @@ crow::response oggOpusTagHandler::addMusicTag(const program::TagModification &ta
     }
 
     auto *tag = file.tag();
-    tag->addField(tagStruct.fieldType, TagLib::String{tagStruct.value, TagLib::String::UTF8}, false);
+    tag->addField(tagStruct.fieldType, tagStruct.value, false);
     if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";
@@ -129,9 +127,8 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
         return { 500, "Field type does not exist" };
     }
 
-    const TagLib::String replaceWhat { tagStruct.replaceWhat, TagLib::String::UTF8 };
-    if (const auto v_it = values.find(replaceWhat); v_it != values.end()) {
-        *v_it = TagLib::String{tagStruct.replaceWith, TagLib::String::UTF8};
+    if (const auto v_it = values.find(tagStruct.replaceWhat); v_it != values.end()) {
+        *v_it = tagStruct.replaceWith;
     } else {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.replaceWhat << " was not found in file "
             << tagStruct.filePath;
