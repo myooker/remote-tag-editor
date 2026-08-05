@@ -28,16 +28,16 @@ std::unique_ptr<ImusicTagHandler> oggTagHandler::codecHandler(const std::string 
 
     const auto file = fileRef.file();
 
-    if (auto *codec = dynamic_cast<TagLib::Ogg::Vorbis::File *>(file)) {
+    if (dynamic_cast<TagLib::Ogg::Vorbis::File *>(file)) {
         return std::make_unique<oggVorbisTagHandler>();
     }
-    if (auto *codec = dynamic_cast<TagLib::Ogg::FLAC::File *>(file)) {
+    if (dynamic_cast<TagLib::Ogg::FLAC::File *>(file)) {
         return std::make_unique<oggFlacTagHandler>();
     }
-    if (auto *codec = dynamic_cast<TagLib::Ogg::Opus::File *>(file)) {
+    if (dynamic_cast<TagLib::Ogg::Opus::File *>(file)) {
         return std::make_unique<oggOpusTagHandler>();
     }
-    if (auto *codec = dynamic_cast<TagLib::Ogg::Speex::File *>(file)) {
+    if (dynamic_cast<TagLib::Ogg::Speex::File *>(file)) {
         return std::make_unique<oggSpeexTagHandler>();
     }
     return nullptr;

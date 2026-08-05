@@ -51,12 +51,10 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
 
     const auto map = tag->frameListMap();
-    for (const auto &pair : map) {
-        const auto frameID = pair.first;
-        const auto frameList = pair.second;
+    for (const auto & [frameID, frameList] : map) {
         for (auto *frame : frameList) {
-            const auto *user = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame);
-            if (user) {
+            // Checking whether frame is User-defined. If not, the nullptr will result, skipping this part.
+            if (const auto *user = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
                 const auto &fields = user->fieldList();
                 const auto fieldsSize = fields.size();
                 const std::string key = fields[0].to8Bit(true); // Assign TXXX description
@@ -73,8 +71,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
                 }
                 continue;
             }
-            const auto *textFrame = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(frame);
-            if (textFrame) {
+            if (const auto *textFrame = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(frame)) {
                 const auto list = textFrame->fieldList();
                 std::string frameKey { frameID.data(), frameID.size() };
                 frameKey = tag::normalize(frameKey, fmt);
