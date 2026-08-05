@@ -38,11 +38,17 @@ export function absolutePath(mountPoint: string, segments: string[]): string {
   return joinPath(mountPoint, segments.join("/"));
 }
 
-/** Relative segments of an absolute path below the mount point. */
+/**
+ * Relative segments of an absolute path below the mount point. Tolerates a
+ * trailing slash on either side — the backend reports the mount point as
+ * "/music/" but resolved paths without the slash, and a mismatch here would
+ * push the whole mount point into the segment list.
+ */
 export function relativeSegments(mountPoint: string, path: string): string[] {
-  if (path === mountPoint) return [];
-  const rel = path.startsWith(mountPoint)
-    ? path.slice(mountPoint.length)
-    : path;
+  const root = mountPoint.replace(/\/+$/, "");
+  const target = path.replace(/\/+$/, "");
+  if (target === root) return [];
+  // The separator matters: "/music2-old" must not count as being below "/music2".
+  const rel = target.startsWith(`${root}/`) ? target.slice(root.length) : target;
   return rel.split("/").filter(Boolean);
 }

@@ -6,6 +6,7 @@ import {
   absolutePath,
   pathnameToSegments,
   segmentsToPathname,
+  relativeSegments,
   joinPath,
 } from "@/lib/paths";
 import { sortNodes, type SortColumn, type SortDirection } from "@/lib/sort";
@@ -128,6 +129,18 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
       .listDir(currentPath, controller.signal)
       .then((data) => {
         if (token !== loadToken.current) return;
+        // A path pointing at a file is answered with its parent directory, so the
+        // location has to follow — otherwise the breadcrumb claims we are inside
+        // the file. Replacing the entry re-runs this effect for the real path.
+        if (mountPoint && data.path) {
+          // Compared as decoded segments: a difference here always changes
+          // currentPath, so the effect is guaranteed to run again.
+          const resolved = relativeSegments(mountPoint, data.path);
+          if (resolved.join("/") !== segments.join("/")) {
+            navigate(segmentsToPathname(resolved), { replace: true });
+            return;
+          }
+        }
         setTree(data);
         setLoadedPath(currentPath);
         setLoading(false);

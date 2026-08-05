@@ -14,6 +14,8 @@ export interface DirectoryTree {
   name: string;
   type: "directory";
   content: FileNode[];
+  /** Absolute path this tree was built for; a file request resolves to its parent. */
+  path?: string;
 }
 
 export interface AppSettings {
