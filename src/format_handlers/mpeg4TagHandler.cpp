@@ -45,7 +45,7 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
 
         switch (value.type()) {
             case TagLib::MP4::Item::Type::StringList: {
-                    for (const auto x : value.toStringList()) {
+                    for (const auto &x : value.toStringList()) {
                         base[normalizedKey] += x.toCString(true);
                     }
                     break;
@@ -68,7 +68,7 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
                 base[normalizedKey] = value.toLongLong();
                 break;
             case TagLib::MP4::Item::Type::Byte:
-                base[normalizedKey] = static_cast<int>(value.toByte());
+                base[normalizedKey] = value.toByte();
                 break;
             case TagLib::MP4::Item::Type::ByteVectorList:
                 CROW_LOG_DEBUG << "(" << __func__ << ") ByteVectorList skipped for: " << normalizedKey;
