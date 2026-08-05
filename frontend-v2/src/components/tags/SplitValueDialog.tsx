@@ -12,6 +12,8 @@ import { Input } from "@/components/ui/input";
 import { TagRegistryInput } from "./TagRegistryInput";
 import { api } from "@/lib/api";
 import { useExplorer } from "@/context/ExplorerContext";
+import { usePrefs } from "@/context/PrefsContext";
+import { forEachLimit } from "@/lib/concurrency";
 import { useToast } from "@/components/ui/toast";
 import {
   DELIM_PRESETS,
@@ -44,6 +46,7 @@ export function SplitValueDialog({
   reload: () => void;
 }) {
   const { folderMusicPaths } = useExplorer();
+  const { writeLimit } = usePrefs();
   const { toast } = useToast();
 
   const [target, setTarget] = React.useState(() => pluralField(sourceKey));
@@ -79,17 +82,19 @@ export function SplitValueDialog({
         }
         toast(`Split into ${parts.length} values`, "success");
       } else {
-        // Folder: split each file's OWN value(s) for this field.
+        // Folder: split each file's OWN value(s) for this field. Files run up to
+        // `writeLimit` at a time; the writes within one file stay sequential.
         let touched = 0;
-        let failed = 0;
-        for (const path of folderMusicPaths) {
-          try {
+        const failed = await forEachLimit(
+          folderMusicPaths,
+          writeLimit,
+          async (path) => {
             const tags = await api.getTags(path);
             const sources = toStrings(tags[sourceKey]);
             const fileParts = [
               ...new Set(sources.flatMap((s) => splitByRegex(s, regex))),
             ];
-            if (fileParts.length < 2) continue;
+            if (fileParts.length < 2) return;
             for (const part of fileParts) {
               await api.addField({ path, fieldType: field, value: part });
             }
@@ -99,10 +104,8 @@ export function SplitValueDialog({
               }
             }
             touched += 1;
-          } catch {
-            failed += 1;
-          }
-        }
+          },
+        );
         toast(
           failed === 0
             ? `Split ${sourceKey} in ${touched} file(s)`

@@ -1,5 +1,7 @@
 import { api } from "@/lib/api";
 import { useExplorer } from "@/context/ExplorerContext";
+import { usePrefs } from "@/context/PrefsContext";
+import { forEachLimit } from "@/lib/concurrency";
 import { useToast } from "@/components/ui/toast";
 
 /**
@@ -12,6 +14,7 @@ import { useToast } from "@/components/ui/toast";
  */
 export function useTagMutations(reload: () => void) {
   const { folderMusicPaths } = useExplorer();
+  const { writeLimit } = usePrefs();
   const { toast } = useToast();
 
   async function runFolder(
@@ -22,14 +25,7 @@ export function useTagMutations(reload: () => void) {
       toast("No music files in this folder", "error");
       return false;
     }
-    let failed = 0;
-    for (const path of folderMusicPaths) {
-      try {
-        await op(path);
-      } catch {
-        failed += 1;
-      }
-    }
+    const failed = await forEachLimit(folderMusicPaths, writeLimit, op);
     const total = folderMusicPaths.length;
     if (failed === 0) toast(`${verb} ${total} file${total > 1 ? "s" : ""}`, "success");
     else toast(`${verb} ${total - failed}/${total}, ${failed} failed`, "error");

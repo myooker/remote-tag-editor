@@ -6,6 +6,8 @@ import { AddFieldSection } from "./AddFieldSection";
 import { TagPanelContextMenu } from "./TagPanelContextMenu";
 import { AlbumCover } from "./AlbumCover";
 import { useMultiTags } from "@/hooks/useTags";
+import { usePrefs } from "@/context/PrefsContext";
+import { forEachLimit } from "@/lib/concurrency";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
@@ -64,6 +66,7 @@ function buildRows(
 
 export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
   const { maps, reload } = useMultiTags(filePaths);
+  const { writeLimit } = usePrefs();
   const showThrobber = useDelayedFlag(!maps);
   const { toast } = useToast();
   const { confirm } = useDialogs();
@@ -87,14 +90,7 @@ export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
     verb: string,
     op: (path: string, i: number) => Promise<unknown>,
   ) {
-    let failed = 0;
-    for (let i = 0; i < filePaths.length; i++) {
-      try {
-        await op(filePaths[i], i);
-      } catch {
-        failed += 1;
-      }
-    }
+    const failed = await forEachLimit(filePaths, writeLimit, op);
     const total = filePaths.length;
     if (failed === 0) toast(`${verb} ${total} files`, "success");
     else toast(`${verb} ${total - failed}/${total}, ${failed} failed`, "error");

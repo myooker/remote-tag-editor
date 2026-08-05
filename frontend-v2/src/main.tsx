@@ -6,6 +6,7 @@ import { ToastProvider } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { DialogsProvider } from "@/hooks/useDialogs";
 import { AppProvider } from "@/context/AppContext";
+import { PrefsProvider } from "@/context/PrefsContext";
 import "./index.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
@@ -15,7 +16,9 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
         <TooltipProvider delayDuration={300}>
           <DialogsProvider>
             <AppProvider>
-              <App />
+              <PrefsProvider>
+                <App />
+              </PrefsProvider>
             </AppProvider>
           </DialogsProvider>
         </TooltipProvider>
