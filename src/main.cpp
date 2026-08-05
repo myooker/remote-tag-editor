@@ -336,6 +336,8 @@ int main (int argc, char **argv) {
         if (response.code == 200) {
             return db->insertEdit(tagStruct, id);
         }
+
+        return response;
     });
 
     CROW_ROUTE(app, "/api/addfieldtag").methods("POST"_method)
@@ -398,6 +400,8 @@ int main (int argc, char **argv) {
         if (response.code == 200) {
             return db->insertRemove(tagStruct, id);
         }
+
+        return response;
     });
 
     CROW_ROUTE(app, "/api/store").methods("POST"_method)
