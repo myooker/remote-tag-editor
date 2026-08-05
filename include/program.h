@@ -19,6 +19,11 @@ namespace program {
         ALL = 100,
     };
 
+    namespace Environments {
+        constexpr std::string_view use_rteid { "RTE_USERTEID" };
+        constexpr std::string_view use_navidromedb { "RTE_NAVIDROMEDB" };
+    }
+
     struct Settings {
         std::string mountpoint { "/music" };
         std::string dbpath { "database.db" };
@@ -26,6 +31,7 @@ namespace program {
         std::string testDirectory {};
         bool disableCrowServer { false };
         bool useRteid { false };
+        bool useNavidromeDb { false };
         int port{ 18080 };
 
         [[nodiscard]] bool isExist() const {

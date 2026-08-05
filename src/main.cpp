@@ -126,7 +126,7 @@ int main (int argc, char **argv) {
         cli.add_flag("--use-rteid", application.useRteid, "");
         CLI11_PARSE(cli, argc, argv);
 
-        const auto rteid = std::getenv("RTE_USERTEID");
+        const auto rteid = std::getenv(program::Environments::use_rteid.data());
         if (rteid) {
             if (strcasecmp(rteid, "true") == 0) application.useRteid = true;
             if (strcasecmp(rteid, "false") == 0) application.useRteid = false;
