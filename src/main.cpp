@@ -152,23 +152,23 @@ int main (int argc, char **argv) {
     }
 #endif
 
-    program::database::History db { application.dbpath };
+    std::unique_ptr<program::database::History> db;
+    try {
+        db = std::make_unique<program::database::History>(application.dbpath);
+    } catch (SQLite::Exception &e) {
+        CROW_LOG_CRITICAL << e.getErrorStr() << '\n';
+        std::exit(e.getErrorCode());
+    }
 
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
 
-    // tag::getTagRegistry();
-    //
-    // bool debug = true;
-    // if (debug) {
-    //     return 0;
-    // }
 
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
         json j = json::parse(req.body);
         CROW_LOG_WARNING << "(api/events/delete) deletion";
-        return db.deleteFile(j.value("path", "none"));
+        return db->deleteFile(j.value("path", "none"));
     });
 
     CROW_ROUTE(app, "/api/settings").methods("GET"_method)
@@ -200,7 +200,7 @@ int main (int argc, char **argv) {
         auto handler = musicTagHandlerFactory::createHandler(getExtension(path));
 
         // 2 - Get information from query
-        SQLite::Statement q { db.getDatabase(),
+        SQLite::Statement q { db->getDatabase(),
             "SELECT action, old_value, new_value FROM tag_history "
             "WHERE id >= ? AND (rteid = ? OR path = ?) AND tag = ? "
             "ORDER BY id DESC;"
@@ -229,7 +229,7 @@ int main (int argc, char **argv) {
         }
 
         if (isGood) {
-            SQLite::Statement d { db.getDatabase(),
+            SQLite::Statement d { db->getDatabase(),
                 "DELETE FROM tag_history "
                 "WHERE id >= ? AND (rteid = ? OR path = ?) AND tag = ?;"
             };
@@ -271,7 +271,7 @@ int main (int argc, char **argv) {
         if (application.useRteid) // If a user don't mind to use RTEID
             clause = "rteid = ?";
 
-        SQLite::Statement query(db.getDatabase(), "SELECT * FROM tag_history WHERE "
+        SQLite::Statement query(db->getDatabase(), "SELECT * FROM tag_history WHERE "
             +clause +" ORDER BY changed_at DESC");
         query.bind(1, fileIdentifier.c_str());
         json result = json::array();
@@ -334,7 +334,7 @@ int main (int argc, char **argv) {
         crow::response response(handler->editMusicTags(tagStruct, application.useRteid ? &id.rte : nullptr));
 
         if (response.code == 200) {
-            return db.insertEdit(tagStruct, id);
+            return db->insertEdit(tagStruct, id);
         }
     });
 
@@ -365,7 +365,7 @@ int main (int argc, char **argv) {
         crow::response response(handler->addMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
 
         if (response.code == 200) {
-            return db.insertAdd(tagStruct, id);
+            return db->insertAdd(tagStruct, id);
         }
         return response;
     });
@@ -396,7 +396,7 @@ int main (int argc, char **argv) {
         crow::response response(handler->removeMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
 
         if (response.code == 200) {
-            return db.insertRemove(tagStruct, id);
+            return db->insertRemove(tagStruct, id);
         }
     });
 
