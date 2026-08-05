@@ -17,7 +17,7 @@ void flacTagHandler::ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *t
 
     const auto it = tag->fieldListMap().find(std::string(rteID));
     if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
-    else tag->addField(std::string(rteID), String{ *rteid, String::UTF8 }, true);
+    else tag->addField(std::string(rteID), *rteid, true);
 }
 
 std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {

@@ -12,7 +12,7 @@ void oggVorbisTagHandler::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComme
     using namespace TagLib;
     const auto it = tag->fieldListMap().find(std::string(tag::rteID));
     if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
-    else tag->addField(std::string(tag::rteID), String{*rteid, String::UTF8}, true);
+    else tag->addField(std::string(tag::rteID), *rteid, true);
 }
 
 std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::string &filePath) {
