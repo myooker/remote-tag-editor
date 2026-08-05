@@ -154,7 +154,7 @@ namespace program::music::tag {
                 // ENCODERSETTINGS
                 reg(format::ID3v23, tag::encoderSettings, "TSSE");
                 reg(format::ID3v24, tag::encoderSettings, "TSSE");
-                reg(format::M4A, tag::encoderSettings, "");
+                reg(format::M4A, tag::encoderSettings, "©too");
                 reg(format::FLAC, tag::encoderSettings, tag::encoderSettings);
 
                 // ENCODINGTIME
@@ -254,8 +254,8 @@ namespace program::music::tag {
                 reg(format::FLAC, tag::movement, tag::movement);
 
                 // MOVEMENTOTAL
-                reg(format::ID3v23, tag::movementTotal, "MVIN");
-                reg(format::ID3v24, tag::movementTotal, "MVIN");
+                reg(format::ID3v23, tag::movementTotal, "");
+                reg(format::ID3v24, tag::movementTotal, "");
                 reg(format::M4A, tag::movementTotal, "©mvc");
                 reg(format::FLAC, tag::movementTotal, tag::movementTotal);
 
@@ -563,62 +563,87 @@ namespace program::music::tag {
         const auto &reg = getTagRegistry();
         auto it = reg.rawToNormalized.find(rawTag);
 
+        // Return normalized tag
         if (it != reg.rawToNormalized.end()) {
             return it->second;
         }
 
+        // If normalized tag for raw tag wasn't found, then assume it's user-defined tag
         // Strip m4a user-defined prefix
         if (rawTag.starts_with(prefix::m4a)) {
-            std::string normalized { rawTag };
-            normalized = normalized.substr(prefix::m4a.size());
+            std::string normalized { rawTag.substr(prefix::m4a.size()) };
             return normalized;
         }
 
         // Strip mp3 user-defined prefix
         if (rawTag.starts_with(prefix::mp3)) {
-            std::string normalized { rawTag };
-            normalized = normalized.substr(prefix::mp3.size());
+            std::string normalized { rawTag.substr(prefix::mp3.size()) };
             return normalized;
         }
 
         return rawTag;
     }
 
+    /**
+     * @brief Resolves a format-specific raw tag to its normalized representation.
+     *
+     * Looks up @p rawTag in the tag registry for the given @p format. If a match
+     * is found, the corresponding normalized tag is returned. Otherwise, falls
+     * back to normalize(const std::string&), which strips known user-defined
+     * tag prefixes (e.g. m4a/mp3) or returns @p rawTag unchanged if none apply.
+     *
+     * @param rawTag Raw tag string as read from the file, e.g. "TALB", "©alb",
+     *               "TXXX:MusicBrainz Album Artist Id",
+     *               "----:com.apple.iTunes:MusicBrainz Artist Id".
+     * @param format Tag format the raw tag belongs to (e.g. ID3v2, MP4).
+     * @return Normalized tag name, or @p rawTag itself if no normalization applies.
+     *
+     * @see normalize(const std::string&) for handling of user-defined tags.
+     */
     std::string normalize(const std::string &rawTag, format format) {
         const auto &reg = getTagRegistry();
 
-        auto fmtit = reg.normalizedToRaw.find(format);
-        if (fmtit != reg.normalizedToRaw.end()) {
-            for (const auto &entity : fmtit->second) {
-                if (entity.second == rawTag) return entity.first;
+        auto it = reg.normalizedToRaw.find(format);
+        if (it != reg.normalizedToRaw.end()) {
+            for (const auto & [normalized, raw] : it->second) {
+                if (raw == rawTag) return normalized;
             }
         }
 
         return normalize(rawTag);
     }
 
+    /**
+     * @brief Converts a normalized tag back into its raw, format-specific representation.
+     *
+     * Looks up @p normalizedTag in the tag registry for the given @p format. If a
+     * mapping exists, the corresponding raw tag is returned. Otherwise, falls back
+     * to reconstructing a user-defined raw tag by prepending the format's known
+     * prefix (mp3 for ID3v2.3/ID3v2.4, m4a for M4A). If no prefix applies for the
+     * given format, @p normalizedTag is returned unchanged.
+     *
+     * @param normalizedTag Normalized tag name (e.g. "album", "MusicBrainz Artist Id").
+     * @param format Target tag format to denormalize into.
+     * @return Raw tag string suitable for writing to a file of the given format.
+     *
+     * @see normalize(const std::string&, format) for the inverse operation.
+     */
     std::string denormalize(const std::string &normalizedTag, format format) {
-        const auto &reg = getTagRegistry();
+        const auto &[rawToNormalized, normalizedToRaw] = getTagRegistry();
 
-        auto it = reg.normalizedToRaw.find(format);
+        auto format_it = normalizedToRaw.find(format);
+        if (format_it != normalizedToRaw.end()) {
+            auto normalized_it = format_it->second.find(normalizedTag);
 
-        if (it != reg.normalizedToRaw.end()) {
-            auto tagIt = it->second.find(normalizedTag);
-
-            if (tagIt != it->second.end()) {
-                return tagIt->second;
-            }
+            if (normalized_it != format_it->second.end())
+                return normalized_it->second;
         }
 
-        if (format == format::ID3v23) {
+        if (format == format::ID3v23 || format == format::ID3v24)
             return std::string(prefix::mp3) + normalizedTag;
-        }
-        if (format == format::ID3v24) {
-            return std::string(prefix::mp3) + normalizedTag;
-        }
-        if (format == format::M4A) {
+        if (format == format::M4A)
             return std::string(prefix::m4a) + normalizedTag;
-        }
+
         return normalizedTag;
     }
 }
