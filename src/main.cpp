@@ -521,24 +521,28 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/list").methods("GET"_method)
     ([&] (const crow::request &req){
-        std::string filePath = req.url_params.get("path");
+        const std::string logPrefix { "(api/list): "};
+        std::string requestedPath = req.url_params.get("path");
 
-        if (application.isMountPoint(filePath)) {
-            // Remove trailing slash for buildMainDirectoryTree
-            if (filePath.ends_with('/')) {
-                filePath.pop_back();
-            }
+        // Remove trailing slash for buildMainDirectoryTree
+        while (requestedPath.size() > 1 && requestedPath.ends_with('/'))
+            requestedPath.pop_back();
 
-            CROW_LOG_WARNING << "(api/list) building tree for: " << filePath;
-            const auto directoryTree = buildDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
+        if (fs::path filePath{ requestedPath }; application.isMountPoint(filePath)) {
+            if (fs::is_regular_file(filePath))
+                filePath = filePath.parent_path();
+
+            CROW_LOG_WARNING << logPrefix << "building tree for: " << filePath;
+            auto directoryTree = buildDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
+            directoryTree["path"] = filePath.generic_string();
             crow::response response(directoryTree.dump());
             response.set_header("Content-Type", "application/json");
 
             return response;
-        } else {
-            CROW_LOG_ERROR << "(api/tag) requested filepath is not a mount-point";
-            return crow::response{ 500, "The requested path is not a mount-point" };
         }
+
+        CROW_LOG_ERROR << logPrefix << "requested filepath is not a mount-point";
+        return crow::response{ 500, "The requested path is not a mount-point" };
     });
 
     app.loglevel(logLevel);
