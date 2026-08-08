@@ -57,33 +57,31 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
             if (const auto *user = dynamic_cast<TagLib::ID3v2::UserTextIdentificationFrame*>(frame)) {
                 const auto &fields = user->fieldList();
                 const auto fieldsSize = fields.size();
-                const std::string key = fields[0].to8Bit(true); // Assign TXXX description
-                const std::string normalizedKey = tag::normalize(std::string(prefix::mp3) + key, fmt);
+                const std::string key = prefix::mp3.data() + fields[0].to8Bit(true); // Assign TXXX description
 
                 if (fieldsSize == 2) { // If there's only description and its value
                     std::string value = fields[1].to8Bit(true); // Get single-value of TXXX description (tag field)
-                    userdef[normalizedKey] = value;
+                    userdef[key] = value;
                 } else if (fieldsSize > 2) { // If there's description and multiple value
-                    userdef[normalizedKey] = json::array();
+                    userdef[key] = json::array();
                     for (unsigned int i { 1 }; i < fieldsSize; ++i) {
-                        userdef[normalizedKey] += fields[i].to8Bit(true);
+                        userdef[key] += fields[i].to8Bit(true);
                     }
                 }
                 continue;
             }
             if (const auto *textFrame = dynamic_cast<TagLib::ID3v2::TextIdentificationFrame*>(frame)) {
                 const auto list = textFrame->fieldList();
-                std::string frameKey { frameID.data(), frameID.size() };
-                frameKey = tag::normalize(frameKey, fmt);
+                const std::string key { frameID.data(), frameID.size() };
 
                 // If there's only one frame, just assign it to the id
                 // Otherwise make an array of frames of frameID name
                 if (list.size() == 1) {
-                    base[frameKey] = list.toString().to8Bit(true);
+                    base[key] = list.toString().to8Bit(true);
                 } else if (list.size() > 1) {
-                    base[frameKey] = json::array();
-                    for (const auto &a : list) {
-                        base[frameKey] += a.to8Bit(true);
+                    base[key] = json::array();
+                    for (const auto &values : list) {
+                        base[key] += values.to8Bit(true);
                     }
                 }
             }
@@ -161,21 +159,12 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     }
 
     auto *tag = file.ID3v2Tag();
-
-    const int ver = tag->header()->majorVersion();
-    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
-
-    const auto frameID = ByteVector(denormFieldType.c_str());
+    const auto frameID = ByteVector(tagStruct.fieldType.c_str());
     const std::string frameIDstr { frameID.data(), frameID.size() };
     auto frames = tag->frameList(frameID);
 
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " fieldtype is " << tagStruct.fieldType;
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " fildtype to idv3tag " << denormFieldType;
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " frames are " << frames.size() << " frames";
-
     if (frameIDstr.starts_with(prefix::mp3)) {
-        const std::string desc = denormFieldType.substr(prefix::mp3.size());
+        const std::string desc = tagStruct.fieldType.substr(prefix::mp3.size());
         removeTXXXFrame(tag, desc, tagStruct.value);
     }
 
@@ -201,7 +190,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
 
     if (rteid) ensureRteid(rteid, tag);
     file.strip(MPEG::File::ID3v1);
-    file.save(MPEG::File::AllTags, File::StripNone, static_cast<ID3v2::Version>(ver));
+    file.save(MPEG::File::AllTags, File::StripNone);
     return crow::response {200, "OK" };
 }
 
@@ -298,20 +287,15 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     }
 
     auto *tag = file.ID3v2Tag();
-
-    const auto ver = tag->header()->majorVersion();
-    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
-
-    auto frameID = ByteVector(denormFieldType.c_str());
+    auto frameID = ByteVector(tagStruct.fieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
 
     if (frameIDstr.starts_with(prefix::mp3)) {
-        const std::string desc = denormFieldType.substr(5);
+        const std::string desc = tagStruct.fieldType.substr(5);
         addTXXXFrame(tag, desc, tagStruct.value);
         if (rteid) ensureRteid(rteid, tag);
-        file.save(MPEG::File::AllTags, File::StripNone, static_cast<ID3v2::Version>(ver));
+        file.save(MPEG::File::AllTags, File::StripNone);
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
     }
@@ -327,7 +311,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     }
 
     if (rteid) ensureRteid(rteid, tag);
-    file.save(MPEG::File::AllTags, File::StripNone, static_cast<ID3v2::Version>(ver));
+    file.save(MPEG::File::AllTags, File::StripNone);
     return crow::response {200, "OK" };
 }
 
@@ -347,19 +331,16 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     }
 
     auto *tag = file.ID3v2Tag();
-    const auto ver = tag->header()->majorVersion();
-    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, fmt);
-    auto frameID = ByteVector(denormFieldType.c_str());
+    auto frameID = ByteVector(tagStruct.fieldType.c_str());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
 
     // Edit user-defined (TXXX) tags
     if (frameIDstr.starts_with(prefix::mp3)) {
-        const std::string desc = denormFieldType.substr(5); // TXXX:
+        const std::string desc = tagStruct.fieldType.substr(5); // TXXX:
         editTXXXFrame(tag, desc, tagStruct);
         if (rteid) ensureRteid(rteid, tag);
-        file.save(MPEG::File::AllTags, File::StripNone, static_cast<ID3v2::Version>(ver));
+        file.save(MPEG::File::AllTags, File::StripNone);
         CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
         return crow::response {200, "OK" };
     }
@@ -382,7 +363,7 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     newFrame->setText(values);
     tag->addFrame(newFrame);
     if (rteid) ensureRteid(rteid, tag);
-    file.save(MPEG::File::AllTags, File::StripNone, static_cast<ID3v2::Version>(ver));
+    file.save(MPEG::File::AllTags, File::StripNone);
 
     return crow::response { 200, "OK" };
 }

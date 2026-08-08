@@ -40,47 +40,44 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
     const auto &map = mp4tag->itemMap();
 
     for (const auto &[key, value] : map) {
-        const std::string normalizedKey = tag::normalize(key.toCString(true));
-        CROW_LOG_DEBUG << "(" << __func__ << ") " << key << " -> " << normalizedKey;
-
         switch (value.type()) {
             case TagLib::MP4::Item::Type::StringList: {
                     for (const auto &x : value.toStringList()) {
-                        base[normalizedKey] += x.toCString(true);
+                        base[key.to8Bit(true)] += x.toCString(true);
                     }
                     break;
                 }
             case TagLib::MP4::Item::Type::Int:
-                base[normalizedKey] = value.toInt();
+                base[key.to8Bit(true)] = value.toInt();
                 break;
             case TagLib::MP4::Item::Type::IntPair: {
                 const auto [first, second] = value.toIntPair();
-                base[normalizedKey] = std::to_string(first) + "/" + std::to_string(second);
+                base[key.to8Bit(true)] = std::to_string(first) + "/" + std::to_string(second);
                 break;
             }
             case TagLib::MP4::Item::Type::Bool:
-                base[normalizedKey] = value.toBool();
+                base[key.to8Bit(true)] = value.toBool();
                 break;
             case TagLib::MP4::Item::Type::UInt:
-                base[normalizedKey] = value.toUInt();
+                base[key.to8Bit(true)] = value.toUInt();
                 break;
             case TagLib::MP4::Item::Type::LongLong:
-                base[normalizedKey] = value.toLongLong();
+                base[key.to8Bit(true)] = value.toLongLong();
                 break;
             case TagLib::MP4::Item::Type::Byte:
-                base[normalizedKey] = value.toByte();
+                base[key.to8Bit(true)] = value.toByte();
                 break;
             case TagLib::MP4::Item::Type::ByteVectorList:
-                CROW_LOG_DEBUG << "(" << __func__ << ") ByteVectorList skipped for: " << normalizedKey;
+                CROW_LOG_DEBUG << "(" << __func__ << ") ByteVectorList skipped for: " << key.to8Bit(true);
                 break;
             case TagLib::MP4::Item::Type::CoverArtList:
-                CROW_LOG_DEBUG << "(" << __func__ << ") CoverArtList skipped for: " << normalizedKey;
+                CROW_LOG_DEBUG << "(" << __func__ << ") CoverArtList skipped for: " << key.to8Bit(true);
                 break;
             case TagLib::MP4::Item::Type::Stem:
-                CROW_LOG_DEBUG << "(" << __func__ << ") Stem skipped for: " << normalizedKey;
+                CROW_LOG_DEBUG << "(" << __func__ << ") Stem skipped for: " << key.to8Bit(true);
                 break;
             case TagLib::MP4::Item::Type::Void:
-                CROW_LOG_DEBUG << "(" << __func__ << ") Void item for: " << normalizedKey;
+                CROW_LOG_DEBUG << "(" << __func__ << ") Void item for: " << key.to8Bit(true);
                 break;
         }
     }
@@ -91,8 +88,6 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
 crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
     TagLib::MP4::File file { tagStruct.filePath.c_str() };
-
-    std::string rawAtom = tag::denormalize(tagStruct.fieldType, format::M4A);
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
@@ -106,10 +101,7 @@ crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &t
 
     auto *tag = file.tag();
 
-    if (tagStruct.fieldType == rawAtom)
-        rawAtom = "----:com.apple.iTunes:" + rawAtom;
-
-    tag->removeItem(TagLib::String{rawAtom, TagLib::String::UTF8});
+    tag->removeItem(TagLib::String{tagStruct.fieldType, TagLib::String::UTF8});
 
     if (rteid) ensureRteid(rteid, tag);
     file.save();
@@ -132,12 +124,7 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
     }
 
     auto *tag = file.tag();
-    std::string rawAtom = tag::denormalize(tagStruct.fieldType, format::M4A);
-
-    if (rawAtom == tagStruct.fieldType)
-        rawAtom = "----:com.apple.iTunes:" + tagStruct.fieldType;
-
-    const TagLib::String atomKey { rawAtom, TagLib::String::UTF8 };
+    const TagLib::String atomKey { tagStruct.fieldType, TagLib::String::UTF8 };
 
     const auto &itemMap = tag->itemMap();
     const auto existingIt = itemMap.find(atomKey);

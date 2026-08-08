@@ -26,17 +26,16 @@ std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::s
     json j;
     const auto tag = file.tag();
     for (const auto & [key, values]: tag->fieldListMap()) {
-        const std::string normalizedKey = tag::normalize(key.to8Bit(true));
         if (values.size() > 1) {
             const std::size_t temp{values.size()};
             for (std::size_t i{0}; i < temp; ++i) {
                 std::string value{values[i].to8Bit(true)};
-                j[normalizedKey] += value;
+                j[key.to8Bit(true)] += value;
             }
             continue;
         }
         std::string value{values[0].to8Bit(true)};
-        j[normalizedKey] = value;
+        j[key.to8Bit(true)] = value;
     }
     CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << ": returning JSON";
     return j;
@@ -44,7 +43,6 @@ std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::s
 
 crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
     if (!file.isValid()) {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.filePath << " is not valid";
@@ -52,14 +50,14 @@ crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModificatio
     }
 
     auto *tag = file.tag();
-    const auto f_it = tag->fieldListMap().find(denormFieldType);
+    const auto f_it = tag->fieldListMap().find(tagStruct.fieldType);
 
-    // Save values of key (denormFieldType) to values
+    // Save values of key (tagStruct.fieldType) to values
     TagLib::StringList values {};
     if (f_it != tag->fieldListMap().end()) {
         values = f_it->second;
     } else {
-        CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << denormFieldType << " was not found in file "
+        CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.fieldType << " was not found in file "
             << tagStruct.filePath;
         return { 500, "Error" };
     }
@@ -73,11 +71,11 @@ crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModificatio
         return { 500, "Specified value was not found!" };
     }
 
-    // Remove all values (fields) of a specified key (denormFieldType)
+    // Remove all values (fields) of a specified key (tagStruct.fieldType)
     // And fill the key with values
-    tag->removeFields(denormFieldType);
+    tag->removeFields(tagStruct.fieldType);
     for (const auto &s : values) {
-        tag->addField(denormFieldType, s, false);
+        tag->addField(tagStruct.fieldType, s, false);
     }
     CROW_LOG_INFO << __PRETTY_FUNCTION__ << ": " << tagStruct.fieldType << " field was removed!";
     if (rteid) ensureRteid(rteid, tag);
@@ -104,7 +102,6 @@ crow::response oggVorbisTagHandler::addMusicTag(const program::TagModification &
 
 crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
     using namespace program::music;
-    const std::string denormFieldType = tag::denormalize(tagStruct.fieldType, format::FLAC);
     TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -113,7 +110,7 @@ crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification
     }
 
     auto *tag = file.tag();
-    const auto filedType_it = tag->fieldListMap().find(denormFieldType);
+    const auto filedType_it = tag->fieldListMap().find(tagStruct.fieldType);
     TagLib::StringList values {}; // Here we store old values of a music file
 
     // Check whether tagStruct.tagType was found
@@ -135,7 +132,7 @@ crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification
 
     // After filling up StringList newValues, we need to clear current tags inside a file
     // Then we write newValues to requested tag field (tagStruct.tagType) without replacing.
-    tag->removeFields(denormFieldType);
+    tag->removeFields(tagStruct.fieldType);
     for (const auto &a : values) {
         tag->addField(tagStruct.fieldType, a, false);
         CROW_LOG_INFO << "(FLAC::" << __func__ << ".multi) " << tagStruct.fieldType << " of " << tagStruct.filePath << " has changed to " << a.toCString();
