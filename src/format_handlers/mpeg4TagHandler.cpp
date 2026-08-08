@@ -12,7 +12,7 @@ void mpeg4TagHandler::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
     using namespace program::music;
     using namespace TagLib;
 
-    const String rteAtom { tag::denormalize(std::string(tag::rteID), format::M4A), String::UTF8 };
+    const String rteAtom { std::string(prefix::m4a) + tag::rteID.data() };
     const auto it = tag->itemMap().find(rteAtom);
     if (it != tag->itemMap().end())
         *rteid = it->second.toStringList()[0].toCString(false);
