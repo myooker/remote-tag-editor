@@ -27,9 +27,6 @@ namespace program {
     struct Settings {
         std::string mountpoint { "/music" };
         std::string dbpath { "database.db" };
-        std::string testFile {};
-        std::string testDirectory {};
-        bool disableCrowServer { false };
         bool useRteid { false };
         bool useNavidromeDb { false };
         int port{ 18080 };
