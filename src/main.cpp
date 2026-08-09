@@ -154,9 +154,9 @@ int main (int argc, char **argv) {
     try {
         db = std::make_unique<program::database::History>(application.dbpath);
         tag::getTagMap(); // pointless call but it builds tag mapping table, could be changed overtime
-    } catch (SQLite::Exception &e) {
-        CROW_LOG_CRITICAL << e.getErrorStr() << '\n';
-        std::exit(e.getErrorCode());
+    } catch (std::exception &e) {
+        CROW_LOG_CRITICAL << e.what() << '\n';
+        std::exit(1);
     }
 
     crow::App<crow::CORSHandler> app;
