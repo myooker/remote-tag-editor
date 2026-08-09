@@ -4,59 +4,89 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AddFieldSection } from "./AddFieldSection";
 import { TagPanelContextMenu } from "./TagPanelContextMenu";
-import { AlbumCover } from "./AlbumCover";
+import { CoverSection } from "./CoverSection";
 import { useMultiTags } from "@/hooks/useTags";
 import { usePrefs } from "@/context/PrefsContext";
+import { useApp } from "@/context/AppContext";
 import { forEachLimit } from "@/lib/concurrency";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { api } from "@/lib/api";
 import { useToast } from "@/components/ui/toast";
 import { useDialogs } from "@/hooks/useDialogs";
 import { useHistoryPanel } from "@/context/HistoryContext";
-import {
-  mergeTags,
-  distinctValues,
-  firstScalar,
-  HIDDEN_TAGS,
-} from "@/lib/tags";
+import { mergeTags, distinctValues, firstScalar, isHiddenTag } from "@/lib/tags";
+import { tagTooltip, type TagIndex } from "@/lib/tagRegistry";
 import { cn } from "@/lib/utils";
 
 interface MultiRow {
   id: string;
+  /** Field identity: the display name, or the raw name when unregistered. */
   key: string;
+  /** What the row is labelled with, per the raw/normalized toggle. */
+  label: string;
+  labelTitle: string;
   mode: "same" | "varied";
   initial: string; // "" for varied (<keep>)
   perFileOld: string[]; // aligned to filePaths
+  /** Each file's raw tag name for this field — what its write must send. */
+  perFileKey: (string | undefined)[];
   options: string[]; // dropdown values (varied)
 }
 
-/** Flatten merged tags into editable rows aligned to filePaths. */
+/**
+ * Flatten merged tags into editable rows aligned to filePaths. Rows are grouped
+ * by field, so one row can cover files that spell the tag differently; each
+ * file's raw name rides along in `perFileKey`.
+ */
 function buildRows(
   merged: ReturnType<typeof mergeTags>,
-  count: number,
+  index: TagIndex,
+  showRaw: boolean,
 ): MultiRow[] {
   const rows: MultiRow[] = [];
-  for (const [key, field] of Object.entries(merged)) {
-    if (HIDDEN_TAGS.has(key)) continue;
+  const labelOf = (field: (typeof merged)[number]) =>
+    showRaw ? field.raws.join(" / ") : field.key;
+  // Ordered by the normalized name in both modes, so flipping the toggle
+  // relabels the rows in place instead of reshuffling them.
+  const ordered = [...merged].sort((a, b) =>
+    a.key.localeCompare(b.key, undefined, { numeric: true }),
+  );
+
+  for (const field of ordered) {
+    if (field.raws.every(isHiddenTag)) continue;
+    // Several raw spellings under one name: show them all, there is no single
+    // "the" raw name for the row.
+    const label = labelOf(field);
+    const labelTitle =
+      field.raws.length === 1
+        ? tagTooltip(index, field.raws[0], showRaw)
+        : field.raws.join(" · ");
+
     if (field.kind === "same") {
       const elements = Array.isArray(field.value) ? field.value : [field.value];
       elements.forEach((el, i) => {
         rows.push({
-          id: `${key}:${i}`,
-          key,
+          id: `${field.key}:${i}`,
+          key: field.key,
+          label,
+          labelTitle,
           mode: "same",
           initial: el,
-          perFileOld: Array(count).fill(el),
+          perFileOld: field.perFile.map(() => el),
+          perFileKey: field.perFileKey,
           options: [],
         });
       });
     } else {
       rows.push({
-        id: key,
-        key,
+        id: field.key,
+        key: field.key,
+        label,
+        labelTitle,
         mode: "varied",
         initial: "",
         perFileOld: field.perFile.map((v) => firstScalar(v)),
+        perFileKey: field.perFileKey,
         options: distinctValues(field.perFile),
       });
     }
@@ -66,7 +96,8 @@ function buildRows(
 
 export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
   const { maps, reload } = useMultiTags(filePaths);
-  const { writeLimit } = usePrefs();
+  const { writeLimit, showRawTags } = usePrefs();
+  const { tagIndex } = useApp();
   const showThrobber = useDelayedFlag(!maps);
   const { toast } = useToast();
   const { confirm } = useDialogs();
@@ -82,47 +113,68 @@ export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
   }, [tagsRefreshToken, reload]);
 
   const rows = React.useMemo(
-    () => (maps ? buildRows(mergeTags(maps), filePaths.length) : []),
-    [maps, filePaths.length],
+    () => (maps ? buildRows(mergeTags(maps, tagIndex), tagIndex, showRawTags) : []),
+    [maps, tagIndex, showRawTags],
   );
 
+  /**
+   * Run `op` over the selection. `targets` are indices into `filePaths`, so a
+   * field-scoped write skips the files that don't carry the field instead of
+   * sending them another file's raw tag name.
+   */
   async function runAll(
     verb: string,
+    targets: number[],
     op: (path: string, i: number) => Promise<unknown>,
   ) {
-    const failed = await forEachLimit(filePaths, writeLimit, op);
-    const total = filePaths.length;
-    if (failed === 0) toast(`${verb} ${total} files`, "success");
+    const failed = await forEachLimit(targets, writeLimit, (i) =>
+      op(filePaths[i], i),
+    );
+    const total = targets.length;
+    if (total === 0) toast("No selected file has that field", "error");
+    else if (failed === 0) toast(`${verb} ${total} file${total > 1 ? "s" : ""}`, "success");
     else toast(`${verb} ${total - failed}/${total}, ${failed} failed`, "error");
     reload();
   }
 
+  /** Indices of the files that actually carry the row's field. */
+  const targetsOf = (row: MultiRow) =>
+    row.perFileKey.flatMap((key, i) => (key ? [i] : []));
+
   const saveAll = (row: MultiRow, newValue: string) =>
-    runAll("Saved", (path, i) =>
+    runAll("Saved", targetsOf(row), (path, i) =>
       api.editTag({
         path,
-        tagType: row.key,
+        // Each file's own raw tag name — TPE1 for the mp3, ARTIST for the flac.
+        tagType: row.perFileKey[i] as string,
         replaceWhat: row.perFileOld[i] ?? "",
         replaceWith: newValue,
       }),
     );
 
-  const removeAll = async (key: string, perFileOld: string[]) => {
+  const removeAll = async (row: MultiRow) => {
+    const targets = targetsOf(row);
     const ok = await confirm({
-      title: `Remove “${key}”?`,
-      description: `This deletes the field from all ${filePaths.length} selected files.`,
+      title: `Remove “${row.label}”?`,
+      description: `This deletes the field from ${targets.length} of the ${filePaths.length} selected files.`,
       destructive: true,
       confirmLabel: "Remove",
     });
     if (!ok) return;
-    await runAll("Removed field from", (path, i) =>
-      api.removeField({ path, fieldType: key, value: perFileOld[i] ?? "" }),
+    await runAll("Removed field from", targets, (path, i) =>
+      api.removeField({
+        path,
+        fieldType: row.perFileKey[i] as string,
+        value: row.perFileOld[i] ?? "",
+      }),
     );
   };
 
   const addAll = (fieldType: string, value: string) =>
-    runAll("Added field to", (path) =>
-      api.addField({ path, fieldType, value: value || "none" }),
+    runAll(
+      "Added field to",
+      filePaths.map((_, i) => i),
+      (path) => api.addField({ path, fieldType, value: value || "none" }),
     );
 
   if (!maps) {
@@ -138,33 +190,39 @@ export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
     <TagPanelContextMenu
       onRemoveField={({ key }) => {
         const row = rows.find((r) => r.key === key);
-        if (row) void removeAll(key, row.perFileOld);
+        if (row) void removeAll(row);
       }}
     >
-      <div className="flex flex-col gap-4 p-4">
-        <AlbumCover />
-        <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-          <Layers className="size-4" />
-          Editing {filePaths.length} files. Fields that differ show{" "}
-          <span className="font-mono">&lt;keep&gt;</span>.
-        </div>
+      <div className="flex flex-col">
+        <CoverSection />
 
-        <div className="flex flex-col gap-4">
-          {rows.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground">No tags found</p>
-          ) : (
-            rows.map((row) => (
-              <MultiTagRow
-                key={row.id}
-                row={row}
-                onSaveAll={(v) => saveAll(row, v)}
-                onRemoveAll={() => removeAll(row.key, row.perFileOld)}
-              />
-            ))
-          )}
-        </div>
+        <div className="flex flex-col gap-4 p-4">
+          <div className="flex items-center gap-2 rounded-md bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+            <Layers className="size-4" />
+            Editing {filePaths.length} files. Fields that differ show{" "}
+            <span className="font-mono">&lt;keep&gt;</span>.
+          </div>
 
-        <AddFieldSection variant="multi" onAdd={(_scope, ft, v) => addAll(ft, v)} />
+          <div className="flex flex-col gap-4">
+            {rows.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">
+                No tags found
+              </p>
+            ) : (
+              rows.map((row) => (
+                <MultiTagRow
+                  key={row.id}
+                  row={row}
+                  showRaw={showRawTags}
+                  onSaveAll={(v) => saveAll(row, v)}
+                  onRemoveAll={() => removeAll(row)}
+                />
+              ))
+            )}
+          </div>
+
+          <AddFieldSection variant="multi" onAdd={(_scope, ft, v) => addAll(ft, v)} />
+        </div>
       </div>
     </TagPanelContextMenu>
   );
@@ -172,10 +230,12 @@ export function MultiFileTags({ filePaths }: { filePaths: string[] }) {
 
 function MultiTagRow({
   row,
+  showRaw,
   onSaveAll,
   onRemoveAll,
 }: {
   row: MultiRow;
+  showRaw: boolean;
   onSaveAll: (value: string) => void | Promise<void>;
   onRemoveAll: () => void;
 }) {
@@ -195,11 +255,18 @@ function MultiTagRow({
     <div
       className="group/row flex flex-col gap-1.5"
       data-tag-key={row.key}
+      data-tag-label={row.label}
       data-tag-value={row.perFileOld[0] ?? ""}
     >
       <div className="flex items-center justify-between gap-2">
-        <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {row.key}
+        <label
+          title={row.labelTitle}
+          className={cn(
+            "min-w-0 truncate text-xs font-semibold tracking-wide text-muted-foreground",
+            showRaw && "font-mono",
+          )}
+        >
+          {row.label}
         </label>
         <button
           onClick={onRemoveAll}

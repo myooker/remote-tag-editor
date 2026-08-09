@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useDialogs } from "@/hooks/useDialogs";
 import { useExplorer } from "@/context/ExplorerContext";
+import { usePrefs } from "@/context/PrefsContext";
 import { hasAnyDelimiter } from "@/lib/splitValue";
 import { SplitValueDialog } from "./SplitValueDialog";
 import type { useTagMutations } from "@/hooks/useTagMutations";
@@ -49,13 +50,18 @@ function Collapse({
 }
 
 /** Confirm-scope hook: asks File/Folder + confirmation, then removes `value`. */
-function useRemoveScope(tagKey: string, filePath: string, mut: Mutations) {
+function useRemoveScope(
+  tagKey: string,
+  label: string,
+  filePath: string,
+  mut: Mutations,
+) {
   const { confirm } = useDialogs();
   const { folderMusicPaths } = useExplorer();
   return React.useCallback(
     async (scope: "file" | "folder", value: string, onDone?: () => void) => {
       const ok = await confirm({
-        title: `Remove “${tagKey}”?`,
+        title: `Remove “${label}”?`,
         description:
           scope === "file"
             ? "This deletes the tag value from this file."
@@ -69,7 +75,7 @@ function useRemoveScope(tagKey: string, filePath: string, mut: Mutations) {
         ? await mut.removeFile(filePath, tagKey, value)
         : await mut.removeFolder(tagKey, value);
     },
-    [tagKey, filePath, mut, confirm, folderMusicPaths.length],
+    [tagKey, label, filePath, mut, confirm, folderMusicPaths.length],
   );
 }
 
@@ -115,6 +121,7 @@ function RowSpinner() {
 function ValueRow({
   filePath,
   tagKey,
+  label,
   original,
   mut,
   reload,
@@ -129,6 +136,7 @@ function ValueRow({
 }: {
   filePath: string;
   tagKey: string;
+  label: string;
   original: string;
   mut: Mutations;
   reload: () => void;
@@ -182,6 +190,7 @@ function ValueRow({
         leaving && (inArray ? "animate-value-out overflow-hidden" : "opacity-50"),
       )}
       data-tag-key={tagKey}
+      data-tag-label={label}
       data-tag-value={original}
     >
       <div className="relative">
@@ -246,6 +255,7 @@ function ValueRow({
           onOpenChange={setSplitOpen}
           filePath={filePath}
           sourceKey={tagKey}
+          sourceLabel={label}
           value={original}
           reload={reload}
         />
@@ -373,16 +383,23 @@ function AddValueHint({
 export function TagField({
   filePath,
   tagKey,
+  label,
+  labelTitle,
   value,
   mut,
   reload,
 }: {
   filePath: string;
+  /** The file's raw tag name — what every write on this field sends. */
   tagKey: string;
+  /** What to render as the field name (raw or normalized, per the toggle). */
+  label: string;
+  labelTitle?: string;
   value: TagValue;
   mut: Mutations;
   reload: () => void;
 }) {
+  const { showRawTags } = usePrefs();
   const isArray = Array.isArray(value);
   const elements = isArray ? (value as string[]) : [value as string];
   const [adding, setAdding] = React.useState(false);
@@ -398,7 +415,7 @@ export function TagField({
   // Value that just landed, briefly outlined green before fading to normal.
   const [settledValue, setSettledValue] = React.useState<string | null>(null);
   const pendingSafety = React.useRef<number | undefined>(undefined);
-  const askRemove = useRemoveScope(tagKey, filePath, mut);
+  const askRemove = useRemoveScope(tagKey, label, filePath, mut);
 
   // Reset pending interaction state once the field's content changes.
   const contentKey = isArray ? (value as string[]).join(" ") : String(value);
@@ -478,10 +495,17 @@ export function TagField({
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center justify-between gap-2">
-        <label className="font-mono text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {tagKey}
+        <label
+          title={labelTitle}
+          className="flex min-w-0 items-center gap-1.5 text-xs font-semibold tracking-wide text-muted-foreground"
+        >
+          {/* Raw names get long (`----:com.apple.iTunes:…`); the name ellipsises,
+              the value count stays put. */}
+          <span className={cn("truncate", showRawTags && "font-mono")}>
+            {label}
+          </span>
           {isArray && (
-            <span className="ml-1.5 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground/80">
+            <span className="shrink-0 rounded bg-muted px-1 py-0.5 text-[10px] text-muted-foreground/80">
               {elements.length + (pending ? 1 : 0)}
             </span>
           )}
@@ -507,6 +531,7 @@ export function TagField({
             key={i}
             filePath={filePath}
             tagKey={tagKey}
+            label={label}
             original={el}
             mut={mut}
             reload={reload}

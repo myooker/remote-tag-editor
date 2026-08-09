@@ -1,11 +1,16 @@
 import * as React from "react";
 import { Input } from "@/components/ui/input";
 import { useApp } from "@/context/AppContext";
+import { suggest } from "@/lib/tagRegistry";
 import { cn } from "@/lib/utils";
 
 /**
  * Text input that suggests tag names from GET /api/tag-registry as the user
- * types (the tag normalization table).
+ * types. Suggestions are the registry's display names; typing a raw spelling
+ * ("TPE2") finds its field too, and the raw name is shown next to the match.
+ *
+ * Whatever ends up in the box is sent as typed — the field name is never
+ * silently rewritten on the way to the backend.
  */
 export function TagRegistryInput({
   value,
@@ -18,23 +23,14 @@ export function TagRegistryInput({
   placeholder?: string;
   autoFocus?: boolean;
 }) {
-  const { tagRegistry } = useApp();
+  const { tagIndex } = useApp();
   const [open, setOpen] = React.useState(false);
   const [active, setActive] = React.useState(0);
 
-  const matches = React.useMemo(() => {
-    const q = value.trim().toLowerCase();
-    if (!q) return [];
-    const starts: string[] = [];
-    const contains: string[] = [];
-    for (const t of tagRegistry) {
-      const lower = t.toLowerCase();
-      if (lower === q) continue;
-      if (lower.startsWith(q)) starts.push(t);
-      else if (lower.includes(q)) contains.push(t);
-    }
-    return [...starts, ...contains].slice(0, 8);
-  }, [value, tagRegistry]);
+  const matches = React.useMemo(
+    () => suggest(tagIndex, value),
+    [value, tagIndex],
+  );
 
   React.useEffect(() => setActive(0), [value]);
 
@@ -67,7 +63,7 @@ export function TagRegistryInput({
             setActive((a) => (a - 1 + matches.length) % matches.length);
           } else if (e.key === "Enter") {
             e.preventDefault();
-            choose(matches[active]);
+            choose(matches[active].name);
           } else if (e.key === "Escape") {
             setOpen(false);
           }
@@ -77,18 +73,23 @@ export function TagRegistryInput({
         <div className="absolute left-0 right-0 z-30 mt-1 max-h-56 overflow-auto rounded-md border border-border bg-popover p-1 shadow-lg">
           {matches.map((m, i) => (
             <button
-              key={m}
+              key={m.name}
               onMouseDown={(e) => {
                 e.preventDefault();
-                choose(m);
+                choose(m.name);
               }}
               onMouseEnter={() => setActive(i)}
               className={cn(
-                "block w-full truncate rounded-sm px-2 py-1.5 text-left text-sm transition-colors",
+                "flex w-full items-center justify-between gap-2 rounded-sm px-2 py-1.5 text-left text-sm transition-colors",
                 i === active ? "bg-accent text-accent-foreground" : "text-foreground",
               )}
             >
-              {m}
+              <span className="truncate">{m.name}</span>
+              {m.raw && (
+                <span className="shrink-0 font-mono text-[10px] text-muted-foreground">
+                  {m.raw}
+                </span>
+              )}
             </button>
           ))}
         </div>

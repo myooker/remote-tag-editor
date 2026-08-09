@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Loader2, AlertCircle } from "lucide-react";
-import { AlbumCover } from "./AlbumCover";
+import { CoverSection } from "./CoverSection";
 import { TagField } from "./TagField";
 import { AddFieldSection } from "./AddFieldSection";
 import { TagPanelContextMenu } from "./TagPanelContextMenu";
@@ -8,9 +8,11 @@ import { useTags } from "@/hooks/useTags";
 import { useTagMutations } from "@/hooks/useTagMutations";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { useApp } from "@/context/AppContext";
+import { usePrefs } from "@/context/PrefsContext";
 import { useHistoryPanel } from "@/context/HistoryContext";
 import { useDialogs } from "@/hooks/useDialogs";
-import { coerce, readRteid, HIDDEN_TAGS } from "@/lib/tags";
+import { coerce, readRteid, isHiddenTag } from "@/lib/tags";
+import { displayTag, tagLabel, tagTooltip } from "@/lib/tagRegistry";
 import { basename } from "@/lib/utils";
 import { RteidBadge } from "./RteidBadge";
 
@@ -23,7 +25,8 @@ export function SingleFileTags({
 }) {
   const { tags, loading, error, reload } = useTags(filePath);
   const mut = useTagMutations(reload);
-  const { useRteid } = useApp();
+  const { useRteid, tagIndex } = useApp();
+  const { showRawTags } = usePrefs();
   const { setTarget, tagsRefreshToken } = useHistoryPanel();
   const { confirm } = useDialogs();
 
@@ -64,14 +67,40 @@ export function SingleFileTags({
   const entries = React.useMemo(
     () =>
       tags
-        ? Object.entries(tags).filter(([key]) => !HIDDEN_TAGS.has(key))
+        ? Object.entries(tags).filter(([key]) => !isHiddenTag(key))
         : [],
     [tags],
   );
 
-  const removeFromMenu = async ({ key, value }: { key: string; value: string }) => {
+  // Labels are display-only; `key` stays the file's raw tag name everywhere a
+  // write is issued. Row order is keyed to the normalized name in both modes —
+  // flipping the toggle must relabel the rows in place, never reshuffle them.
+  const rows = React.useMemo(
+    () =>
+      entries
+        .map(([key, value]) => ({
+          key,
+          value,
+          label: tagLabel(tagIndex, key, showRawTags),
+          sortKey: displayTag(tagIndex, key),
+        }))
+        .sort((a, b) =>
+          a.sortKey.localeCompare(b.sortKey, undefined, { numeric: true }),
+        ),
+    [tagIndex, entries, showRawTags],
+  );
+
+  const removeFromMenu = async ({
+    key,
+    label,
+    value,
+  }: {
+    key: string;
+    label: string;
+    value: string;
+  }) => {
     const ok = await confirm({
-      title: `Remove “${key}”?`,
+      title: `Remove “${label || key}”?`,
       description: "This deletes the tag field from this file.",
       destructive: true,
       confirmLabel: "Remove",
@@ -101,34 +130,36 @@ export function SingleFileTags({
 
   return (
     <TagPanelContextMenu onRemoveField={removeFromMenu}>
-      <div className="flex flex-col gap-4 p-4">
-        <AlbumCover path={filePath} />
+      <div className="flex flex-col">
+        <CoverSection path={filePath} />
 
-        <div className="flex flex-col gap-4">
-          {entries.length === 0 ? (
+        <div className="flex flex-col gap-4 p-4">
+          {rows.length === 0 ? (
             <p className="text-center text-sm text-muted-foreground">No tags found</p>
           ) : (
-            entries.map(([key, value]) => (
+            rows.map(({ key, label, value }) => (
               <TagField
                 key={key}
                 filePath={filePath}
                 tagKey={key}
+                label={label}
+                labelTitle={tagTooltip(tagIndex, key, showRawTags)}
                 value={coerce(value)}
                 mut={mut}
                 reload={reload}
               />
             ))
           )}
-        </div>
 
-        <AddFieldSection
-          variant="single"
-          onAdd={(scope, fieldType, value) =>
-            scope === "folder"
-              ? mut.addFolder(fieldType, value)
-              : mut.addFile(filePath, fieldType, value)
-          }
-        />
+          <AddFieldSection
+            variant="single"
+            onAdd={(scope, fieldType, value) =>
+              scope === "folder"
+                ? mut.addFolder(fieldType, value)
+                : mut.addFile(filePath, fieldType, value)
+            }
+          />
+        </div>
       </div>
     </TagPanelContextMenu>
   );

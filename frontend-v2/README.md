@@ -72,6 +72,10 @@ location /api/ {
 
 ## Backend endpoints used
 
+`tag-registry` returns the normalization table as `{ "Display Name": ["RAW",
+…] }`; the older bare `string[]` of names is still accepted (it just leaves
+every tag showing its raw spelling).
+
 From `api.md`: `getmntpoint`, `list`, `tag`, `tag-registry`, `gethistory`,
 `edittag`, `addfieldtag`, `removefieldtag`, `mkdir`, `rename`, `store`,
 `heartbeat`, and `getalbumcover` (**placeholder** — the UI loads it and falls
@@ -98,11 +102,23 @@ calls degrade gracefully if an endpoint is missing.
 - **Right-click** — on a file/folder: New Folder / Rename (selects it first);
   elsewhere: no native browser menu.
 - **Tag panel** — album-cover placeholder; one textbox per tag; multi-valued
-  tags (ARTISTS, etc.) render one box per value with a hover cross; delete asks
+  tags (Artists, etc.) render one box per value with a hover cross; delete asks
   for confirmation; edits offer **Save file** / **Save folder**; add-field with
   tag-registry autocomplete. Right-click: Add / Remove tag field.
-- **Multiple files** — shared values shown directly; differing values show
-  `<keep>` with a dropdown of all values; picking one stages it and reveals
-  **Save all** (nothing is written until you save).
+- **Tag names** — the backend reads and writes **raw** container names (`TPE2`,
+  `©gen`, `ALBUMARTIST`, `TXXX:Artists`); `GET /api/tag-registry` supplies the
+  display names they normalize to. Matching is **exact**: a raw name the table
+  doesn't list verbatim keeps its own spelling (`AUTHOR` is not the table's ASF
+  `Author`), so widening coverage means editing `mapping.json`, not the UI. The
+  tumbler in the tag-panel header (also in Settings) flips every label between
+  the two spellings. Normalization is display-only:
+  each write carries the raw name the file itself reported, and folder- or
+  selection-wide writes re-resolve it per file, so an mp3's `TPE1` never lands
+  on a flac. See [`src/lib/tagRegistry.ts`](src/lib/tagRegistry.ts).
+- **Multiple files** — rows group by field, so files that spell a tag
+  differently still edit as one row (files without the field are skipped);
+  shared values shown directly; differing values show `<keep>` with a dropdown
+  of all values; picking one stages it and reveals **Save all** (nothing is
+  written until you save).
 - **Change history** — collapsible panel (toggle in the tag header) with tag
   filter chips, newest/oldest sort, and per-entry **Undo**.

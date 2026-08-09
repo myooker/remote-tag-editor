@@ -13,6 +13,9 @@ import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
 import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { useHistoryPanel } from "@/context/HistoryContext";
+import { useApp } from "@/context/AppContext";
+import { usePrefs } from "@/context/PrefsContext";
+import { displayTag, tagLabel, tagTooltip } from "@/lib/tagRegistry";
 import { useToast } from "@/components/ui/toast";
 import type { HistoryEntry } from "@/lib/types";
 import { parseChangedAt, cn } from "@/lib/utils";
@@ -25,6 +28,8 @@ const ACTION_META: Record<string, { label: string; className: string }> = {
 
 export function HistoryPanel() {
   const { open, target, close, refreshTags } = useHistoryPanel();
+  const { tagIndex } = useApp();
+  const { showRawTags } = usePrefs();
   const { toast } = useToast();
   const [entries, setEntries] = React.useState<HistoryEntry[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -60,25 +65,27 @@ export function HistoryPanel() {
     };
   }, [open, identifier, reloadToken]);
 
+  // Filter chips group by field, not by spelling: rows recorded as `TPE1`,
+  // `ARTIST` and (pre-migration) `ARTIST` all sit under one "Artist" chip.
+  const fieldOf = React.useCallback(
+    (entry: HistoryEntry) => displayTag(tagIndex, entry.tag ?? ""),
+    [tagIndex],
+  );
+
   const tags = React.useMemo(
-    () =>
-      [...new Set(entries.map((e) => (e.tag ?? "").toUpperCase()))]
-        .filter(Boolean)
-        .sort(),
-    [entries],
+    () => [...new Set(entries.map(fieldOf))].filter(Boolean).sort(),
+    [entries, fieldOf],
   );
 
   const visible = React.useMemo(() => {
     const list =
-      filters.size === 0
-        ? entries
-        : entries.filter((e) => filters.has((e.tag ?? "").toUpperCase()));
+      filters.size === 0 ? entries : entries.filter((e) => filters.has(fieldOf(e)));
     return [...list].sort((a, b) => {
       const ta = parseChangedAt(a.changed_at).getTime();
       const tb = parseChangedAt(b.changed_at).getTime();
       return newest ? tb - ta : ta - tb;
     });
-  }, [entries, filters, newest]);
+  }, [entries, filters, newest, fieldOf]);
 
   const toggleFilter = (tag: string) =>
     setFilters((prev) => {
@@ -125,7 +132,7 @@ export function HistoryPanel() {
                 key={tag}
                 onClick={() => toggleFilter(tag)}
                 className={cn(
-                  "rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase transition-colors",
+                  "rounded-full border px-2 py-0.5 text-[10px] transition-colors",
                   filters.has(tag)
                     ? "border-primary bg-primary/15 text-primary"
                     : "border-border text-muted-foreground hover:bg-accent",
@@ -171,7 +178,14 @@ export function HistoryPanel() {
         ) : (
           <div className="flex flex-col gap-2">
             {visible.map((entry) => (
-              <HistoryCard key={entry.id} entry={entry} onUndo={() => undo(entry)} />
+              <HistoryCard
+                key={entry.id}
+                entry={entry}
+                label={tagLabel(tagIndex, entry.tag ?? "", showRawTags)}
+                labelTitle={tagTooltip(tagIndex, entry.tag ?? "", showRawTags)}
+                showRaw={showRawTags}
+                onUndo={() => undo(entry)}
+              />
             ))}
           </div>
         )}
@@ -182,9 +196,16 @@ export function HistoryPanel() {
 
 function HistoryCard({
   entry,
+  label,
+  labelTitle,
+  showRaw,
   onUndo,
 }: {
   entry: HistoryEntry;
+  /** Tag name as displayed; undo always replays `entry` unchanged. */
+  label: string;
+  labelTitle: string;
+  showRaw: boolean;
   onUndo: () => void;
 }) {
   const meta = ACTION_META[entry.action] ?? {
@@ -207,7 +228,12 @@ function HistoryCard({
         >
           {meta.label}
         </span>
-        <span className="truncate font-mono text-xs font-medium">{entry.tag}</span>
+        <span
+          title={labelTitle}
+          className={cn("truncate text-xs font-medium", showRaw && "font-mono")}
+        >
+          {label}
+        </span>
         <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
           {dateLabel}
         </span>

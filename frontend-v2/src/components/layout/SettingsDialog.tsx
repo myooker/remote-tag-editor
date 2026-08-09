@@ -103,8 +103,10 @@ export function SettingsDialog({
   const {
     parallelWrites,
     writeConcurrency,
+    showRawTags,
     setParallelWrites,
     setWriteConcurrency,
+    setShowRawTags,
   } = usePrefs();
 
   return (
@@ -152,6 +154,22 @@ export function SettingsDialog({
                 />
               </ControlRow>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Tags
+            </span>
+            <ControlRow
+              label="Raw tag names"
+              hint="Label fields with the file's own names (TPE2, ©gen) instead of the registry's. Display only — writes always use the raw name."
+            >
+              <Switch
+                checked={showRawTags}
+                onCheckedChange={setShowRawTags}
+                aria-label="Raw tag names"
+              />
+            </ControlRow>
           </div>
 
           <div className="flex flex-col gap-1.5">

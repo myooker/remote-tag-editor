@@ -10,6 +10,12 @@ export interface Prefs {
   parallelWrites: boolean;
   /** Requests in flight when `parallelWrites` is on. */
   writeConcurrency: number;
+  /**
+   * Label tag rows with the file's raw tag name (`TPE2`) instead of the
+   * registry's display name ("Album Artist"). Display only — writes always use
+   * the raw name either way.
+   */
+  showRawTags: boolean;
 }
 
 export const MIN_CONCURRENCY = 2;
@@ -19,6 +25,7 @@ export const DEFAULT_CONCURRENCY = 5;
 const DEFAULTS: Prefs = {
   parallelWrites: false,
   writeConcurrency: DEFAULT_CONCURRENCY,
+  showRawTags: false,
 };
 
 const STORAGE_KEY = "rte.prefs";
@@ -38,6 +45,7 @@ function load(): Prefs {
       writeConcurrency: clampConcurrency(
         parsed.writeConcurrency ?? DEFAULT_CONCURRENCY,
       ),
+      showRawTags: parsed.showRawTags === true,
     };
   } catch {
     return DEFAULTS;
@@ -49,6 +57,7 @@ interface PrefsContextValue extends Prefs {
   writeLimit: number;
   setParallelWrites: (on: boolean) => void;
   setWriteConcurrency: (n: number) => void;
+  setShowRawTags: (on: boolean) => void;
 }
 
 const PrefsContext = React.createContext<PrefsContextValue | null>(null);
@@ -78,6 +87,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
         setPrefs((p) => ({ ...p, parallelWrites: on })),
       setWriteConcurrency: (n) =>
         setPrefs((p) => ({ ...p, writeConcurrency: clampConcurrency(n) })),
+      setShowRawTags: (on) => setPrefs((p) => ({ ...p, showRawTags: on })),
     }),
     [prefs],
   );

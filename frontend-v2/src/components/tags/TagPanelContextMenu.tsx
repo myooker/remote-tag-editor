@@ -17,7 +17,10 @@ export function focusAddField() {
 }
 
 interface FieldTarget {
+  /** Raw tag name — what a remove issued from here must send. */
   key: string;
+  /** What the row displays for that tag (raw or normalized). */
+  label: string;
   value: string;
 }
 
@@ -38,8 +41,10 @@ export function TagPanelContextMenu({
   const handleContextMenu = (e: React.MouseEvent) => {
     const el = (e.target as HTMLElement).closest("[data-tag-key]");
     if (el) {
+      const key = el.getAttribute("data-tag-key") ?? "";
       setTarget({
-        key: el.getAttribute("data-tag-key") ?? "",
+        key,
+        label: el.getAttribute("data-tag-label") || key,
         value: el.getAttribute("data-tag-value") ?? "",
       });
     } else {
@@ -58,7 +63,7 @@ export function TagPanelContextMenu({
         {target && (
           <>
             <ContextMenuLabel className="max-w-[16rem] truncate">
-              {target.key}
+              {target.label}
             </ContextMenuLabel>
             <ContextMenuSeparator />
           </>

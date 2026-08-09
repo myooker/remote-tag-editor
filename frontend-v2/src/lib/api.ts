@@ -4,6 +4,7 @@ import type {
   HistoryEntry,
   TagMap,
 } from "./types";
+import type { TagAliasMap } from "./tagRegistry";
 
 // Same-origin: nginx serves the static build and proxies /api to the backend.
 // In dev, Vite proxies /api to the backend (see vite.config.ts).
@@ -66,8 +67,12 @@ export const api = {
   getTags: (path: string, signal?: AbortSignal) =>
     jsonGet<TagMap>(`${API_BASE}/tag?path=${encodeURIComponent(path)}`, signal),
 
+  /**
+   * The normalization table: display name → raw tag spellings. Older builds
+   * served a bare `string[]` of names; `buildTagIndex` accepts both.
+   */
   getTagRegistry: (signal?: AbortSignal) =>
-    jsonGet<string[]>(`${API_BASE}/tag-registry`, signal),
+    jsonGet<TagAliasMap | string[]>(`${API_BASE}/tag-registry`, signal),
 
   getHistory: (identifier: string, signal?: AbortSignal) =>
     jsonGet<HistoryEntry[]>(

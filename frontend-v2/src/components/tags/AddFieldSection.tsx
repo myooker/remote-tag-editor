@@ -50,7 +50,7 @@ export function AddFieldSection({
           <TagRegistryInput
             value={fieldType}
             onChange={setFieldType}
-            placeholder="e.g. GENRE"
+            placeholder="e.g. Genre"
           />
         </div>
         <div className="flex flex-col gap-1">

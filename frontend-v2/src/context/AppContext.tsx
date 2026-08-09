@@ -1,5 +1,6 @@
 import * as React from "react";
 import { api } from "@/lib/api";
+import { buildTagIndex, EMPTY_TAG_INDEX, type TagIndex } from "@/lib/tagRegistry";
 import type { AppSettings } from "@/lib/types";
 
 export type ConnectionStatus =
@@ -14,7 +15,8 @@ interface AppContextValue {
   settings: AppSettings | null;
   /** true when the backend was started with --use-rteid (history keyed by rteid). */
   useRteid: boolean;
-  tagRegistry: string[];
+  /** Raw ↔ display-name translation table from GET /api/tag-registry. */
+  tagIndex: TagIndex;
   status: ConnectionStatus;
 }
 
@@ -32,7 +34,7 @@ const HEARTBEAT_INTERVAL_MS = 60_000;
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [mountPoint, setMountPoint] = React.useState<string | null>(null);
   const [settings, setSettings] = React.useState<AppSettings | null>(null);
-  const [tagRegistry, setTagRegistry] = React.useState<string[]>([]);
+  const [tagIndex, setTagIndex] = React.useState<TagIndex>(EMPTY_TAG_INDEX);
   const [status, setStatus] = React.useState<ConnectionStatus>("connecting");
 
   // Bootstrap: poll for the mount point until the backend is reachable, then
@@ -54,7 +56,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           () => undefined,
         );
         api.getTagRegistry().then(
-          (r) => !cancelled && setTagRegistry(Array.isArray(r) ? r : []),
+          (r) => !cancelled && setTagIndex(buildTagIndex(r)),
           () => undefined,
         );
       } catch {
@@ -90,7 +92,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     mountPoint,
     settings,
     useRteid: settings?.rteid ?? false,
-    tagRegistry,
+    tagIndex,
     status,
   };
 

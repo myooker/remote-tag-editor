@@ -13,6 +13,8 @@ import { TagRegistryInput } from "./TagRegistryInput";
 import { api } from "@/lib/api";
 import { useExplorer } from "@/context/ExplorerContext";
 import { usePrefs } from "@/context/PrefsContext";
+import { useApp } from "@/context/AppContext";
+import { displayTag, rawKeyIn } from "@/lib/tagRegistry";
 import { forEachLimit } from "@/lib/concurrency";
 import { useToast } from "@/components/ui/toast";
 import {
@@ -35,21 +37,31 @@ export function SplitValueDialog({
   onOpenChange,
   filePath,
   sourceKey,
+  sourceLabel,
   value,
   reload,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   filePath: string;
+  /** Raw tag name of the value being split — used for every write. */
   sourceKey: string;
+  /** Display name for that tag. */
+  sourceLabel: string;
   value: string;
   reload: () => void;
 }) {
   const { folderMusicPaths } = useExplorer();
   const { writeLimit } = usePrefs();
+  const { tagIndex } = useApp();
   const { toast } = useToast();
 
-  const [target, setTarget] = React.useState(() => pluralField(sourceKey));
+  // Suggest the plural of the *display* name ("Artist" → "Artists"); pluralising
+  // a raw frame ID would propose nonsense like "TPE1S". The plural is fed back
+  // through the registry so the suggestion is a name the backend recognises.
+  const [target, setTarget] = React.useState(() =>
+    displayTag(tagIndex, pluralField(displayTag(tagIndex, sourceKey))),
+  );
   const [delimMode, setDelimMode] = React.useState(() => detectPreset(value));
   const [customDelim, setCustomDelim] = React.useState("");
   const [keepOriginal, setKeepOriginal] = React.useState(true);
@@ -90,7 +102,11 @@ export function SplitValueDialog({
           writeLimit,
           async (path) => {
             const tags = await api.getTags(path);
-            const sources = toStrings(tags[sourceKey]);
+            // Each file spells the source field its own way (TCON / GENRE /
+            // ©gen); ask the file rather than reusing the mp3's frame ID.
+            const rawKey = rawKeyIn(tagIndex, tags, sourceKey);
+            if (!rawKey) return;
+            const sources = toStrings(tags[rawKey]);
             const fileParts = [
               ...new Set(sources.flatMap((s) => splitByRegex(s, regex))),
             ];
@@ -100,7 +116,7 @@ export function SplitValueDialog({
             }
             if (!keepOriginal) {
               for (const s of sources) {
-                await api.removeField({ path, fieldType: sourceKey, value: s });
+                await api.removeField({ path, fieldType: rawKey, value: s });
               }
             }
             touched += 1;
@@ -108,7 +124,7 @@ export function SplitValueDialog({
         );
         toast(
           failed === 0
-            ? `Split ${sourceKey} in ${touched} file(s)`
+            ? `Split ${sourceLabel} in ${touched} file(s)`
             : `Split ${touched} file(s), ${failed} failed`,
           failed === 0 ? "success" : "error",
         );
@@ -126,7 +142,7 @@ export function SplitValueDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Scissors className="size-4 text-primary" />
-            Split “{sourceKey}” into multiple values
+            Split “{sourceLabel}” into multiple values
           </DialogTitle>
           <DialogDescription className="break-words font-mono text-xs">
             {value}
@@ -183,7 +199,7 @@ export function SplitValueDialog({
             <TagRegistryInput
               value={target}
               onChange={setTarget}
-              placeholder="e.g. ARTISTS"
+              placeholder="e.g. Artists"
             />
           </div>
 
@@ -225,13 +241,13 @@ export function SplitValueDialog({
             >
               {keepOriginal && <Check className="size-3" />}
             </span>
-            Keep the original “{sourceKey}” value
+            Keep the original “{sourceLabel}” value
           </button>
         </div>
 
         <div className="flex items-center justify-between gap-2 pt-1">
           <span className="flex items-center gap-1 text-xs text-muted-foreground">
-            {sourceKey}
+            {sourceLabel}
             <ArrowRight className="size-3" />
             <span className="font-medium text-foreground">{target || "—"}</span>
           </span>
