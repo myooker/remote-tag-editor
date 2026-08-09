@@ -6,6 +6,7 @@ cmake-build-release/
 _deps/
 app/
 
+.directory
 docs-api.md
 docker-compose.yml
 deploy-to-server.sh
