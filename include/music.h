@@ -5,6 +5,7 @@
 #ifndef WEB_TAG_EDITOR_MUSIC_H
 #define WEB_TAG_EDITOR_MUSIC_H
 
+#include <algorithm>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -13,6 +14,10 @@
 #include <nlohmann/json.hpp>
 #include <nlohmann/json_fwd.hpp>
 #include <crow/http_response.h>
+#include <vector>
+
+#include "music.h"
+#include "program.h"
 
 namespace program::music {
     enum class format;
@@ -24,123 +29,104 @@ namespace program::music {
     }
 
     namespace tag {
-        // This is Tag Field Mapping. I took it from mp3tag: https://docs.mp3tag.de/mapping-table/
         using TagField = std::string_view;
 
-        constexpr TagField acousticID                       { "ACOUSTID_ID" };
-        constexpr TagField acousticIDfingerprint            { "ACOUSTID_FINGERPRINT" };
-        constexpr TagField album                            { "ALBUM" };
-        constexpr TagField albumSort                        { "ALBUMSORT" };
-        constexpr TagField albumArtist                      { "ALBUMARTIST" };
-        constexpr TagField albumArtistSort                  { "ALBUMARTISTSORT" };
-        constexpr TagField artist                           { "ARTIST" };
-        constexpr TagField artistSort                       { "ARTISTSORT" };
-        constexpr TagField barcode                          { "BARCODE" };
-        constexpr TagField bpm                              { "BPM" };
-        constexpr TagField catalogNumber                    { "CATALOGNUMBER" };
-        constexpr TagField comment                          { "COMMENT" };
-        constexpr TagField compilation                      { "COMPILATION" };
-        constexpr TagField composer                         { "COMPOSER" };
-        constexpr TagField composerSort                     { "COMPOSERSORT" };
-        constexpr TagField conductor                        { "CONDUCTOR" };
-        constexpr TagField contentGroup                     { "CONTENTGROUP" };
-        constexpr TagField copyright                        { "COPYRIGHT" };
-        constexpr TagField date                             { "DATE" };
-        constexpr TagField description                      { "DESCRIPTION" };
-        constexpr TagField discNumber                       { "DISCNUMBER" };
-        constexpr TagField encodedby                        { "ENCODEDBY" };
-        constexpr TagField encoderSettings                  { "ENCODERSETTINGS" };
-        constexpr TagField encodingTime                     { "ENCODINGTIME" };
-        constexpr TagField fileowner                        { "FILEOWNER" };
-        constexpr TagField filetype                         { "FILETYPE" };
-        constexpr TagField genre                            { "GENRE" };
-        constexpr TagField grouping                         { "GROUPING" };
-        constexpr TagField initialKey                       { "INITIALKEY" };
-        constexpr TagField involvedPeople                   { "INVOLVEDPEOPLE" };
-        constexpr TagField isrc                             { "ISRC" };
-        constexpr TagField language                         { "LANGUAGE" };
-        constexpr TagField length                           { "LENGTH" };
-        constexpr TagField lyricist                         { "LYRICIST" };
-        constexpr TagField mediatype                        { "MEDIATYPE" };
-        constexpr TagField mixartist                        { "MIXARTIST" };
-        constexpr TagField mood                             { "MOOD" };
-        constexpr TagField movementName                     { "MOVEMENTNAME" };
-        constexpr TagField movement                         { "MOVEMENT" };
-        constexpr TagField movementTotal                    { "MOVEMENTTOTAL" };
-
-        // mb stands for music brainz
-        constexpr TagField mb_albumArtistID                 { "MUSICBRAINZ_ALBUMARTISTID"};
-        constexpr TagField mb_albumID                       { "MUSICBRAINZ_ALBUMID" };
-        constexpr TagField mb_albumReleaseCountry           { "MUSICBRAINZ_ALBUMRELEASECOUNTRY" };
-        constexpr TagField mb_albumStatus                   { "MUSICBRAINZ_ALBUMSTATUS" };
-        constexpr TagField mb_albumtype                     { "MUSICBRAINZ_ALBUMTYPE" };
-        constexpr TagField mb_artistID                      { "MUSICBRAINZ_ARTISTID" };
-        constexpr TagField mb_discID                        { "MUSICBRAINZ_DISCID" };
-        constexpr TagField mb_originalAlbumID               { "MUSICBRAINZ_ORIGALBUMID" };
-        constexpr TagField mb_originalArtistID              { "MUSICBRAINZ_ORIGINALARTISTID" };
-        constexpr TagField mb_releaseGroupID                { "MUSICBRAINZ_RELEASEGROUPID" };
-        constexpr TagField mb_releaseTrackID                { "MUSICBRAINZ_RELEASETRACKID" };
-        constexpr TagField mb_trackID                       { "MUSICBRAINZ_TRACKID" };
-        constexpr TagField mb_trmID                         { "MUSICBRAINZ_TRMID" };
-        constexpr TagField mb_workID                        { "MUSICBRAINZ_WORKID" };
-
-        constexpr TagField musicianCredits                  { "MUSICIANCREDITS" };
-        constexpr TagField narrator                         { "NARRATOR" };
-        constexpr TagField netRadioOwner                    { "NETRADIOOWNER" };
-        constexpr TagField netRadioStation                  { "NETRADIOSTATION" };
-        constexpr TagField origalbum                        { "ORIGALBUM" };
-        constexpr TagField origartist                       { "ORIGARTIST" };
-        constexpr TagField origfilename                     { "ORIGFILENAME" };
-        constexpr TagField origlyricist                     { "ORIGLYRICIST" };
-        constexpr TagField origyear                         { "ORIGYEAR" };
-        constexpr TagField podcast                          { "PODCAST" };
-        constexpr TagField podcastCategory                  { "PODCATEGORY" };
-        constexpr TagField podcastDesc                      { "PODCASTDESC" };
-        constexpr TagField podcastID                        { "PODCASTID" };
-        constexpr TagField podcastKeywords                  { "PODCASTKEYWORDS" };
-        constexpr TagField podcasturl                       { "PODCASTURL" };
-        constexpr TagField popularimeter                    { "POPULARIMETER" };
-        constexpr TagField publisher                        { "PUBLISHER" };
-        constexpr TagField rating_mm                        { "RATING MM" };
-        constexpr TagField rating_wmp                       { "RATING WMP" };
-        constexpr TagField releasetime                      { "RELEASETIME" };
-        constexpr TagField releasetype                      { "RELEASETYPE" };
-        constexpr TagField setsubtitle                      { "SETSUBTITLE" };
-        constexpr TagField subtitle                         { "SUBTITLE" };
-        constexpr TagField taggingtime                      { "TAGGINGTIME" };
-        constexpr TagField title                            { "TITLE" };
-        constexpr TagField titleSort                        { "TITLESORT" };
-        constexpr TagField track                            { "TRACK" };
-        constexpr TagField uniqueFieldID                    { "UNIQUEFIELDID" };
-        constexpr TagField unsyncedLyrics                   { "UNSYNCEDLYRICS" };
-        constexpr TagField year                             { "YEAR" };
-
-        constexpr TagField coverArt                         { "COVERART" };
+        enum format {
+            ID3v24, ID3v23,
+            FLAC, M4A, OGG,
+            OPUS, AAC, WMA,
+            WAV, AIF, AIFF,
+            ALAC,
+        };
 
         // Program-defined tags
         constexpr TagField rteID                            { "RTEID" };
 
-        struct tagRegistry {
-            std::unordered_map<std::string, std::string> rawToNormalized;
-            //                 ^           ^
-            //                Raw         Normalized
+        class TagMapping {
+        private:
+            const json m_map;
+            const json m_amap;
+            std::unordered_map<std::string, const json*> m_aumap;
+            std::size_t m_maphash;
 
-            std::unordered_map<format, std::unordered_map<std::string, std::string>> normalizedToRaw;
-            //                 ^                          ^            ^
-            //               Format                       Normalized   Raw
-            //                type
-
-            void addRegister(const format f, const std::string_view normalized, const std::string_view raw) {
-                rawToNormalized[std::string(raw)] = normalized;
-                normalizedToRaw[f][std::string(normalized)] = raw;
+            static json buildAliasMap(const json &src) {
+                json out = json::object();
+                for (const auto &[fname, values] : src.items()) {
+                    json a = json::array();
+                    for (const auto &[cname, cvalues] : values.items()) {
+                        if (cvalues.is_array())
+                            for (const auto &x : cvalues) a += x;
+                        else
+                            a += cvalues;
+                    }
+                    out[fname] = a;
+                }
+                return out;
+            }
+            std::unordered_map<std::string, const json*> buildUnorderedAliasMap() {
+                std::unordered_map<std::string, const json*> t;
+                for (const auto &[key, values] : m_amap.items()) {
+                    for (const auto &value : values.items()) {
+                        t.emplace(key, &value.value());
+                    }
+                }
+                return t;
+            }
+        public:
+            explicit TagMapping(std::ifstream f)
+                : m_map (json::parse(f)),
+                  m_amap (buildAliasMap(m_map)),
+                  m_aumap (buildUnorderedAliasMap()),
+                  m_maphash (std::hash<std::string>{}(m_map.dump())) {
+                std::cerr << __func__ << " maphash: " << m_maphash;
             }
 
+            [[nodiscard]]
+            const json &aliases() const noexcept { return m_amap; }
+            [[nodiscard]]
+            std::expected<const json*, std::string> find(const std::string &fname, const std::string &cname, format f=ID3v24) const {
+                if (auto fname_it = m_map.find(fname); fname_it != m_map.end()) {
+                    if (auto cname_it = fname_it->find(cname); cname_it != fname_it->end()) {
+                        if (cname_it.value().is_array())
+                            return &cname_it.value()[f]; // It will always resolve to v2.4 unless needd
+                        return &cname_it.value();
+                    }
+                }
+
+                return std::unexpected(fname + " was not found for " + cname);
+            }
+
+            [[nodiscard]]
+            bool contain(const std::string &fname) const {
+                return std::ranges::any_of(m_amap, [&, needle = json(fname)](const json &a) {
+                    return std::ranges::find(a, needle) != a.end();
+                });
+            }
+
+            [[nodiscard]]
+            std::expected<std::string, std::string> resolve(const std::string &fname, const std::string &cname, format f=ID3v24) const {
+                // An empty name would resolve to an empty frame ID further down.
+                if (fname.empty())
+                    return std::unexpected("empty tag name");
+
+                if (const auto r = find(fname, cname, f)) {
+                    if (!(*r)->is_string())
+                        return std::unexpected(fname + " has a non-string " + cname + " mapping");
+                    return (*r)->get<std::string>();
+                }
+
+                if (m_map.contains(fname))
+                    return std::unexpected(fname + " has no " + cname + " mapping");
+
+                if (contain(fname))
+                    return fname;
+
+                return std::unexpected(fname + " was not found for " + cname);
+            }
         };
 
-        const json &buildJsonTagRegistry();
-        std::string normalize(const std::string &rawTag);
-        std::string normalize(const std::string &rawTag, format format);
-        std::string denormalize(const std::string &normalizedTag, format format);
+        const json& buildJsonTagRegistry();
+        TagMapping* getTagMap();
 
         // Demo implementation
         struct Picture {
@@ -152,13 +138,6 @@ namespace program::music {
         };
     }
 
-    enum class format {
-        ID3v23, ID3v24,
-        FLAC, M4A, OGG,
-        OPUS, AAC, WMA,
-        WAV, AIF, AIFF,
-        ALAC,
 
-    };
 }
 #endif //WEB_TAG_EDITOR_MUSIC_H

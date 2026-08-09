@@ -1,0 +1,633 @@
+{
+  "ASIN": {
+    "id3v2": "TXXX:ASIN",
+    "vorbis": "ASIN",
+    "apev2": "ASIN",
+    "mp4": "----:com.apple.iTunes:ASIN",
+    "asf": "ASIN"
+  },
+  "AcoustID": {
+    "id3v2": "TXXX:Acoustid Id",
+    "vorbis": "ACOUSTID_ID",
+    "apev2": "ACOUSTID_ID",
+    "mp4": "----:com.apple.iTunes:Acoustid Id",
+    "asf": "Acoustid/Id"
+  },
+  "AcoustID Fingerprint": {
+    "id3v2": "TXXX:Acoustid Fingerprint",
+    "vorbis": "ACOUSTID_FINGERPRINT",
+    "apev2": "ACOUSTID_FINGERPRINT",
+    "mp4": "----:com.apple.iTunes:Acoustid Fingerprint",
+    "asf": "Acoustid/Fingerprint"
+  },
+  "Album": {
+    "id3v2": "TALB",
+    "vorbis": "ALBUM",
+    "apev2": "ALBUM",
+    "mp4": "©alb",
+    "asf": "WM/AlbumTitle"
+  },
+  "Album Artist": {
+    "id3v2": "TPE2",
+    "vorbis": "ALBUMARTIST",
+    "apev2": "ALBUM ARTIST",
+    "mp4": "aART",
+    "asf": "WM/AlbumArtist"
+  },
+  "Album Artist Sort Order": {
+    "id3v2": "TSO2",
+    "vorbis": "ALBUMARTISTSORT",
+    "apev2": "ALBUMARTISTSORT",
+    "mp4": "soaa",
+    "asf": "WM/AlbumArtistSortOrder"
+  },
+  "Album Sort Order": {
+    "id3v2": "TSOA",
+    "vorbis": "ALBUMSORT",
+    "apev2": "ALBUMSORT",
+    "mp4": "soal",
+    "asf": "WM/AlbumSortOrder"
+  },
+  "Arranger": {
+    "id3v2": [
+      "TIPL:arranger",
+      "IPLS:arranger"
+    ],
+    "vorbis": "ARRANGER",
+    "apev2": "Arranger"
+  },
+  "Artist": {
+    "id3v2": "TPE1",
+    "vorbis": "ARTIST",
+    "apev2": "ARTIST",
+    "mp4": "©ART",
+    "asf": "Author"
+  },
+  "Artist Sort Order": {
+    "id3v2": "TSOP",
+    "vorbis": "ARTISTSORT",
+    "apev2": "ARTISTSORT",
+    "mp4": "soar",
+    "asf": "WM/ArtistSortOrder"
+  },
+  "Artists": {
+    "id3v2": "TXXX:Artists",
+    "vorbis": "ARTISTS",
+    "apev2": "ARTISTS",
+    "mp4": "----:com.apple.iTunes:ARTISTS",
+    "asf": "WM/ARTISTS"
+  },
+  "BPM": {
+    "id3v2": "TBPM",
+    "vorbis": "BPM",
+    "apev2": "BPM",
+    "mp4": "tmpo",
+    "asf": "WM/BeatsPerMinute"
+  },
+  "Barcode": {
+    "id3v2": "TXXX:BARCODE",
+    "vorbis": "BARCODE",
+    "apev2": "BARCODE",
+    "mp4": "----:com.apple.iTunes:BARCODE",
+    "asf": "WM/Barcode"
+  },
+  "Catalog Number": {
+    "id3v2": "TXXX:CATALOGNUMBER",
+    "vorbis": "CATALOGNUMBER",
+    "apev2": "CATALOGNUMBER",
+    "mp4": "----:com.apple.iTunes:CATALOGNUMBER",
+    "asf": "WM/CatalogNo"
+  },
+  "Comment": {
+    "id3v2": "COMM",
+    "vorbis": "COMMENT",
+    "apev2": "COMMENT",
+    "mp4": "©cmt",
+    "asf": "Description"
+  },
+  "Compilation": {
+    "id3v2": "TCMP",
+    "vorbis": "COMPILATION",
+    "apev2": "COMPILATION",
+    "mp4": "cpil",
+    "asf": "WM/IsCompilation"
+  },
+  "Composer": {
+    "id3v2": "TCOM",
+    "vorbis": "COMPOSER",
+    "apev2": "COMPOSER",
+    "mp4": "©wrt",
+    "asf": "WM/Composer"
+  },
+  "Composer Sort Order": {
+    "id3v2": "TSOC",
+    "vorbis": "COMPOSERSORT",
+    "apev2": "COMPOSERSORT",
+    "mp4": "soco",
+    "asf": "WM/ComposerSortOrder"
+  },
+  "Conductor": {
+    "id3v2": "TPE3",
+    "vorbis": "CONDUCTOR",
+    "apev2": "CONDUCTOR",
+    "mp4": "----:com.apple.iTunes:CONDUCTOR",
+    "asf": "WM/Conductor"
+  },
+  "Copyright": {
+    "id3v2": "TCOP",
+    "vorbis": "COPYRIGHT",
+    "apev2": "COPYRIGHT",
+    "mp4": "cprt",
+    "asf": "Copyright"
+  },
+  "Director": {
+    "id3v2": "TXXX:DIRECTOR",
+    "vorbis": "DIRECTOR",
+    "apev2": "Director",
+    "mp4": "©dir",
+    "asf": "WM/Director"
+  },
+  "Disc Number": {
+    "id3v2": "TPOS",
+    "vorbis": "DISCNUMBER",
+    "apev2": "DISC",
+    "mp4": "disk",
+    "asf": "WM/PartOfSet"
+  },
+  "Disc Subtitle": {
+    "id3v2": "TSST",
+    "vorbis": "DISCSUBTITLE",
+    "apev2": "DISCSUBTITLE",
+    "mp4": "----:com.apple.iTunes:DISCSUBTITLE",
+    "asf": "WM/SetSubTitle"
+  },
+  "Encoded By": {
+    "id3v2": "TENC",
+    "vorbis": "ENCODEDBY",
+    "apev2": "ENCODEDBY",
+    "mp4": "©enc",
+    "asf": "WM/EncodedBy"
+  },
+  "Encoder Settings": {
+    "id3v2": "TSSE",
+    "vorbis": "ENCODING",
+    "apev2": "ENCODING",
+    "mp4": "©too",
+    "asf": "WM/EncodingSettings"
+  },
+  "Engineer": {
+    "id3v2": [
+      "TIPL:engineer",
+      "IPLS:engineer"
+    ],
+    "vorbis": "ENGINEER",
+    "apev2": "ENGINEER",
+    "mp4": "----:com.apple.iTunes:ENGINEER",
+    "asf": "WM/Engineer"
+  },
+  "Genre": {
+    "id3v2": "TCON",
+    "vorbis": "GENRE",
+    "apev2": "GENRE",
+    "mp4": "©gen",
+    "asf": "WM/Genre"
+  },
+  "Grouping": {
+    "id3v2": "GRP1",
+    "vorbis": "GROUPING",
+    "apev2": "GROUPING",
+    "mp4": "©grp",
+    "asf": "WM/ContentGroupDescription"
+  },
+  "ISRC": {
+    "id3v2": "TSRC",
+    "vorbis": "ISRC",
+    "apev2": "ISRC",
+    "mp4": "----:com.apple.iTunes:ISRC",
+    "asf": "WM/ISRC"
+  },
+  "Initial Key": {
+    "id3v2": "TKEY",
+    "vorbis": "INITIALKEY",
+    "apev2": "INITIALKEY",
+    "mp4": "----:com.apple.iTunes:initialkey",
+    "asf": "WM/InitialKey"
+  },
+  "Language": {
+    "id3v2": "TLAN",
+    "vorbis": "LANGUAGE",
+    "apev2": "LANGUAGE",
+    "mp4": "----:com.apple.iTunes:LANGUAGE",
+    "asf": "WM/Language"
+  },
+  "License": {
+    "id3v2": [
+      "WCOP",
+      "TXXX:LICENSE"
+    ],
+    "vorbis": "LICENSE",
+    "apev2": "LICENSE",
+    "mp4": "----:com.apple.iTunes:LICENSE"
+  },
+  "Lyricist": {
+    "id3v2": "TEXT",
+    "vorbis": "LYRICIST",
+    "apev2": "LYRICIST",
+    "mp4": "----:com.apple.iTunes:LYRICIST",
+    "asf": "WM/Writer"
+  },
+  "Lyrics": {
+    "id3v2": "USLT",
+    "vorbis": "LYRICS",
+    "apev2": "LYRICS",
+    "mp4": "©lyr",
+    "asf": "WM/Lyrics"
+  },
+  "Media": {
+    "id3v2": "TMED",
+    "vorbis": "MEDIA",
+    "apev2": "MEDIA",
+    "mp4": "----:com.apple.iTunes:MEDIA",
+    "asf": "WM/Media"
+  },
+  "Mix-DJ": {
+    "id3v2": [
+      "TIPL:DJ-mix",
+      "IPLS:DJ-mix"
+    ],
+    "vorbis": "DJMIXER",
+    "apev2": "DJMIXER",
+    "mp4": "----:com.apple.iTunes:DJMIXER",
+    "asf": "WM/DJMixer"
+  },
+  "Mixer": {
+    "id3v2": [
+      "TIPL:mix",
+      "IPLS:mix"
+    ],
+    "vorbis": "MIXER",
+    "apev2": "MIXER",
+    "mp4": "----:com.apple.iTunes:MIXER",
+    "asf": "WM/Mixer"
+  },
+  "Mood": {
+    "id3v2": "TMOO",
+    "vorbis": "MOOD",
+    "apev2": "MOOD",
+    "mp4": "----:com.apple.iTunes:MOOD",
+    "asf": "WM/Mood"
+  },
+  "Movement Name": {
+    "id3v2": "MVNM",
+    "vorbis": "MOVEMENTNAME",
+    "apev2": "MOVEMENTNAME",
+    "mp4": "©mvn"
+  },
+  "Movement Count": {
+    "vorbis": "MOVEMENTCOUNT",
+    "apev2": "MOVEMENTCOUNT",
+    "mp4": "©mvc"
+  },
+  "Movement Number": {
+    "id3v2": "MVIN",
+    "vorbis": "MOVEMENTNUMBER",
+    "apev2": "MOVEMENTNUMBER",
+    "mp4": "©mvi"
+  },
+  "MusicBrainz Artist ID": {
+    "id3v2": "TXXX:MusicBrainz Artist Id",
+    "vorbis": "MUSICBRAINZ_ARTISTID",
+    "apev2": "MUSICBRAINZ_ARTISTID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Artist Id",
+    "asf": "MusicBrainz/Artist Id"
+  },
+  "MusicBrainz Composer ID": {
+    "id3v2": "TXXX:MusicBrainz Composer Id",
+    "vorbis": "MUSICBRAINZ_COMPOSERID",
+    "apev2": "MUSICBRAINZ_COMPOSERID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Composer Id",
+    "asf": "MusicBrainz/Composer Id"
+  },
+  "MusicBrainz Disc ID": {
+    "id3v2": "TXXX:MusicBrainz Disc Id",
+    "vorbis": "MUSICBRAINZ_DISCID",
+    "apev2": "MUSICBRAINZ_DISCID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Disc Id",
+    "asf": "MusicBrainz/Disc Id"
+  },
+  "MusicBrainz Original Artist ID": {
+    "id3v2": "TXXX:MusicBrainz Original Artist Id",
+    "vorbis": "MUSICBRAINZ_ORIGINALARTISTID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Original Artist Id",
+    "asf": "MusicBrainz/Original Artist Id"
+  },
+  "MusicBrainz Original Release ID": {
+    "id3v2": "TXXX:MusicBrainz Original Album Id",
+    "vorbis": "MUSICBRAINZ_ORIGINALALBUMID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Original Album Id",
+    "asf": "MusicBrainz/Original Album Id"
+  },
+  "MusicBrainz Recording ID": {
+    "id3v2": "UFID:http://musicbrainz.org",
+    "vorbis": "MUSICBRAINZ_TRACKID",
+    "apev2": "MUSICBRAINZ_TRACKID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Track Id",
+    "asf": "MusicBrainz/Track Id"
+  },
+  "MusicBrainz Release Artist ID": {
+    "id3v2": "TXXX:MusicBrainz Album Artist Id",
+    "vorbis": "MUSICBRAINZ_ALBUMARTISTID",
+    "apev2": "MUSICBRAINZ_ALBUMARTISTID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Album Artist Id",
+    "asf": "MusicBrainz/Album Artist Id"
+  },
+  "MusicBrainz Release Group ID": {
+    "id3v2": "TXXX:MusicBrainz Release Group Id",
+    "vorbis": "MUSICBRAINZ_RELEASEGROUPID",
+    "apev2": "MUSICBRAINZ_RELEASEGROUPID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Release Group Id",
+    "asf": "MusicBrainz/Release Group Id"
+  },
+  "MusicBrainz Release ID": {
+    "id3v2": "TXXX:MusicBrainz Album Id",
+    "vorbis": "MUSICBRAINZ_ALBUMID",
+    "apev2": "MUSICBRAINZ_ALBUMID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Album Id",
+    "asf": "MusicBrainz/Album Id"
+  },
+  "MusicBrainz TRM ID": {
+    "id3v2": "TXXX:MusicBrainz TRM Id",
+    "vorbis": "MUSICBRAINZ_TRMID",
+    "apev2": "MUSICBRAINZ_TRMID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz TRM Id",
+    "asf": "MusicBrainz/TRM Id"
+  },
+  "MusicBrainz Track ID": {
+    "id3v2": "TXXX:MusicBrainz Release Track Id",
+    "vorbis": "MUSICBRAINZ_RELEASETRACKID",
+    "apev2": "MUSICBRAINZ_RELEASETRACKID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Release Track Id",
+    "asf": "MusicBrainz/Release Track Id"
+  },
+  "MusicBrainz Work ID": {
+    "id3v2": "TXXX:MusicBrainz Work Id",
+    "vorbis": "MUSICBRAINZ_WORKID",
+    "apev2": "MUSICBRAINZ_WORKID",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Work Id",
+    "asf": "MusicBrainz/Work Id"
+  },
+  "MusicIP Fingerprint": {
+    "id3v2": "TXXX:MusicMagic Fingerprint",
+    "vorbis": "FINGERPRINT=MusicMagic Fingerprint {fingerprint}",
+    "mp4": "----:com.apple.iTunes:fingerprint"
+  },
+  "MusicIP PUID": {
+    "id3v2": "TXXX:MusicIP PUID",
+    "vorbis": "MUSICIP_PUID",
+    "apev2": "MUSICIP_PUID",
+    "mp4": "----:com.apple.iTunes:MusicIP PUID",
+    "asf": "MusicIP/PUID"
+  },
+  "Original Album": {
+    "id3v2": "TOAL",
+    "vorbis": "ORIGINALALBUM",
+    "apev2": "ORIGINALALBUM",
+    "asf": "WM/OriginalAlbumTitle"
+  },
+  "Original Artist": {
+    "id3v2": "TOPE",
+    "vorbis": "ORIGINALARTIST",
+    "apev2": "ORIGINALARTIST",
+    "asf": "WM/OriginalArtist"
+  },
+  "Original Filename": {
+    "id3v2": "TOFN",
+    "vorbis": "ORIGINALFILENAME",
+    "apev2": "ORIGINALFILENAME",
+    "asf": "WM/OriginalFilename"
+  },
+  "Original Release Date": {
+    "id3v2": "TDOR",
+    "vorbis": "ORIGINALDATE",
+    "apev2": "ORIGINALDATE",
+    "mp4": "----:com.apple.iTunes:ORIGINALDATE",
+    "asf": "WM/OriginalReleaseYear"
+  },
+  "Original Release Year": {
+    "vorbis": "ORIGINALYEAR",
+    "apev2": "ORIGINALYEAR",
+    "asf": "WM/OriginalReleaseYear"
+  },
+  "Producer": {
+    "id3v2": [
+      "TIPL:producer",
+      "IPLS:producer"
+    ],
+    "vorbis": "PRODUCER",
+    "apev2": "PRODUCER",
+    "mp4": "----:com.apple.iTunes:PRODUCER",
+    "asf": "WM/Producer"
+  },
+  "Record Label": {
+    "id3v2": "TPUB",
+    "vorbis": "LABEL",
+    "apev2": "LABEL",
+    "mp4": "----:com.apple.iTunes:LABEL",
+    "asf": "WM/Publisher"
+  },
+  "Release Country": {
+    "id3v2": "TXXX:MusicBrainz Album Release Country",
+    "vorbis": "RELEASECOUNTRY",
+    "apev2": "RELEASECOUNTRY",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Album Release Country",
+    "asf": "MusicBrainz/Album Release Country"
+  },
+  "Recording Date": {
+    "id3v2": "TDRC",
+    "vorbis": "DATE",
+    "apev2": "YEAR",
+    "mp4": "©day",
+    "asf": "WM/Year"
+  },
+  "Release Status": {
+    "id3v2": "TXXX:MusicBrainz Album Status",
+    "vorbis": "RELEASESTATUS",
+    "apev2": "MUSICBRAINZ_ALBUMSTATUS",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Album Status",
+    "asf": "MusicBrainz/Album Status"
+  },
+  "Release Type": {
+    "id3v2": "TXXX:MusicBrainz Album Type",
+    "vorbis": "RELEASETYPE",
+    "apev2": "MUSICBRAINZ_ALBUMTYPE",
+    "mp4": "----:com.apple.iTunes:MusicBrainz Album Type",
+    "asf": "MusicBrainz/Album Type"
+  },
+  "Remixer": {
+    "id3v2": "TPE4",
+    "vorbis": "REMIXER",
+    "apev2": "MIXARTIST",
+    "mp4": "----:com.apple.iTunes:REMIXER",
+    "asf": "WM/ModifiedBy"
+  },
+  "ReplayGain Album Gain": {
+    "id3v2": "TXXX:REPLAYGAIN_ALBUM_GAIN",
+    "vorbis": "REPLAYGAIN_ALBUM_GAIN",
+    "apev2": "REPLAYGAIN_ALBUM_GAIN",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_ALBUM_GAIN",
+    "asf": "REPLAYGAIN_ALBUM_GAIN"
+  },
+  "ReplayGain Album Peak": {
+    "id3v2": "TXXX:REPLAYGAIN_ALBUM_PEAK",
+    "vorbis": "REPLAYGAIN_ALBUM_PEAK",
+    "apev2": "REPLAYGAIN_ALBUM_PEAK",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_ALBUM_PEAK",
+    "asf": "REPLAYGAIN_ALBUM_PEAK"
+  },
+  "ReplayGain Album Range": {
+    "id3v2": "TXXX:REPLAYGAIN_ALBUM_RANGE",
+    "vorbis": "REPLAYGAIN_ALBUM_RANGE",
+    "apev2": "REPLAYGAIN_ALBUM_RANGE",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_ALBUM_RANGE",
+    "asf": "REPLAYGAIN_ALBUM_RANGE"
+  },
+  "ReplayGain Reference Loudness": {
+    "id3v2": "TXXX:REPLAYGAIN_REFERENCE_LOUDNESS",
+    "vorbis": "REPLAYGAIN_REFERENCE_LOUDNESS",
+    "apev2": "REPLAYGAIN_REFERENCE_LOUDNESS",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_REFERENCE_LOUDNESS",
+    "asf": "REPLAYGAIN_REFERENCE_LOUDNESS"
+  },
+  "ReplayGain Track Gain": {
+    "id3v2": "TXXX:REPLAYGAIN_TRACK_GAIN",
+    "vorbis": "REPLAYGAIN_TRACK_GAIN",
+    "apev2": "REPLAYGAIN_TRACK_GAIN",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_TRACK_GAIN",
+    "asf": "REPLAYGAIN_TRACK_GAIN"
+  },
+  "ReplayGain Track Peak": {
+    "id3v2": "TXXX:REPLAYGAIN_TRACK_PEAK",
+    "vorbis": "REPLAYGAIN_TRACK_PEAK",
+    "apev2": "REPLAYGAIN_TRACK_PEAK",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_TRACK_PEAK",
+    "asf": "REPLAYGAIN_TRACK_PEAK"
+  },
+  "ReplayGain Track Range": {
+    "id3v2": "TXXX:REPLAYGAIN_TRACK_RANGE",
+    "vorbis": "REPLAYGAIN_TRACK_RANGE",
+    "apev2": "REPLAYGAIN_TRACK_RANGE",
+    "mp4": "----:com.apple.iTunes:REPLAYGAIN_TRACK_RANGE",
+    "asf": "REPLAYGAIN_TRACK_RANGE"
+  },
+  "Script": {
+    "id3v2": "TXXX:SCRIPT",
+    "vorbis": "SCRIPT",
+    "apev2": "SCRIPT",
+    "mp4": "----:com.apple.iTunes:SCRIPT",
+    "asf": "WM/Script"
+  },
+  "Subtitle": {
+    "id3v2": "TIT3",
+    "vorbis": "SUBTITLE",
+    "apev2": "SUBTITLE",
+    "mp4": "----:com.apple.iTunes:SUBTITLE",
+    "asf": "WM/SubTitle"
+  },
+  "Synced Lyrics": {
+    "id3v2": "SYLT:description",
+    "asf": "WM/Lyrics_Synchronised"
+  },
+  "Total Tracks": {
+    "vorbis": "TRACKTOTAL",
+    "apev2": "TRACKTOTAL"
+  },
+  "Track Number": {
+    "id3v2": "TRCK",
+    "vorbis": "TRACKNUMBER",
+    "apev2": "TRACK",
+    "mp4": "trkn",
+    "asf": "WM/TrackNumber"
+  },
+  "Title": {
+    "id3v2": "TIT2",
+    "vorbis": "TITLE",
+    "apev2": "TITLE",
+    "mp4": "©nam",
+    "asf": "Title"
+  },
+  "Title Sort": {
+    "id3v2": "TSOT",
+    "vorbis": "TITLESORT",
+    "apev2": "TITLESORT",
+    "mp4": "sonm",
+    "asf": "WM/TitleSortOrder"
+  },
+  "Website": {
+    "id3v2": "WOAR",
+    "vorbis": "ARTISTWEBPAGE",
+    "apev2": "ARTISTWEBPAGE",
+    "asf": "WM/AuthorURL"
+  },
+  "Work Title": {
+    "id3v2": "TIT1",
+    "vorbis": "WORK",
+    "apev2": "WORK",
+    "mp4": "©wrk",
+    "asf": "WM/ContentGroupDescription"
+  },
+  "Writer": {
+    "id3v2": "TXXX:Writer",
+    "vorbis": "WRITER",
+    "apev2": "Writer"
+  },
+  "Encoding Time": {
+    "id3v2": "TDEN",
+    "vorbis": "ENCODINGTIME",
+    "apev2": "ENCODINGTIME",
+    "asf": "WM/EncodingTime"
+  },
+  "File Type": {
+    "id3v2": "TFLT",
+    "vorbis": "FILETYPE",
+    "apev2": "FILETYPE"
+  },
+  "File Webpage": {
+    "id3v2": "WOAF",
+    "vorbis": "FILEWEBPAGE",
+    "apev2": "FILEWEBPAGE",
+    "asf": "WM/AudioFileURL"
+  },
+  "Length": {
+    "id3v2": "TLEN",
+    "vorbis": "LENGTH",
+    "apev2": "LENGTH"
+  },
+  "Musician Credits": {
+    "id3v2": "TMCL",
+    "vorbis": "MUSICIANCREDITS",
+    "apev2": "MUSICIANCREDITS"
+  },
+  "Original Lyricist": {
+    "id3v2": "TOLY",
+    "vorbis": "ORIGINALLYRICIST",
+    "apev2": "ORIGINALLYRICIST",
+    "asf": "WM/OriginalLyricist"
+  },
+  "Owner": {
+    "id3v2": "TOWN",
+    "vorbis": "OWNER",
+    "apev2": "OWNER",
+    "mp4": "ownr"
+  },
+  "Release Date": {
+    "id3v2": "TDRL",
+    "vorbis": "RELEASEDATE",
+    "apev2": "RELEASEDATE",
+    "mp4": "----:com.apple.iTunes:RELEASEDATE"
+  },
+  "Tagging Date": {
+    "id3v2": "TDTG",
+    "vorbis": "TAGGINGDATE",
+    "apev2": "TAGGINGDATE"
+  }
+}
