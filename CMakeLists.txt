@@ -39,7 +39,7 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggOpusTagHandler.h
         src/format_handlers/oggSpeexTagHandler.cpp
         src/format_handlers/oggSpeexTagHandler.h
-        src/tagNormalization.cpp
+        src/tagMapping.cpp
         include/music.h
         src/tests/tests.h
         src/tests/tests.cpp
