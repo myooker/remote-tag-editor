@@ -26,7 +26,8 @@ namespace program {
 
     struct Settings {
         std::string mountpoint { "/music" };
-        std::string dbpath { "database.db" };
+        std::string dbpath { "data/database.db" };
+        std::string mappingpath { "data/mapping.json" };
         bool useRteid { false };
         bool useNavidromeDb { false };
         int port{ 18080 };
