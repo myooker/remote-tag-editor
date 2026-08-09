@@ -78,8 +78,9 @@ namespace program::music {
                   m_amap (buildAliasMap(m_map)),
                   m_aumap (buildUnorderedAliasMap()),
                   m_maphash (std::hash<std::string>{}(m_map.dump())) {
-                std::cerr << __func__ << " maphash: " << m_maphash;
             }
+
+            std::size_t getMapHash() const { return m_maphash; }
 
             [[nodiscard]]
             const json &aliases() const noexcept { return m_amap; }
