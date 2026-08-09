@@ -118,8 +118,14 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
         return {500, "does not have mp4 tags"};
     }
 
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "mp4");
+    if (!resolve.has_value()) {
+        CROW_LOG_ERROR << resolve.error();
+        return crow::response { 400, resolve.error() };
+    }
+    const std::string &raw = resolve.value();
     auto *tag = file.tag();
-    const TagLib::String atomKey { tagStruct.fieldType, TagLib::String::UTF8 };
+    const TagLib::String atomKey { raw, TagLib::String::UTF8 };
 
     const auto &itemMap = tag->itemMap();
     const auto existingIt = itemMap.find(atomKey);
