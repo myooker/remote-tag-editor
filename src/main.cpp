@@ -43,11 +43,10 @@ static std::string fileExtensionToType(const std::string &ext) {
         {".png", "picture"}
     };
 
-    if (const auto it = s_extensionsMap.find(ext); it != s_extensionsMap.end()) {
+    if (const auto it = s_extensionsMap.find(ext); it != s_extensionsMap.end())
         return it->second;
-    } else {
-        return "file";
-    }
+
+    return "file";
 }
 
 static std::string getExtension(const std::string &path) {
@@ -122,7 +121,7 @@ int main (int argc, char **argv) {
         cli.add_option("-l,--log-level", debugLevel,
                 "temp")->default_val(crow::LogLevel::WARNING);
         cli.add_option("--database-path", application.dbpath,
-            "Database path location. Default is /")->default_val("database.db");
+            "Database path location. Default is /")->default_val("data/database.db");
         cli.add_flag("--use-rteid", application.useRteid, "");
         CLI11_PARSE(cli, argc, argv);
 
@@ -142,7 +141,6 @@ int main (int argc, char **argv) {
         default: logLevel = crow::LogLevel::INFO; break;
     }
 
-    CROW_LOG_DEBUG << "debugFile: " << application.testFile << '\n';
     CROW_LOG_DEBUG << "mountpoint: " << application.mountpoint << '\n';
 
 #ifndef APP_TESTING
@@ -155,6 +153,7 @@ int main (int argc, char **argv) {
     std::unique_ptr<program::database::History> db;
     try {
         db = std::make_unique<program::database::History>(application.dbpath);
+        tag::getTagMap(); // pointless call but it builds tag mapping table, could be changed overtime
     } catch (SQLite::Exception &e) {
         CROW_LOG_CRITICAL << e.getErrorStr() << '\n';
         std::exit(e.getErrorCode());
@@ -162,7 +161,6 @@ int main (int argc, char **argv) {
 
     crow::App<crow::CORSHandler> app;
     CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
-
 
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
@@ -406,6 +404,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/store").methods("POST"_method)
     ([&](const crow::request &req) {
+        const std::string logPrefix { "(api/store): " };
         crow::multipart::message_view msg (req);
         const std::string_view *filepart { nullptr }; // Store binary data of a file
         std::string_view filepath {};
@@ -419,7 +418,7 @@ int main (int argc, char **argv) {
                 CROW_LOG_INFO << "(api/store) path = " << filepath;
 
                 if (!application.isMountPoint(std::string(filepath))) {
-                    CROW_LOG_ERROR << "(api/store) requested filepath is not a mount-point";
+                    CROW_LOG_ERROR << logPrefix << "requested filepath is not a mount-point";
                     return crow::response{ 500, "The requested path is not a mount-point" };
                 }
             }
@@ -463,6 +462,8 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/rename").methods("POST"_method)
     ([&](const crow::request &req) {
+        const std::string logPrefix { "(api/rename): " };
+
         const ordered_json root = json::parse(req.body);
         const std::string newdirname { "/" + root["newName"].get<std::string>() };
         const fs::path oldpath { root["path"] };
@@ -472,11 +473,12 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/mkdir").methods("POST"_method)
     ([&](const crow::request &req) {
+        const std::string logPrefix {"(api/mkdir): "};
+
         const ordered_json body = json::parse(req.body);
         const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() }; //ugly as fuck
         if (fs::exists(dir)) {
-            std::cerr << "Error: The specified directory already exist\n";
-            CROW_LOG_ERROR << "(api/mkdir) The specified directory already exists";
+            CROW_LOG_ERROR << logPrefix << "the specified directory already exists";
             return crow::response { 500, "Error: The specified directory already exist" };
         }
         fs::create_directory(dir);
@@ -485,24 +487,24 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/tag").methods("GET"_method)
     ([&](const crow::request &req) {
+        const std::string logPrefix { "(api/tag): " };
+
         const std::string filePath = req.url_params.get("path");
         const std::string fileExtension = fs::path(filePath).extension().string();
-        CROW_LOG_WARNING << "(api/tag) requested filepath: " << filePath;
-        CROW_LOG_DEBUG << "(api/tag) requested file extension: " << fileExtension;
+        CROW_LOG_WARNING << logPrefix << "requested file: " << filePath;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
         const auto result = handler->listMusicTags(filePath);
 
         if (!result.has_value()) {
-            CROW_LOG_ERROR << "(api/tag) error occurred: " << result.error();
-            crow::response errorResponse(500, result.error());
-            CROW_LOG_ERROR << "(api/tag) returning status: " << errorResponse.code;
-            return errorResponse;
-        } else {
-            crow::response response(result.value().dump());
-            response.set_header("Content-Type", "application/json");
-            return response;
+            CROW_LOG_ERROR << logPrefix << "error occurred: " << result.error();
+            crow::response res(500, result.error());
+            return res;
         }
+
+        crow::response res(result.value().dump());
+        res.set_header("Content-Type", "application/json");
+        return res;
     });
 
     CROW_ROUTE(app, "/api/tag-registry")
@@ -538,10 +540,10 @@ int main (int argc, char **argv) {
             CROW_LOG_WARNING << logPrefix << "building tree for: " << filePath;
             auto directoryTree = buildDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
             directoryTree["path"] = filePath.generic_string();
-            crow::response response(directoryTree.dump());
-            response.set_header("Content-Type", "application/json");
+            crow::response res(directoryTree.dump());
+            res.set_header("Content-Type", "application/json");
 
-            return response;
+            return res;
         }
 
         CROW_LOG_ERROR << logPrefix << "requested filepath is not a mount-point";
