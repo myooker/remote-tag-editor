@@ -17,7 +17,6 @@ namespace program::tests {
     constexpr std::string_view userFieldType { "testFieldType" };
     constexpr std::string_view USERFIELDTYPE { "TESTFIELDTYPE" };
     constexpr std::string_view userFieldTypeUnicode { "тестовое поле" };
-    constexpr std::string_view normalizedFieldType { music::tag::album };
     constexpr std::string_view value { "test!!!" };
     constexpr std::string_view valueModified { "test!!!, but modified" };
     constexpr std::string_view valueUnicode { "тест!!!" };
@@ -26,19 +25,19 @@ namespace program::tests {
     constexpr int HTTP_OK { 200 };
 
     inline TagModification tagMod {
-        "",
-        std::string(userFieldType),
-        std::string(value),
-        std::string(valueModified),
-        std::string(value)
+        .filePath = "",
+        .fieldType = std::string(userFieldType),
+        .replaceWhat = std::string(value),
+        .replaceWith = std::string(valueModified),
+        .value = std::string(value)
     };
 
     inline TagModification tagModUnicode {
-        "",
-        std::string(userFieldTypeUnicode),
-        std::string(valueUnicode),
-        std::string(valueUnicodeModified),
-        std::string(valueUnicode)
+        .filePath = "",
+        .fieldType = std::string(userFieldTypeUnicode),
+        .replaceWhat = std::string(valueUnicode),
+        .replaceWith = std::string(valueUnicodeModified),
+        .value = std::string(valueUnicode)
     };
 
     bool listMusicTags(const std::string &testDirectory);
