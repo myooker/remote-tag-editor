@@ -508,10 +508,13 @@ int main (int argc, char **argv) {
     CROW_ROUTE(app, "/api/tag-registry")
     ([]() {
         using namespace program::music::tag;
-        crow::response response (buildJsonTagRegistry().dump());
-        response.set_header("Content-Type", "application/json");
+        const auto map = getTagMap();
+        if (!map)
+            return crow::response { 400 };
 
-        return response;
+        crow::response res { map->aliases().dump() };
+        res.set_header("Content-Type", "application/json");
+        return res;
     });
 
     CROW_ROUTE(app, "/api/heartbeat")
