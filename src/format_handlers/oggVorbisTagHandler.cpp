@@ -35,7 +35,7 @@ std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::s
             continue;
         }
         std::string value{values[0].to8Bit(true)};
-        j[key.to8Bit(true)] = value;
+        j[key.to8Bit(true)] += value;
     }
     CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << ": returning JSON";
     return j;
@@ -92,8 +92,14 @@ crow::response oggVorbisTagHandler::addMusicTag(const program::TagModification &
         return {500, "The file is not valid"};
     }
 
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "vorbis");
+    if (!resolve.has_value()) {
+        CROW_LOG_ERROR << resolve.error();
+        return crow::response { 400, resolve.error() };
+    }
+    const std::string &raw = resolve.value();
     auto *tag = file.tag();
-    tag->addField(tagStruct.fieldType, tagStruct.value, false);
+    tag->addField(raw, tagStruct.value, false);
     if (rteid) ensureRteid(rteid, tag);
     file.save();
     CROW_LOG_INFO << "(" << __func__ << ") " << tagStruct.filePath << " saved!";

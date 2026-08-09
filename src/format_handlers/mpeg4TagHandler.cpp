@@ -23,6 +23,7 @@ void mpeg4TagHandler::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
 std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
     using namespace program::music;
     const TagLib::MP4::File file { filePath.c_str() };
+    using Type = TagLib::MP4::Item::Type;
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
@@ -41,43 +42,37 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
 
     for (const auto &[key, value] : map) {
         switch (value.type()) {
-            case TagLib::MP4::Item::Type::StringList: {
+            case Type::StringList: {
                     for (const auto &x : value.toStringList()) {
                         base[key.to8Bit(true)] += x.toCString(true);
                     }
                     break;
                 }
-            case TagLib::MP4::Item::Type::Int:
+            case Type::Int:
                 base[key.to8Bit(true)] = value.toInt();
                 break;
-            case TagLib::MP4::Item::Type::IntPair: {
+            case Type::IntPair: {
                 const auto [first, second] = value.toIntPair();
                 base[key.to8Bit(true)] = std::to_string(first) + "/" + std::to_string(second);
                 break;
             }
-            case TagLib::MP4::Item::Type::Bool:
+            case Type::Bool:
                 base[key.to8Bit(true)] = value.toBool();
                 break;
-            case TagLib::MP4::Item::Type::UInt:
+            case Type::UInt:
                 base[key.to8Bit(true)] = value.toUInt();
                 break;
-            case TagLib::MP4::Item::Type::LongLong:
+            case Type::LongLong:
                 base[key.to8Bit(true)] = value.toLongLong();
                 break;
-            case TagLib::MP4::Item::Type::Byte:
+            case Type::Byte:
                 base[key.to8Bit(true)] = value.toByte();
                 break;
-            case TagLib::MP4::Item::Type::ByteVectorList:
-                CROW_LOG_DEBUG << "(" << __func__ << ") ByteVectorList skipped for: " << key.to8Bit(true);
-                break;
-            case TagLib::MP4::Item::Type::CoverArtList:
-                CROW_LOG_DEBUG << "(" << __func__ << ") CoverArtList skipped for: " << key.to8Bit(true);
-                break;
-            case TagLib::MP4::Item::Type::Stem:
-                CROW_LOG_DEBUG << "(" << __func__ << ") Stem skipped for: " << key.to8Bit(true);
-                break;
-            case TagLib::MP4::Item::Type::Void:
-                CROW_LOG_DEBUG << "(" << __func__ << ") Void item for: " << key.to8Bit(true);
+            case Type::ByteVectorList:
+            case Type::CoverArtList:
+            case Type::Stem:
+            case Type::Void:
+                CROW_LOG_WARNING << __PRETTY_FUNCTION__ << " atom type is not implemented";
                 break;
         }
     }

@@ -47,9 +47,6 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     json userdef = json::object();
 
     const auto *tag = file.ID3v2Tag();
-    const auto ver = tag->header()->majorVersion();
-    const auto fmt = (ver >= 4) ? format::ID3v24 : format::ID3v23;
-
     const auto map = tag->frameListMap();
     for (const auto & [frameID, frameList] : map) {
         for (auto *frame : frameList) {
@@ -61,7 +58,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
 
                 if (fieldsSize == 2) { // If there's only description and its value
                     std::string value = fields[1].to8Bit(true); // Get single-value of TXXX description (tag field)
-                    userdef[key] = value;
+                    userdef[key] += value;
                 } else if (fieldsSize > 2) { // If there's description and multiple value
                     userdef[key] = json::array();
                     for (unsigned int i { 1 }; i < fieldsSize; ++i) {
@@ -77,7 +74,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
                 // If there's only one frame, just assign it to the id
                 // Otherwise make an array of frames of frameID name
                 if (list.size() == 1) {
-                    base[key] = list.toString().to8Bit(true);
+                    base[key] += list.toString().to8Bit(true);
                 } else if (list.size() > 1) {
                     base[key] = json::array();
                     for (const auto &values : list) {
@@ -286,17 +283,24 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
         return crow::response {500, "File does not have an ID3v2Tag"};
     }
 
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "id3v2");
+    if (!resolve.has_value()) {
+        CROW_LOG_ERROR << resolve.error();
+        return crow::response { 400, resolve.error() };
+    }
+    const std::string &raw = resolve.value();
+    CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << " raw: " << raw;
     auto *tag = file.ID3v2Tag();
-    auto frameID = ByteVector(tagStruct.fieldType.c_str());
+    auto frameID = ByteVector(raw.data());
     auto frames = tag->frameList(frameID);
     const std::string frameIDstr { frameID.data(), frameID.size() };
 
     if (frameIDstr.starts_with(prefix::mp3)) {
-        const std::string desc = tagStruct.fieldType.substr(5);
+        const std::string desc = raw.substr(5);
         addTXXXFrame(tag, desc, tagStruct.value);
         if (rteid) ensureRteid(rteid, tag);
         file.save(MPEG::File::AllTags, File::StripNone);
-        CROW_LOG_DEBUG << "(" << __func__ << ") File saved!";
+        CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << " file saved";
         return crow::response {200, "OK" };
     }
 
