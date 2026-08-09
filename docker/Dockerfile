@@ -58,13 +58,13 @@ RUN apk add --no-cache \
 
 COPY --from=build /usr/local /usr/local
 COPY --from=build /app/build/web_tag_editor /usr/local/bin/web_tag_editor
-#COPY frontend/ /app/frontend/
 COPY --from=frontend-build /app/frontend-v2/dist/ /app/frontend/
 COPY docker/nginx.conf /etc/nginx/http.d/default.conf
 COPY docker/start.sh /app/start.sh
+COPY ../mapping.json /data/mapping.json
 RUN chmod +x /app/start.sh
 
 EXPOSE 80
 
 ENTRYPOINT ["/app/start.sh"]
-CMD ["--mount-point", "/music", "--database-path", "/data/database.db3"]
+CMD ["--mount-point", "/music", "--database-path", "/data/database.db"]
