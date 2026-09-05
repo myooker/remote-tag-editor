@@ -75,6 +75,7 @@ static ordered_json buildDirectoryTree(const std::string &basePath, const int de
     };
 
     for (const auto &entry : fs::directory_iterator(root)) {
+        if (entry.is_symlink()) continue;
         if (entry.is_directory()) {
             const fs::path relPath = entry.path().lexically_relative(root);
             rootTree["content"].push_back(buildDirectoryTree(entry.path().string(), depth, depthCount + 1));
