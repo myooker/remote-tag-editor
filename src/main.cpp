@@ -10,6 +10,7 @@
 
 #include <nlohmann/json.hpp>
 #include <crow.h>
+#include <crow/compression.h>
 #include <crow/middlewares/cors.h>
 #include <CLI/CLI.hpp>
 
@@ -551,6 +552,7 @@ int main (int argc, char **argv) {
     });
 
     app.loglevel(logLevel);
+    app.use_compression(crow::compression::GZIP);
     app.port(application.port).multithreaded().run();
 
     return 0;

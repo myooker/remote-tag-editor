@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD 23)
 # Find TagLib using pkg-config
 find_package(PkgConfig REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(ZLIB REQUIRED)
 pkg_check_modules(TAGLIB REQUIRED taglib>=2.0)
 
 include(FetchContent)
@@ -52,12 +53,11 @@ target_include_directories(web_tag_editor PRIVATE ${TAGLIB_INCLUDE_DIRS})
 target_link_libraries(web_tag_editor PRIVATE ${TAGLIB_LIBRARIES})
 target_link_libraries(web_tag_editor PRIVATE nlohmann_json::nlohmann_json)
 target_link_libraries(web_tag_editor PRIVATE SQLiteCpp sqlite3 pthread dl)
+target_link_libraries(web_tag_editor PRIVATE ZLIB::ZLIB)
 
 # Compiler flags (if needed)
 target_compile_options(web_tag_editor PRIVATE ${TAGLIB_CFLAGS_OTHER})
 target_compile_definitions(web_tag_editor
         PRIVATE $<$<CONFIG:Debug>:APP_DEBUG>
 )
-
-
-
+target_compile_definitions(web_tag_editor PRIVATE CROW_ENABLE_COMPRESSION)

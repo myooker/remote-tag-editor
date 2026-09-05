@@ -11,7 +11,8 @@ RUN apk add --no-cache \
     wget \
     tar \
     nlohmann-json \
-    asio-dev
+    asio-dev \
+    zlib
 
 # CLI11
 RUN mkdir -p /usr/local/include/CLI \
