@@ -283,7 +283,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
         return crow::response {500, "File does not have an ID3v2Tag"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "id3v2");
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };

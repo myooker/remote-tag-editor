@@ -14,6 +14,7 @@
 namespace audioFormat {
     class mpeg4TagHandler : public ImusicTagHandler {
     private:
+        constexpr static std::string_view m_type { "mp4" };
         static void ensureRteid(std::string *rteid, TagLib::MP4::Tag *tag);
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;

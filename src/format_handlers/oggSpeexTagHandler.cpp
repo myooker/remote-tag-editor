@@ -93,7 +93,7 @@ crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &t
         return {500, "The file is not valid"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "vorbis");
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };

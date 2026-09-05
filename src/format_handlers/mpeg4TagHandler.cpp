@@ -118,7 +118,7 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
         return {500, "does not have mp4 tags"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, "mp4");
+    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };

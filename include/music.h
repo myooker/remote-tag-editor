@@ -40,7 +40,7 @@ namespace program::music {
         };
 
         // Program-defined tags
-        constexpr TagField rteID                            { "RTEID" };
+        constexpr TagField rteID { "RTEID" };
 
         class TagMapping {
         private:
@@ -84,13 +84,23 @@ namespace program::music {
 
             [[nodiscard]]
             const json &aliases() const noexcept { return m_amap; }
+
+            /**
+             * @brief Find occurrence of fname in mapping table
+             *
+             * @param fname frontend name (e.g. TALB, ALBUM, ©alb...)
+             * @param cname codec name (e.g. id3v2, vorbis, mp4...)
+             * @param f format type, ID3v24 by default
+             * @return string_view to codec name, unexpected otherwise
+             */
             [[nodiscard]]
-            std::expected<const json*, std::string> find(const std::string &fname, const std::string &cname, format f=ID3v24) const {
+            std::expected<const std::string_view, std::string>
+            find(const std::string &fname, const std::string &cname, format f=ID3v24) const {
                 if (auto fname_it = m_map.find(fname); fname_it != m_map.end()) {
                     if (auto cname_it = fname_it->find(cname); cname_it != fname_it->end()) {
                         if (cname_it.value().is_array())
-                            return &cname_it.value()[f]; // It will always resolve to v2.4 unless needd
-                        return &cname_it.value();
+                            return cname_it->get<const std::string_view>();
+                        return cname_it->get<const std::string_view>();
                     }
                 }
 
@@ -104,25 +114,39 @@ namespace program::music {
                 });
             }
 
+            /**
+             * @brief
+             * @param fname - frontend name
+             * @param cname - codec name
+             * @param f - format type
+             * @return
+             */
             [[nodiscard]]
-            std::expected<std::string, std::string> resolve(const std::string &fname, const std::string &cname, format f=ID3v24) const {
+            std::expected<std::string, std::string>
+            resolve(const std::string &fname, const std::string &cname, format f=ID3v24) const {
                 // An empty name would resolve to an empty frame ID further down.
                 if (fname.empty())
-                    return std::unexpected("empty tag name");
+                    return std::unexpected("empty fname");
 
-                if (const auto r = find(fname, cname, f)) {
-                    if (!(*r)->is_string())
-                        return std::unexpected(fname + " has a non-string " + cname + " mapping");
-                    return (*r)->get<std::string>();
+                if (const auto r = find(fname, cname)) {
+                    if (r.has_value()) {
+                        return r.value().data();
+                    }
                 }
 
                 if (m_map.contains(fname))
                     return std::unexpected(fname + " has no " + cname + " mapping");
 
+                // If
                 if (contain(fname))
                     return fname;
 
-                return std::unexpected(fname + " was not found for " + cname);
+                // As-is block
+                // Consider fname as user-defined tag and add corresponding prefix
+                if (cname == "id3v2")
+                    return prefix::mp3.data() + fname;
+                if (cname == "mp4")
+                    return prefix::m4a.data() + fname;
             }
         };
 

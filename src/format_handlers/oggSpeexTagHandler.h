@@ -9,6 +9,7 @@
 namespace audioFormat {
     class oggSpeexTagHandler : public ImusicTagHandler {
     private:
+        constexpr static std::string_view m_type { "vorbis" };
         void ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *tag);
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
