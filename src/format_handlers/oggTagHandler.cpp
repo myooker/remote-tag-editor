@@ -58,3 +58,10 @@ crow::response oggTagHandler::addMusicTag(const program::TagModification &tagStr
 crow::response oggTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
    return codecHandler(tagStruct.filePath)->editMusicTags(tagStruct, rteid);
 }
+
+std::expected<std::string, std::string> oggTagHandler::resolveTag(const std::string_view tag) {
+    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+    if (resolve.has_value())
+        return resolve.value();
+    return std::unexpected(std::move(resolve).error());
+}

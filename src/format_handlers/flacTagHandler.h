@@ -20,8 +20,9 @@ namespace audioFormat {
         crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         tag::Picture getAlbumCover(const std::string& filePath) override;
-        void removeAlbumCover(const std::string& filePath) override {};
-        void addAlbumCover(const std::string& filePath) override {};
+        void removeAlbumCover(const std::string& filePath) override {}
+        void addAlbumCover(const std::string& filePath) override {}
+        std::expected<std::string, std::string> resolveTag(std::string_view tag) override;
     };
 }
 

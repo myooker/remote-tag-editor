@@ -191,3 +191,10 @@ crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &ta
     modified.value = tagStruct.replaceWith;
     return addMusicTag(modified, rteid);
 }
+
+std::expected<std::string, std::string> mpeg4TagHandler::resolveTag(const std::string_view tag) {
+    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+    if (resolve.has_value())
+        return resolve.value();
+    return std::unexpected(std::move(resolve).error());
+}

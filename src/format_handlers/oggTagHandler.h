@@ -10,15 +10,18 @@
 namespace audioFormat {
     class oggTagHandler : public ImusicTagHandler {
     private:
+        // Every Ogg codec we dispatch to stores metadata in Xiph comments.
+        constexpr static std::string_view m_type { "vorbis" };
         std::string m_filePath{};
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
         crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
         crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
-        tag::Picture getAlbumCover(const std::string& filePath) override { return tag::Picture{}; };
-        void removeAlbumCover(const std::string& filePath) override {};
-        void addAlbumCover(const std::string& filePath) override {};
+        tag::Picture getAlbumCover(const std::string& filePath) override { return tag::Picture{}; }
+        void removeAlbumCover(const std::string& filePath) override {}
+        void addAlbumCover(const std::string& filePath) override {}
+        std::expected<std::string, std::string> resolveTag(std::string_view tag) override;
     private:
         std::unique_ptr<ImusicTagHandler> codecHandler(const std::string &filePath);
     };

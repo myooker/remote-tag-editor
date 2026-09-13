@@ -137,16 +137,20 @@ namespace program::music {
                 if (m_map.contains(fname))
                     return std::unexpected(fname + " has no " + cname + " mapping");
 
-                // If
+                // If fname appears in mapping table, return as-is
                 if (contain(fname))
                     return fname;
 
-                // As-is block
-                // Consider fname as user-defined tag and add corresponding prefix
+                if (fname.starts_with(prefix::mp3) || fname.starts_with(prefix::m4a))
+                    return fname;
+
+                // Otherwise consider tag as user-defined and add corresponding prefix
                 if (cname == "id3v2")
                     return prefix::mp3.data() + fname;
                 if (cname == "mp4")
                     return prefix::m4a.data() + fname;
+
+                return std::unexpected(fname + " has no " + cname + " mapping");
             }
         };
 

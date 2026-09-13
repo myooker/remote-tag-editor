@@ -153,3 +153,10 @@ crow::response oggFlacTagHandler::editMusicTags(const program::TagModification &
 
     return { 200, "OK" };
 }
+
+std::expected<std::string, std::string> oggFlacTagHandler::resolveTag(const std::string_view tag) {
+    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+    if (resolve.has_value())
+        return resolve.value();
+    return std::unexpected(std::move(resolve).error());
+}
