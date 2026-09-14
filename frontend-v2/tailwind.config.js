@@ -69,6 +69,10 @@ export default {
           from: { opacity: "0", transform: "translateX(12px)" },
           to: { opacity: "1", transform: "translateX(0)" },
         },
+        "slide-in-left": {
+          from: { opacity: "0", transform: "translateX(-12px)" },
+          to: { opacity: "1", transform: "translateX(0)" },
+        },
         "overlay-show": {
           from: { opacity: "0" },
           to: { opacity: "1" },
@@ -92,6 +96,7 @@ export default {
       animation: {
         "fade-in": "fade-in 0.18s ease-out",
         "slide-in-right": "slide-in-right 0.2s ease-out",
+        "slide-in-left": "slide-in-left 0.2s ease-out",
         "overlay-show": "overlay-show 0.15s ease-out",
         "content-show": "content-show 0.16s cubic-bezier(0.16, 1, 0.3, 1)",
         "logo-deflate": "logo-deflate 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)",

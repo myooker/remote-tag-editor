@@ -13,7 +13,10 @@ import {
   clampConcurrency,
   MIN_CONCURRENCY,
   MAX_CONCURRENCY,
+  TOAST_POSITIONS,
+  type ToastPosition,
 } from "@/context/PrefsContext";
+import { cn } from "@/lib/utils";
 
 function Row({ label, value }: { label: string; value: string }) {
   return (
@@ -92,6 +95,48 @@ function ConcurrencyInput({
   );
 }
 
+/** Miniature screen with a clickable quadrant per corner. */
+function ToastPositionPicker({
+  value,
+  onChange,
+}: {
+  value: ToastPosition;
+  onChange: (pos: ToastPosition) => void;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label="Notification position"
+      className="grid h-12 w-[72px] shrink-0 grid-cols-2 grid-rows-2 gap-0.5 rounded border border-border bg-background p-1"
+    >
+      {TOAST_POSITIONS.map((pos) => {
+        const active = value === pos.value;
+        return (
+          <button
+            key={pos.value}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={pos.label}
+            title={pos.label}
+            onClick={() => onChange(pos.value)}
+            className="group flex items-center justify-center rounded-sm hover:bg-accent focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+          >
+            <span
+              className={cn(
+                "h-1.5 w-4 rounded-[1px] transition-colors",
+                active
+                  ? "bg-primary"
+                  : "bg-muted-foreground/30 group-hover:bg-muted-foreground/60",
+              )}
+            />
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export function SettingsDialog({
   open,
   onOpenChange,
@@ -104,9 +149,11 @@ export function SettingsDialog({
     parallelWrites,
     writeConcurrency,
     showRawTags,
+    toastPosition,
     setParallelWrites,
     setWriteConcurrency,
     setShowRawTags,
+    setToastPosition,
   } = usePrefs();
 
   return (
@@ -176,8 +223,19 @@ export function SettingsDialog({
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Appearance
             </span>
-            <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-              Modern Dark theme
+            <div className="flex flex-col gap-1.5">
+              <div className="rounded-md bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+                Modern Dark theme
+              </div>
+              <ControlRow
+                label="Notification position"
+                hint="Corner notifications appear in."
+              >
+                <ToastPositionPicker
+                  value={toastPosition}
+                  onChange={setToastPosition}
+                />
+              </ControlRow>
             </div>
           </div>
         </div>

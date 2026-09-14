@@ -5,6 +5,20 @@ import * as React from "react";
  * never sent to the backend — unlike `AppContext`, which exposes the settings
  * the server was started with.
  */
+/** Screen corner the toast viewport is anchored to. */
+export type ToastPosition =
+  | "top-left"
+  | "top-right"
+  | "bottom-left"
+  | "bottom-right";
+
+export const TOAST_POSITIONS: { value: ToastPosition; label: string }[] = [
+  { value: "top-left", label: "Top left" },
+  { value: "top-right", label: "Top right" },
+  { value: "bottom-left", label: "Bottom left" },
+  { value: "bottom-right", label: "Bottom right" },
+];
+
 export interface Prefs {
   /** When false, batch tag writes go out strictly one at a time (the default). */
   parallelWrites: boolean;
@@ -16,6 +30,8 @@ export interface Prefs {
    * the raw name either way.
    */
   showRawTags: boolean;
+  /** Corner notifications slide in from. */
+  toastPosition: ToastPosition;
 }
 
 export const MIN_CONCURRENCY = 2;
@@ -26,9 +42,16 @@ const DEFAULTS: Prefs = {
   parallelWrites: false,
   writeConcurrency: DEFAULT_CONCURRENCY,
   showRawTags: false,
+  toastPosition: "bottom-left",
 };
 
 const STORAGE_KEY = "rte.prefs";
+
+function parsePosition(v: unknown): ToastPosition {
+  return TOAST_POSITIONS.some((p) => p.value === v)
+    ? (v as ToastPosition)
+    : DEFAULTS.toastPosition;
+}
 
 export function clampConcurrency(n: number): number {
   if (!Number.isFinite(n)) return DEFAULT_CONCURRENCY;
@@ -46,6 +69,7 @@ function load(): Prefs {
         parsed.writeConcurrency ?? DEFAULT_CONCURRENCY,
       ),
       showRawTags: parsed.showRawTags === true,
+      toastPosition: parsePosition(parsed.toastPosition),
     };
   } catch {
     return DEFAULTS;
@@ -58,6 +82,7 @@ interface PrefsContextValue extends Prefs {
   setParallelWrites: (on: boolean) => void;
   setWriteConcurrency: (n: number) => void;
   setShowRawTags: (on: boolean) => void;
+  setToastPosition: (pos: ToastPosition) => void;
 }
 
 const PrefsContext = React.createContext<PrefsContextValue | null>(null);
@@ -88,6 +113,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
       setWriteConcurrency: (n) =>
         setPrefs((p) => ({ ...p, writeConcurrency: clampConcurrency(n) })),
       setShowRawTags: (on) => setPrefs((p) => ({ ...p, showRawTags: on })),
+      setToastPosition: (pos) => setPrefs((p) => ({ ...p, toastPosition: pos })),
     }),
     [prefs],
   );

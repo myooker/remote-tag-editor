@@ -12,17 +12,18 @@ import "./index.css";
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <ToastProvider>
-        <TooltipProvider delayDuration={300}>
-          <DialogsProvider>
-            <AppProvider>
-              <PrefsProvider>
+      {/* Prefs is outermost: ToastProvider reads the notification position from it. */}
+      <PrefsProvider>
+        <ToastProvider>
+          <TooltipProvider delayDuration={300}>
+            <DialogsProvider>
+              <AppProvider>
                 <App />
-              </PrefsProvider>
-            </AppProvider>
-          </DialogsProvider>
-        </TooltipProvider>
-      </ToastProvider>
+              </AppProvider>
+            </DialogsProvider>
+          </TooltipProvider>
+        </ToastProvider>
+      </PrefsProvider>
     </BrowserRouter>
   </React.StrictMode>,
 );
