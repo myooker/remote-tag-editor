@@ -186,6 +186,8 @@ int main (int argc, char **argv) {
     CROW_ROUTE(app, "/api/undo").methods("POST"_method)
     ([&](const crow::request& req) {
         using namespace TagLib;
+
+        const std::string logPrefix { "(api/undo): " };
         json j = json::parse(req.body);
 
         crow::response response { 500 };
@@ -195,9 +197,22 @@ int main (int argc, char **argv) {
         const int id                { j.value("id", -1) }; // add enum NOT_FOUND instead of -1
         const std::string rteid     { j.value("rteid", program::jsonMissingValue) };
         const std::string path      { j.value("path", program::jsonMissingValue) };
-        const std::string tag       { j.value("tag", program::jsonMissingValue) };
+        std::string tag             { j.value("tag", program::jsonMissingValue) };
+
+        CROW_LOG_WARNING << logPrefix << "id: " << id;
+        CROW_LOG_WARNING << logPrefix << "rteid: " << rteid;
+        CROW_LOG_WARNING << logPrefix << "path: " << path;
+        CROW_LOG_WARNING << logPrefix << "tag: " << tag;
 
         auto handler = musicTagHandlerFactory::createHandler(getExtension(path));
+        auto rtag = handler->resolveTag(tag);
+        if (!rtag.has_value()) {
+            CROW_LOG_WARNING << logPrefix << rtag.error();
+            response.body = rtag.error();
+            return response;
+        }
+        tag = rtag.value();
+        CROW_LOG_WARNING << logPrefix << "resolved tag: " << tag;
 
         // 2 - Get information from query
         SQLite::Statement q { db->getDatabase(),
@@ -329,6 +344,13 @@ int main (int argc, char **argv) {
         CROW_LOG_WARNING << "(api/edittag) requested path: " << tagStruct.filePath;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto rtag = handler->resolveTag(tagStruct.fieldType);
+        if (!rtag.has_value()) {
+            CROW_LOG_ERROR << rtag.error();
+            return crow::response { 500, rtag.error() };
+        }
+        tagStruct.fieldType = rtag.value();
+        CROW_LOG_WARNING << logPrefix << "resolved tag: " << tagStruct.fieldType;
 
         if (application.useRteid) id.rte = generateId();
         crow::response response(handler->editMusicTags(tagStruct, application.useRteid ? &id.rte : nullptr));
@@ -362,6 +384,13 @@ int main (int argc, char **argv) {
         CROW_LOG_WARNING << logPrefix << "requested path: " << tagStruct.filePath;
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto rtag = handler->resolveTag(tagStruct.fieldType);
+        if (!rtag.has_value()) {
+            CROW_LOG_ERROR << rtag.error();
+            return crow::response { 500, rtag.error() };
+        }
+        tagStruct.fieldType = rtag.value();
+        CROW_LOG_WARNING << logPrefix << "resolved tag: " << tagStruct.fieldType;
 
         if (application.useRteid) id.rte = generateId();
         crow::response response(handler->addMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
@@ -393,6 +422,13 @@ int main (int argc, char **argv) {
             return crow::response { 400, "You cannot modify RTEID" };
 
         const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto rtag = handler->resolveTag(tagStruct.fieldType);
+        if (!rtag.has_value()) {
+            CROW_LOG_ERROR << rtag.error();
+            return crow::response { 500, rtag.error() };
+        }
+        tagStruct.fieldType = rtag.value();
+        CROW_LOG_WARNING << logPrefix << "resolved tag: " << tagStruct.fieldType;
 
         if (application.useRteid) id.rte = generateId();
         crow::response response(handler->removeMusicTag(tagStruct, application.useRteid ? &id.rte : nullptr));
