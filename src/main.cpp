@@ -204,7 +204,7 @@ int main (int argc, char **argv) {
         CROW_LOG_WARNING << logPrefix << "path: " << path;
         CROW_LOG_WARNING << logPrefix << "tag: " << tag;
 
-        auto handler = handler::Factory::create(getExtension(path));
+        auto handler = Factory::create(getExtension(path));
         auto rtag = handler->resolveTag(tag);
         if (!rtag.has_value()) {
             CROW_LOG_WARNING << logPrefix << rtag.error();

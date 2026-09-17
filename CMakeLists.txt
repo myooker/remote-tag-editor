@@ -20,7 +20,7 @@ FetchContent_MakeAvailable(SQLiteCpp)
 # Your executable
 add_executable(web_tag_editor src/main.cpp
         include/rte.h
-        include/ImusicTagHandler.h
+        include/interface.h
         src/format_handlers/flac.h
         src/format_handlers/flac.cpp
         src/format_handlers/factory.h
