@@ -1,12 +1,13 @@
 #ifndef WEB_TAG_EDITOR_PROGRAM_H
 #define WEB_TAG_EDITOR_PROGRAM_H
+
 #include <filesystem>
 #include <string_view>
 #include <tstring.h>
 
 #include "SQLiteCpp/Backup.h"
 
-namespace program {
+namespace rte {
     namespace fs = std::filesystem;
 
     constexpr std::string_view version { "1.5.0" };
@@ -21,7 +22,6 @@ namespace program {
 
     namespace Environments {
         constexpr std::string_view use_rteid { "RTE_USERTEID" };
-        constexpr std::string_view use_navidromedb { "RTE_NAVIDROMEDB" };
     }
 
     struct Settings {
@@ -29,7 +29,6 @@ namespace program {
         std::string dbpath { "data/database.db" };
         std::string mappingpath { "data/mapping.json" };
         bool useRteid { false };
-        bool useNavidromeDb { false };
         int port{ 18080 };
 
         [[nodiscard]] bool isExist() const {

@@ -1,22 +1,20 @@
-//
-// Created by myooker on 2/10/26.
-//
-
-#include "oggVorbisTagHandler.h"
-#include <vorbisfile.h>
+#include "oggFlac.h"
 #include "../../include/music.h"
 
-using namespace audioFormat;
+#include <oggflacfile.h>
 
-void oggVorbisTagHandler::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
+using namespace rte::music::handler;
+using namespace rte::music::tag;
+
+void OggFlac::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
     using namespace TagLib;
-    const auto it = tag->fieldListMap().find(std::string(tag::rteID));
+    const auto it = tag->fieldListMap().find(std::string(rteID));
     if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
-    else tag->addField(std::string(tag::rteID), *rteid, true);
+    else tag->addField(std::string(rteID), *rteid, true);
 }
 
-std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::string &filePath) {
-    TagLib::Vorbis::File file{filePath.c_str()};
+std::expected<json, std::string> OggFlac::listMusicTags(const std::string &filePath) {
+    TagLib::Ogg::FLAC::File file{filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
@@ -41,9 +39,10 @@ std::expected<json, std::string> oggVorbisTagHandler::listMusicTags(const std::s
     return j;
 }
 
-crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
-    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
+crow::response OggFlac::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
+    TagLib::Ogg::FLAC::File file{tagStruct.filePath.c_str()};
+
     if (!file.isValid()) {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.filePath << " is not valid";
         return {500, "The file is not valid"};
@@ -63,7 +62,8 @@ crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModificatio
     }
 
     // Find occurrence of tagStruct.value. If so, delete it.
-    if (const auto values_it = values.find(tagStruct.value); values_it != values.end()) {
+    const TagLib::String value { tagStruct.value };
+    if (const auto values_it = values.find(value); values_it != values.end()) {
         values.erase(values_it);
     } else {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.value << " was not found in file "
@@ -84,15 +84,15 @@ crow::response oggVorbisTagHandler::removeMusicTag(const program::TagModificatio
     return {200, "OK"};
 }
 
-crow::response oggVorbisTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
+crow::response OggFlac::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    TagLib::Ogg::FLAC::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
         return {500, "The file is not valid"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
+    auto resolve = getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };
@@ -106,9 +106,9 @@ crow::response oggVorbisTagHandler::addMusicTag(const program::TagModification &
     return {200, "File/s saved!"};
 }
 
-crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
-    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
+crow::response OggFlac::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
+    TagLib::Ogg::FLAC::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " is not valid";
@@ -128,7 +128,8 @@ crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification
         return { 500, "Field type does not exist" };
     }
 
-    if (const auto v_it = values.find(tagStruct.replaceWhat); v_it != values.end()) {
+    const TagLib::String replaceWhat { tagStruct.replaceWhat };
+    if (const auto v_it = values.find(replaceWhat); v_it != values.end()) {
         *v_it = tagStruct.replaceWith;
     } else {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.replaceWhat << " was not found in file "
@@ -150,8 +151,8 @@ crow::response oggVorbisTagHandler::editMusicTags(const program::TagModification
     return { 200, "OK" };
 }
 
-std::expected<std::string, std::string> oggVorbisTagHandler::resolveTag(const std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> OggFlac::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());

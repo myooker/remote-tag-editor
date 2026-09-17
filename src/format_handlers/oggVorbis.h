@@ -1,21 +1,19 @@
-//
-// Created by myooker on 2/10/26.
-//
-
 #ifndef WEB_TAG_EDITOR_OGGVORBISTAGHANDLER_H
 #define WEB_TAG_EDITOR_OGGVORBISTAGHANDLER_H
-#include "../../include/ImusicTagHandler.h"
 
-namespace audioFormat {
-    class oggVorbisTagHandler : public ImusicTagHandler {
+#include <xiphcomment.h>
+#include "../../include/interface.h"
+
+namespace rte::music::handler {
+    class OggVorbis : public Interface {
     private:
         constexpr static std::string_view m_type { "vorbis" };
         void ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *tag);
     public:
         std::expected<json, std::string> listMusicTags(const std::string &filePath) override;
-        crow::response removeMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
-        crow::response addMusicTag(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
-        crow::response editMusicTags(const program::TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response removeMusicTag(const TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response addMusicTag(const TagModification &tagStruct, std::string *rteid = nullptr) override;
+        crow::response editMusicTags(const TagModification &tagStruct, std::string *rteid = nullptr) override;
         tag::Picture getAlbumCover(const std::string& filePath) override { return tag::Picture{}; }
         void removeAlbumCover(const std::string& filePath) override {}
         void addAlbumCover(const std::string& filePath) override {}

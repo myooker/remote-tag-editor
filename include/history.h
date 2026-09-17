@@ -1,17 +1,13 @@
-//
-// Created by myooker on 28.04.2026.
-//
-
 #ifndef WEB_TAG_EDITOR_SQLITE_H
 #define WEB_TAG_EDITOR_SQLITE_H
 
 #include <crow/logging.h>
 
-#include "program.h"
+#include "rte.h"
 #include "SQLiteCpp/SQLiteCpp.h"
 #include "crow/http_response.h"
 
-namespace program::database{
+namespace rte::storage {
     constexpr std::string_view add { "add" };
     constexpr std::string_view change { "change" };
     constexpr std::string_view remove { "remove" };
@@ -22,11 +18,11 @@ namespace program::database{
         std::string action { "NULL" };
     };
 
-    class History {
+    class Database {
     private:
         SQLite::Database m_database;
     public:
-        History(const std::string &path)
+        Database(const std::string &path)
             : m_database(path, SQLite::OPEN_READWRITE | SQLite::OPEN_CREATE)
         {
             CROW_LOG_WARNING << "Opening database: " << path;
@@ -45,15 +41,10 @@ namespace program::database{
         }
 
         SQLite::Database &getDatabase() { return m_database; };
-
         crow::response insertAdd(const TagModification &tagStruct, const id &idStruct) const;
         crow::response insertRemove(const TagModification &tagStruct, const id &idStruct) const;
         crow::response insertEdit(const TagModification &tagStruct, const id &idStruct) const;
-
         crow::response deleteFile(const std::string &path) const;
-        crow::response moveFile(const std::string &oldPath, const std::string &newPath) const;
-
-        crow::response rollback();
     };
 }
 

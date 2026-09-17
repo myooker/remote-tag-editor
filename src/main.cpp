@@ -15,12 +15,9 @@
 #include <CLI/CLI.hpp>
 
 #include "../include/history.h"
-#include "../include/program.h"
-#include "../include/musicTagHandlerFactory.h"
-#include "tests/tests.h"
+#include "../include/rte.h"
+#include "format_handlers/factory.h"
 #include "SQLiteCpp/SQLiteCpp.h"
-
-//#define APP_TESTING
 
 using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
@@ -54,7 +51,7 @@ static std::string getExtension(const std::string &path) {
     return fs::path{path}.extension().string();
 }
 
-static ordered_json buildDirectoryTree(const std::string &basePath, const int depth = program::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
+static ordered_json buildDirectoryTree(const std::string &basePath, const int depth = rte::DIR_DEPTH::ARTIST, int depthCount = 0, bool contentOnly = false) {
     ordered_json rootTree = json::object();
     const fs::path root { basePath };
     rootTree["name"] = root.filename().lexically_normal().string();
@@ -106,7 +103,10 @@ static std::string generateId(const std::size_t t=16) {
 }
 
 int main (int argc, char **argv) {
-    program::Settings application {};
+    using namespace rte::music;
+    using namespace rte::music::handler;
+
+    rte::Settings application {};
     int debugLevel {};
     auto logLevel { crow::LogLevel::Info };
 
@@ -127,7 +127,7 @@ int main (int argc, char **argv) {
         cli.add_flag("--use-rteid", application.useRteid, "");
         CLI11_PARSE(cli, argc, argv);
 
-        const auto rteid = std::getenv(program::Environments::use_rteid.data());
+        const auto rteid = std::getenv(rte::Environments::use_rteid.data());
         if (rteid) {
             if (strcasecmp(rteid, "true") == 0) application.useRteid = true;
             if (strcasecmp(rteid, "false") == 0) application.useRteid = false;
@@ -152,9 +152,9 @@ int main (int argc, char **argv) {
     }
 #endif
 
-    std::unique_ptr<program::database::History> db;
+    std::unique_ptr<rte::storage::Database> db;
     try {
-        db = std::make_unique<program::database::History>(application.dbpath);
+        db = std::make_unique<rte::storage::Database>(application.dbpath);
         tag::getTagMap(); // pointless call but it builds tag mapping table, could be changed overtime
     } catch (std::exception &e) {
         CROW_LOG_CRITICAL << e.what() << '\n';
@@ -162,7 +162,7 @@ int main (int argc, char **argv) {
     }
 
     crow::App<crow::CORSHandler> app;
-    CROW_LOG_INFO << program::name << " ver " << program::version << " is running now";
+    CROW_LOG_INFO << rte::name << " ver " << rte::version << " is running now";
 
     CROW_ROUTE(app, "/api/events/delete").methods("POST"_method)
     ([&](const crow::request& req) {
@@ -176,7 +176,7 @@ int main (int argc, char **argv) {
         json j = {
             {"rteid", application.useRteid},
             {"mountpoint", application.mountpoint},
-            {"version", program::version },
+            {"version", rte::version },
         };
         crow::response response { j.dump() };
         response.set_header("Content-Type", "application/json");
@@ -195,16 +195,16 @@ int main (int argc, char **argv) {
         // 1 - Parse information from request to query database
         // All we need to have is the following variables:
         const int id                { j.value("id", -1) }; // add enum NOT_FOUND instead of -1
-        const std::string rteid     { j.value("rteid", program::jsonMissingValue) };
-        const std::string path      { j.value("path", program::jsonMissingValue) };
-        std::string tag             { j.value("tag", program::jsonMissingValue) };
+        const std::string rteid     { j.value("rteid", rte::jsonMissingValue) };
+        const std::string path      { j.value("path", rte::jsonMissingValue) };
+        std::string tag             { j.value("tag", rte::jsonMissingValue) };
 
         CROW_LOG_WARNING << logPrefix << "id: " << id;
         CROW_LOG_WARNING << logPrefix << "rteid: " << rteid;
         CROW_LOG_WARNING << logPrefix << "path: " << path;
         CROW_LOG_WARNING << logPrefix << "tag: " << tag;
 
-        auto handler = musicTagHandlerFactory::createHandler(getExtension(path));
+        auto handler = handler::Factory::create(getExtension(path));
         auto rtag = handler->resolveTag(tag);
         if (!rtag.has_value()) {
             CROW_LOG_WARNING << logPrefix << rtag.error();
@@ -267,10 +267,9 @@ int main (int argc, char **argv) {
         if (!application.isMountPoint(filePath)) {
             return crow::response { 500, "LOL NO" };
         }
-        auto handler = musicTagHandlerFactory::createHandler(getExtension(filePath));
+        auto handler = Factory::create(getExtension(filePath));
         auto picture = handler->getAlbumCover(filePath);
 
-        //std::cout << "hash: " << std::hash<std::string>{}(picture.data) << '\n';
         response.body.assign(picture.data.data(), picture.data.size());
         response.set_header("Content-Type", picture.mimeType);
         response.code = 200;
@@ -328,22 +327,22 @@ int main (int argc, char **argv) {
         const std::string logPrefix { "(api/edittag): " };
         const ordered_json body = json::parse(req.body);
 
-        program::TagModification tagStruct {
-            .filePath = body.value("path", program::jsonMissingValue),
-            .fieldType = body.value("tagType", program::jsonMissingValue),
-            .replaceWhat = { body.value("replaceWhat", program::jsonMissingValue), String::UTF8 },
-            .replaceWith = { body.value("replaceWith", program::jsonMissingValue), String::UTF8 },
+        rte::TagModification tagStruct {
+            .filePath = body.value("path", rte::jsonMissingValue),
+            .fieldType = body.value("tagType", rte::jsonMissingValue),
+            .replaceWhat = { body.value("replaceWhat", rte::jsonMissingValue), String::UTF8 },
+            .replaceWith = { body.value("replaceWith", rte::jsonMissingValue), String::UTF8 },
         };
         if (!tagStruct.isValid()) {
             CROW_LOG_ERROR << logPrefix << "tagStruct is invalid. Please check sending requests.";
             return crow::response { 400, "Request is not valid. Please check sending request" };
         }
-        program::database::id id {};
+        rte::storage::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/edittag) requested path: " << tagStruct.filePath;
 
-        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto handler = Factory::create(fileExtension);
         const auto rtag = handler->resolveTag(tagStruct.fieldType);
         if (!rtag.has_value()) {
             CROW_LOG_ERROR << rtag.error();
@@ -369,21 +368,21 @@ int main (int argc, char **argv) {
         const std::string logPrefix { "(api/addfieldtag): " };
         const ordered_json body = json::parse(req.body);
 
-        program::TagModification tagStruct {
-            .filePath = body.value("path", program::jsonMissingValue),
-            .fieldType = body.value("fieldType", program::jsonMissingValue),
-            .value = { body.value("value", program::jsonMissingValue), String::UTF8 }
+        rte::TagModification tagStruct {
+            .filePath = body.value("path", rte::jsonMissingValue),
+            .fieldType = body.value("fieldType", rte::jsonMissingValue),
+            .value = { body.value("value", rte::jsonMissingValue), String::UTF8 }
         };
         if (!tagStruct.isValid()) {
             CROW_LOG_ERROR << logPrefix << "tagStruct is invalid. Please check sending requests.";
             return crow::response { 400, "Request is not valid. Please check sending request" };
         }
-        program::database::id id {};
+        rte::storage::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << logPrefix << "requested path: " << tagStruct.filePath;
 
-        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto handler = Factory::create(fileExtension);
         const auto rtag = handler->resolveTag(tagStruct.fieldType);
         if (!rtag.has_value()) {
             CROW_LOG_ERROR << rtag.error();
@@ -408,12 +407,12 @@ int main (int argc, char **argv) {
         const std::string logPrefix { "(api/removefieldtag): " };
         const ordered_json body = json::parse(req.body);
 
-        program::TagModification tagStruct {
+        rte::TagModification tagStruct {
             .filePath = body.value("path", "none"),
             .fieldType = body.value("fieldType", "none"),
             .value = { body.value("value", "none"), String::UTF8 }
         };
-        program::database::id id {};
+        rte::storage::id id {};
         const std::string fileExtension { getExtension(tagStruct.filePath) };
 
         CROW_LOG_WARNING << "(api/removefieldtag) requested path: " << tagStruct.filePath;
@@ -421,7 +420,7 @@ int main (int argc, char **argv) {
         if (tagStruct.fieldType == "RTEID" && application.useRteid)
             return crow::response { 400, "You cannot modify RTEID" };
 
-        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto handler = Factory::create(fileExtension);
         const auto rtag = handler->resolveTag(tagStruct.fieldType);
         if (!rtag.has_value()) {
             CROW_LOG_ERROR << rtag.error();
@@ -531,7 +530,7 @@ int main (int argc, char **argv) {
         const std::string fileExtension = fs::path(filePath).extension().string();
         CROW_LOG_WARNING << logPrefix << "requested file: " << filePath;
 
-        const auto handler = musicTagHandlerFactory::createHandler(fileExtension);
+        const auto handler = Factory::create(fileExtension);
         const auto result = handler->listMusicTags(filePath);
 
         if (!result.has_value()) {
@@ -547,7 +546,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/tag-registry")
     ([]() {
-        using namespace program::music::tag;
+        using namespace rte::music::tag;
         const auto map = getTagMap();
         if (!map)
             return crow::response { 400 };
@@ -576,7 +575,7 @@ int main (int argc, char **argv) {
                 filePath = filePath.parent_path();
 
             CROW_LOG_WARNING << logPrefix << "building tree for: " << filePath;
-            auto directoryTree = buildDirectoryTree(filePath, program::DIR_DEPTH::ARTIST);
+            auto directoryTree = buildDirectoryTree(filePath, rte::DIR_DEPTH::ARTIST);
             directoryTree["path"] = filePath.generic_string();
             crow::response res(directoryTree.dump());
             res.set_header("Content-Type", "application/json");

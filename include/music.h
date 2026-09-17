@@ -1,7 +1,3 @@
-//
-// Created by myooker on 3/2/26.
-//
-
 #ifndef WEB_TAG_EDITOR_MUSIC_H
 #define WEB_TAG_EDITOR_MUSIC_H
 
@@ -17,9 +13,9 @@
 #include <vector>
 
 #include "music.h"
-#include "program.h"
+#include "rte.h"
 
-namespace program::music {
+namespace rte::music {
     enum class format;
     using json = nlohmann::json;
 
@@ -29,8 +25,6 @@ namespace program::music {
     }
 
     namespace tag {
-        using TagField = std::string_view;
-
         enum format {
             ID3v24, ID3v23,
             FLAC, M4A, OGG,
@@ -40,7 +34,7 @@ namespace program::music {
         };
 
         // Program-defined tags
-        constexpr TagField rteID { "RTEID" };
+        constexpr std::string_view rteID { "RTEID" };
 
         class TagMapping {
         private:
@@ -154,7 +148,6 @@ namespace program::music {
             }
         };
 
-        const json& buildJsonTagRegistry();
         TagMapping* getTagMap();
 
         // Demo implementation

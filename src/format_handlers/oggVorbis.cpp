@@ -1,22 +1,19 @@
-//
-// Created by myooker on 2/10/26.
-//
-
-#include "oggSpeexTagHandler.h"
+#include "oggVorbis.h"
+#include <vorbisfile.h>
 #include "../../include/music.h"
-#include <speexfile.h>
 
-using namespace audioFormat;
+using namespace rte::music::handler;
+using namespace rte::music::tag;
 
-void oggSpeexTagHandler::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
+void OggVorbis::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
     using namespace TagLib;
-    const auto it = tag->fieldListMap().find(std::string(tag::rteID));
+    const auto it = tag->fieldListMap().find(std::string(rteID));
     if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
-    else tag->addField(std::string(tag::rteID), *rteid, true);
+    else tag->addField(std::string(rteID), *rteid, true);
 }
 
-std::expected<json, std::string> oggSpeexTagHandler::listMusicTags(const std::string &filePath) {
-    TagLib::Ogg::Speex::File file{filePath.c_str()};
+std::expected<json, std::string> OggVorbis::listMusicTags(const std::string &filePath) {
+    TagLib::Vorbis::File file{filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << filePath << " is not valid";
@@ -41,10 +38,8 @@ std::expected<json, std::string> oggSpeexTagHandler::listMusicTags(const std::st
     return j;
 }
 
-crow::response oggSpeexTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
-    TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
-
+crow::response OggVorbis::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
     if (!file.isValid()) {
         CROW_LOG_ERROR << __PRETTY_FUNCTION__ << ": " << tagStruct.filePath << " is not valid";
         return {500, "The file is not valid"};
@@ -85,8 +80,8 @@ crow::response oggSpeexTagHandler::removeMusicTag(const program::TagModification
     return {200, "OK"};
 }
 
-crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
+crow::response OggVorbis::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
@@ -107,9 +102,9 @@ crow::response oggSpeexTagHandler::addMusicTag(const program::TagModification &t
     return {200, "File/s saved!"};
 }
 
-crow::response oggSpeexTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
-    TagLib::Ogg::Speex::File file{tagStruct.filePath.c_str()};
+crow::response OggVorbis::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
+    TagLib::Ogg::Vorbis::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(FLAC::" << __func__ << ".multi) " << tagStruct.filePath << " is not valid";
@@ -151,8 +146,8 @@ crow::response oggSpeexTagHandler::editMusicTags(const program::TagModification 
     return { 200, "OK" };
 }
 
-std::expected<std::string, std::string> oggSpeexTagHandler::resolveTag(std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> OggVorbis::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());

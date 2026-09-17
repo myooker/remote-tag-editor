@@ -1,18 +1,15 @@
-//
-// Created by myooker on 1/24/26.
-//
-
-#include "flacTagHandler.h"
+#include "flac.h"
 #include "../../include/music.h"
 
 #include <flacfile.h>
 #include <flacpicture.h>
 #include <xiphcomment.h>
 
-using namespace audioFormat;
+using namespace rte::music::handler;
+using namespace rte::music::tag;
 
-void flacTagHandler::ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *tag) {
-    using namespace program::music::tag;
+void Flac::ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *tag) {
+    using namespace rte::music::tag;
     using namespace TagLib;
 
     const auto it = tag->fieldListMap().find(std::string(rteID));
@@ -20,7 +17,7 @@ void flacTagHandler::ensureRteid(std::string *rteid, TagLib::Ogg::XiphComment *t
     else tag->addField(std::string(rteID), *rteid, true);
 }
 
-std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string &filePath) {
+std::expected<json, std::string> Flac::listMusicTags(const std::string &filePath) {
     TagLib::FLAC::File file { filePath.c_str() };
 
     if (!file.isValid()) {
@@ -51,8 +48,8 @@ std::expected<json, std::string> flacTagHandler::listMusicTags(const std::string
     return j;
 }
 
-crow::response flacTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Flac::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
@@ -99,8 +96,8 @@ crow::response flacTagHandler::removeMusicTag(const program::TagModification &ta
     return {200, "OK"};
 }
 
-crow::response flacTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Flac::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
     if (!file.isValid()) {
         CROW_LOG_ERROR << "(" << __func__ << ") " << tagStruct.filePath << " is not valid";
@@ -111,7 +108,7 @@ crow::response flacTagHandler::addMusicTag(const program::TagModification &tagSt
         return {500, "The file does not have Xiph Comments"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
+    auto resolve = getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };
@@ -125,8 +122,8 @@ crow::response flacTagHandler::addMusicTag(const program::TagModification &tagSt
     return {200, "File/s saved!"};
 }
 
-crow::response flacTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Flac::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::FLAC::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
@@ -174,13 +171,13 @@ crow::response flacTagHandler::editMusicTags(const program::TagModification &tag
     return { 200, "OK" };
 }
 
-tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {
-    using namespace program::music;
+Picture Flac::getAlbumCover(const std::string& filePath) {
+    using namespace rte::music;
 
     TagLib::FLAC::File file { filePath.c_str() };
 
     if (file.pictureList().isEmpty()) {
-        return tag::Picture {
+        return Picture {
             crow::response {500, "Not found" },
             "", "", 0, 0
         };
@@ -188,7 +185,7 @@ tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {
 
     auto p = file.pictureList()[0];
 
-    tag::Picture picture {
+    Picture picture {
         crow::response {200, "OK" },
         p->mimeType().toCString(),
         std::string(p->data().data(), p->data().size()),
@@ -199,8 +196,8 @@ tag::Picture flacTagHandler::getAlbumCover(const std::string& filePath) {
     return picture;
 }
 
-std::expected<std::string, std::string> flacTagHandler::resolveTag(const std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> Flac::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());

@@ -1,12 +1,8 @@
-//
-// Created by myooker on 3/1/26.
-//
-
 #include "../include/music.h"
 #include <crow/logging.h>
 #include <unordered_set>
 
-namespace program::music::tag {
+namespace rte::music::tag {
     TagMapping* getTagMap() {
         std::ifstream f { "data/mapping.json" };
         if (!f.is_open()) {

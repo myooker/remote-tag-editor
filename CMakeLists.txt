@@ -19,31 +19,28 @@ FetchContent_MakeAvailable(SQLiteCpp)
 
 # Your executable
 add_executable(web_tag_editor src/main.cpp
-        include/program.h
+        include/rte.h
         include/ImusicTagHandler.h
-        src/format_handlers/flacTagHandler.h
-        src/format_handlers/flacTagHandler.cpp
-        include/musicTagHandlerFactory.h
-        src/musicTagHandlerFactory.cpp
-        src/format_handlers/mpegTagHandler.cpp
-        src/format_handlers/mpegTagHandler.h
-        src/format_handlers/mpeg4TagHandler.cpp
-        src/format_handlers/mpeg4TagHandler.h
-        include/scopeTimer.h
-        src/format_handlers/oggTagHandler.cpp
-        src/format_handlers/oggTagHandler.h
-        src/format_handlers/oggVorbisTagHandler.cpp
-        src/format_handlers/oggVorbisTagHandler.h
-        src/format_handlers/oggFlacTagHandler.cpp
-        src/format_handlers/oggFlacTagHandler.h
-        src/format_handlers/oggOpusTagHandler.cpp
-        src/format_handlers/oggOpusTagHandler.h
-        src/format_handlers/oggSpeexTagHandler.cpp
-        src/format_handlers/oggSpeexTagHandler.h
+        src/format_handlers/flac.h
+        src/format_handlers/flac.cpp
+        src/format_handlers/factory.h
+        src/format_handlers/factory.cpp
+        src/format_handlers/mpeg.cpp
+        src/format_handlers/mpeg.h
+        src/format_handlers/mpeg4.cpp
+        src/format_handlers/mpeg4.h
+        src/format_handlers/oggTag.cpp
+        src/format_handlers/oggTag.h
+        src/format_handlers/oggVorbis.cpp
+        src/format_handlers/oggVorbis.h
+        src/format_handlers/oggFlac.cpp
+        src/format_handlers/oggFlac.h
+        src/format_handlers/oggOpus.cpp
+        src/format_handlers/oggOpus.h
+        src/format_handlers/oggSpeex.cpp
+        src/format_handlers/oggSpeex.h
         src/tagMapping.cpp
         include/music.h
-        src/tests/tests.h
-        src/tests/tests.cpp
         include/history.h
         src/history.cpp
 )

@@ -1,22 +1,19 @@
-//
-// Created by myooker on 2/10/26.
-//
-
-#include "oggOpusTagHandler.h"
+#include "oggOpus.h"
 #include "../../include/music.h"
 #include <opusfile.h>
 
-using namespace audioFormat;
+using namespace rte::music::handler;
+using namespace rte::music::tag;
 
-void oggOpusTagHandler::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
+void OggOpus::ensureRteid(std::string* rteid, TagLib::Ogg::XiphComment* tag) {
     using namespace TagLib;
 
-    const auto it = tag->fieldListMap().find(std::string(tag::rteID));
+    const auto it = tag->fieldListMap().find(std::string(rteID));
     if (it != tag->fieldListMap().end()) *rteid = it->second[0].toCString(false);
-    else tag->addField(std::string(tag::rteID), *rteid, true);
+    else tag->addField(std::string(rteID), *rteid, true);
 }
 
-std::expected<json, std::string> oggOpusTagHandler::listMusicTags(const std::string &filePath) {
+std::expected<json, std::string> OggOpus::listMusicTags(const std::string &filePath) {
     TagLib::Ogg::Opus::File file{filePath.c_str()};
 
     if (!file.isValid()) {
@@ -42,8 +39,7 @@ std::expected<json, std::string> oggOpusTagHandler::listMusicTags(const std::str
     return j;
 }
 
-crow::response oggOpusTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response OggOpus::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
     TagLib::Ogg::Opus::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -86,7 +82,7 @@ crow::response oggOpusTagHandler::removeMusicTag(const program::TagModification 
     return {200, "OK"};
 }
 
-crow::response oggOpusTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
+crow::response OggOpus::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
     TagLib::Ogg::Opus::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -94,7 +90,7 @@ crow::response oggOpusTagHandler::addMusicTag(const program::TagModification &ta
         return {500, "The file is not valid"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
+    auto resolve = getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };
@@ -108,8 +104,8 @@ crow::response oggOpusTagHandler::addMusicTag(const program::TagModification &ta
     return {200, "File/s saved!"};
 }
 
-crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response OggOpus::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::Ogg::Opus::File file{tagStruct.filePath.c_str()};
 
     if (!file.isValid()) {
@@ -153,8 +149,8 @@ crow::response oggOpusTagHandler::editMusicTags(const program::TagModification &
     return {200, "OK"};
 }
 
-std::expected<std::string, std::string> oggOpusTagHandler::resolveTag(const std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> OggOpus::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());

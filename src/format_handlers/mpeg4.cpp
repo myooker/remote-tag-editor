@@ -1,15 +1,12 @@
-//
-// Created by myooker on 1/27/26.
-//
-
-#include "mpeg4TagHandler.h"
+#include "mpeg4.h"
 #include "../../include/music.h"
 #include <mp4file.h>
 
-using namespace audioFormat;
+using namespace rte::music::handler;
+using namespace rte::music::tag;
 
-void mpeg4TagHandler::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
-    using namespace program::music;
+void Mpeg4::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
+    using namespace rte::music;
     using namespace TagLib;
 
     const String rteAtom { std::string(prefix::m4a) + tag::rteID.data() };
@@ -20,8 +17,8 @@ void mpeg4TagHandler::ensureRteid(std::string* rteid, TagLib::MP4::Tag* tag) {
         tag->setItem(rteAtom, MP4::Item{StringList{String{*rteid, String::UTF8}}});
 }
 
-std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::string &filePath) {
-    using namespace program::music;
+std::expected<json, std::string> Mpeg4::listMusicTags(const std::string &filePath) {
+    using namespace rte::music;
     const TagLib::MP4::File file { filePath.c_str() };
     using Type = TagLib::MP4::Item::Type;
 
@@ -80,8 +77,8 @@ std::expected<json, std::string> mpeg4TagHandler::listMusicTags(const std::strin
     return base;
 }
 
-crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Mpeg4::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::MP4::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
@@ -104,8 +101,8 @@ crow::response mpeg4TagHandler::removeMusicTag(const program::TagModification &t
     return {200, "OK"};
 }
 
-crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Mpeg4::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     TagLib::MP4::File file { tagStruct.filePath.c_str() };
 
     if (!file.isValid()) {
@@ -118,7 +115,7 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
         return {500, "does not have mp4 tags"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
+    auto resolve = getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };
@@ -186,14 +183,14 @@ crow::response mpeg4TagHandler::addMusicTag(const program::TagModification &tagS
     }
 }
 
-crow::response mpeg4TagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
+crow::response Mpeg4::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
     auto modified = tagStruct;
     modified.value = tagStruct.replaceWith;
     return addMusicTag(modified, rteid);
 }
 
-std::expected<std::string, std::string> mpeg4TagHandler::resolveTag(const std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> Mpeg4::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());

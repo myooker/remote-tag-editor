@@ -1,8 +1,4 @@
-//
-// Created by myooker on 1/24/26.
-//
-
-#include "mpegTagHandler.h"
+#include "mpeg.h"
 #include "../../include/music.h"
 
 #include <mpegfile.h>
@@ -10,11 +6,12 @@
 #include <id3v2tag.h>
 #include <id3v1tag.h>
 
-using namespace audioFormat;
+using namespace rte::music::handler;
+using namespace rte::music::tag;
 
-void mpegTagHandler::ensureRteid(std::string* rteid, TagLib::ID3v2::Tag* tag) {
+void Mpeg::ensureRteid(std::string* rteid, TagLib::ID3v2::Tag* tag) {
     using namespace TagLib;
-    const std::string rteDesc { tag::rteID };
+    const std::string rteDesc { rteID };
     bool found = false;
     for (auto *frame : tag->frameList("TXXX")) {
         if (const auto *uf = dynamic_cast<ID3v2::UserTextIdentificationFrame*>(frame)) {
@@ -29,8 +26,8 @@ void mpegTagHandler::ensureRteid(std::string* rteid, TagLib::ID3v2::Tag* tag) {
         addTXXXFrame(tag, rteDesc, *rteid);
 }
 
-std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string &filePath) {
-    using namespace program::music;
+std::expected<json, std::string> Mpeg::listMusicTags(const std::string &filePath) {
+    using namespace rte::music;
     TagLib::MPEG::File file { filePath.c_str() };
 
     if (!file.isValid()) {
@@ -90,7 +87,7 @@ std::expected<json, std::string> mpegTagHandler::listMusicTags(const std::string
     return base;
 }
 
-void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &value) {
+void Mpeg::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &value) {
     using namespace TagLib;
 
     ID3v2::FrameList frames = tag->frameList("TXXX");
@@ -134,15 +131,15 @@ void mpegTagHandler::removeTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string 
             CROW_LOG_DEBUG << "(" << __func__ << ")" << " frame (" << frameDesc << ") is removed";
             tag->removeFrame(frame);
         } else {
-            CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing value (" << value << ") from frame (" << frameDesc << ")";
+            CROW_LOG_DEBUG << "(" << __func__ << ")" << " removing value (" << value.to8Bit(true) << ") from frame (" << frameDesc << ")";
             userFrame->setText(values);
         }
         return;
     }
 }
 
-crow::response mpegTagHandler::removeMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Mpeg::removeMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     using namespace TagLib;
     const fs::path path { tagStruct.filePath };
     MPEG::File file { path.c_str() };
@@ -191,7 +188,7 @@ crow::response mpegTagHandler::removeMusicTag(const program::TagModification &ta
     return crow::response {200, "OK" };
 }
 
-void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &text) {
+void Mpeg::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &desc, const TagLib::String &text) {
     TagLib::ID3v2::FrameList frames = tag->frameList("TXXX");
 
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " TXXX frames size: " << frames.size();
@@ -225,13 +222,13 @@ void mpegTagHandler::addTXXXFrame(TagLib::ID3v2::Tag *tag, const std::string &de
     auto *newFrame = new TagLib::ID3v2::UserTextIdentificationFrame(TagLib::String::UTF8);
     CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame desc: " << desc;
     newFrame->setDescription(desc);
-    CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame text: " << text;
+    CROW_LOG_DEBUG << "(" << __func__ << ")" << " newFrame text: " << text.to8Bit(true);
     newFrame->setText(text);
     tag->addFrame(newFrame);
 }
 
-void mpegTagHandler::editTXXXFrame(TagLib::ID3v2::Tag* tag, const std::string& desc, const program::TagModification& tagStruct) {
-    using namespace program::music;
+void Mpeg::editTXXXFrame(TagLib::ID3v2::Tag* tag, const std::string& desc, const TagModification& tagStruct) {
+    using namespace rte::music;
     TagLib::ID3v2::FrameList userFrames = tag->frameList("TXXX");
     TagLib::ID3v2::UserTextIdentificationFrame *match = nullptr;
 
@@ -267,8 +264,8 @@ void mpegTagHandler::editTXXXFrame(TagLib::ID3v2::Tag* tag, const std::string& d
     match->setText(newValues);
 }
 
-crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Mpeg::addMusicTag(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     using namespace TagLib;
 
     const fs::path path { tagStruct.filePath };
@@ -283,7 +280,7 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
         return crow::response {500, "File does not have an ID3v2Tag"};
     }
 
-    auto resolve = tag::getTagMap()->resolve(tagStruct.fieldType, m_type.data());
+    auto resolve = getTagMap()->resolve(tagStruct.fieldType, m_type.data());
     if (!resolve.has_value()) {
         CROW_LOG_ERROR << resolve.error();
         return crow::response { 400, resolve.error() };
@@ -319,8 +316,8 @@ crow::response mpegTagHandler::addMusicTag(const program::TagModification &tagSt
     return crow::response {200, "OK" };
 }
 
-crow::response mpegTagHandler::editMusicTags(const program::TagModification &tagStruct, std::string *rteid) {
-    using namespace program::music;
+crow::response Mpeg::editMusicTags(const TagModification &tagStruct, std::string *rteid) {
+    using namespace rte::music;
     using namespace TagLib;
 
     const fs::path path { tagStruct.filePath };
@@ -372,25 +369,9 @@ crow::response mpegTagHandler::editMusicTags(const program::TagModification &tag
     return crow::response { 200, "OK" };
 }
 
-std::expected<std::string, std::string> mpegTagHandler::resolveTag(const std::string_view tag) {
-    auto resolve = tag::getTagMap()->resolve(tag.data(), m_type.data());
+std::expected<std::string, std::string> Mpeg::resolveTag(const std::string_view tag) {
+    auto resolve = getTagMap()->resolve(tag.data(), m_type.data());
     if (resolve.has_value())
         return resolve.value();
     return std::unexpected(std::move(resolve).error());
 }
-
-// tag::Picture mpegTagHandler::getAlbumCover(const std::string& filePath) {
-//     TagLib::MPEG::File file { filePath.c_str() };
-//
-//     tag::Picture data {};
-//     if (file.hasID3v2Tag()) {
-//         auto t = file.ID3v2Tag();
-//         auto pictureByteVector = t->complexProperties("PICTURE")[0]["data"].toByteVector();
-//         std::cout << "variant map: " << x[0] << '\n';
-//         data.data = std::string(pictureByteVector.data(), pictureByteVector.size());
-//         data.mimeType = x[0]["mimeType"].toString().toCString();
-//         data.response = crow::response{ 200 };
-//     }
-//
-//     return data;
-// }
