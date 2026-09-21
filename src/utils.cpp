@@ -1,0 +1,48 @@
+#include "../include/utils.h"
+
+namespace rte::utils {
+    bool naturalLess(std::string_view l, std::string_view r) {
+        std::size_t i = 0, j = 0;
+        while (i < l.size() && j < r.size()) {
+            unsigned char cl = l[i], cr = r[j];
+            // If both strings starts with digits
+            if (isdigit(cl) && isdigit(cr)) {
+                // end of numbers in a string
+                std::size_t ei = i, ej = j;
+                while (ei < l.size() && isdigit(static_cast<unsigned char>(l[ei]))) ei++; //find end of numbers in l
+                while (ej < r.size() && isdigit(static_cast<unsigned char>(r[ej]))) ej++; //find end of numbers in r
+
+                while (l[i] == '0' && i < ei) i++; // skip leading zeros in l
+                while (r[j] == '0' && j < ej) j++; // skip leading zeros in r
+
+                // Compare length of number chunks
+                // if different, shorts means lower
+                if (ei - i != ej - j) return ei-i < ej-j;
+
+                for (; i < ei; i++, j++)
+                    if (l[i] != r[j]) return l[i] < r[j];
+                continue;
+            }
+            // lower both chars
+            int ll = std::tolower(cl);
+            int lr = std::tolower(cr);
+            if (ll != lr) return ll < lr; // if different then return
+            i++; j++; // otherwise iterate further
+        }
+        return (l.size() - i) < (r.size() - j);
+    }
+
+    std::optional<bool> parseBool(std::string_view a) {
+        std::string s(a);
+        std::ranges::transform(s, s.begin(), [](const unsigned char c) {
+            return std::tolower(c);
+        });
+
+        if (s == "true" || s == "1" || s == "yes" || s == "on") return true;
+        if (s == "false" || s == "0" || s == "no" || s == "off") return false;
+
+        return std::nullopt;
+    }
+
+
+}

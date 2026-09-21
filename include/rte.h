@@ -20,9 +20,44 @@ namespace rte {
         ALL = 100,
     };
 
+    enum class EntityType {
+        directory,
+        music,
+        picture,
+        file,
+
+        max_type
+    };
+
     namespace Environments {
         constexpr std::string_view use_rteid { "RTE_USERTEID" };
     }
+
+    struct QueryList {
+        enum class SortType { name, size, type, MAXSORT };
+        const std::size_t offset { 0 };
+        const std::size_t limit { 100 };
+        const bool ascending { true };
+        const SortType sort { SortType::name };
+    };
+
+    struct FileEntity {
+        std::string name {};
+        std::string ext {};
+        uintmax_t size {};
+        //modified
+        EntityType type { EntityType::directory };
+
+        std::string typeString() const {
+            switch (type) {
+                case EntityType::directory: return "directory";
+                case EntityType::music: return "music-file";
+                case EntityType::picture: return "picture-file";
+                case EntityType::file: return "file";
+                default: return "file";
+            }
+        }
+    };
 
     struct Settings {
         std::string mountpoint { "/music" };

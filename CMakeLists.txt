@@ -43,6 +43,8 @@ add_executable(web_tag_editor src/main.cpp
         include/music.h
         include/history.h
         src/history.cpp
+        include/utils.h
+        src/utils.cpp
 )
 
 # Include headers
