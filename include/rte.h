@@ -51,10 +51,10 @@ namespace rte {
         std::string typeString() const {
             switch (type) {
                 case EntityType::directory: return "directory";
-                case EntityType::music: return "music-file";
-                case EntityType::picture: return "picture-file";
-                case EntityType::file: return "file";
-                default: return "file";
+                case EntityType::music:     return "music";
+                case EntityType::picture:   return "picture";
+                case EntityType::file:      return "file";
+                default:                    return "file";
             }
         }
     };
