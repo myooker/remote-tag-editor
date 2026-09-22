@@ -12,8 +12,8 @@ namespace rte::utils {
                 while (ei < l.size() && isdigit(static_cast<unsigned char>(l[ei]))) ei++; //find end of numbers in l
                 while (ej < r.size() && isdigit(static_cast<unsigned char>(r[ej]))) ej++; //find end of numbers in r
 
-                while (l[i] == '0' && i < ei) i++; // skip leading zeros in l
-                while (r[j] == '0' && j < ej) j++; // skip leading zeros in r
+                while (i < ei && l[i] == '0') i++; // skip leading zeros in l
+                while (j < ej && r[j] == '0') j++; // skip leading zeros in r
 
                 // Compare length of number chunks
                 // if different, shorts means lower
