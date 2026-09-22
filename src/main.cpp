@@ -7,6 +7,7 @@
 #include <unordered_set>
 #include <cctype>
 #include <random>
+#include <algorithm>
 
 #include <nlohmann/json.hpp>
 #include <crow.h>
@@ -14,8 +15,9 @@
 #include <crow/middlewares/cors.h>
 #include <CLI/CLI.hpp>
 
-#include "../include/history.h"
+#include "../include/storage.h"
 #include "../include/rte.h"
+#include "../include/utils.h"
 #include "format_handlers/factory.h"
 #include "SQLiteCpp/SQLiteCpp.h"
 
@@ -46,6 +48,32 @@ static std::string fileExtensionToType(const std::string_view ext) {
         return it->second;
 
     return "file";
+}
+
+static rte::EntityType fileExtensionToEntityType(const std::string_view ext) {
+    using namespace rte;
+    const std::string a { ext };
+    const static std::unordered_map<std::string, EntityType> s_extensionMap {
+        {".mp3",    EntityType::music},
+        {".flac",   EntityType::music},
+        {".m4a",    EntityType::music},
+        {".ogg",    EntityType::music},
+        {".opus",   EntityType::music},
+        {".aac",    EntityType::music},
+        {".wma",    EntityType::music},
+        {".wav",    EntityType::music},
+        {".aif",    EntityType::music},
+        {".aiff",   EntityType::music},
+        {".alac",   EntityType::music},
+        {".jpg",    EntityType::picture},
+        {".jpeg",   EntityType::picture},
+        {".png",    EntityType::picture}
+    };
+
+    if (const auto it = s_extensionMap.find(a); it != s_extensionMap.end())
+        return it->second;
+
+    return EntityType::file;
 }
 
 static std::string getExtension(const std::string &path) {
@@ -85,6 +113,67 @@ static ordered_json buildDirectoryTree(const std::string &basePath, const int de
     }
 
     return rootTree;
+}
+
+static ordered_json buildDirectoryTree(const std::string &basePath, const rte::QueryList &query) {
+    using namespace rte;
+
+    std::vector<FileEntity> entities;
+    const fs::path path { basePath };
+
+    // Get size (number of entities) of inside a path and reserve it for vector
+    {
+        std::size_t count {};
+        for (fs::directory_iterator it(path); it != fs::directory_iterator(); ++it)
+            count++;
+        entities.reserve(count);
+        CROW_LOG_DEBUG << __PRETTY_FUNCTION__ << "Reserved: " << count;
+    }
+
+    for (const auto &e : fs::directory_iterator(path)) {
+        if (e.is_symlink()) continue;
+        std::string filename { e.path().filename() };
+        std::string ext { e.path().extension() };
+        EntityType type { fileExtensionToEntityType(ext) };
+        if (e.is_directory()) {
+            entities.push_back({
+                .name = std::move(filename), .type = EntityType::directory
+            });
+            continue;
+        }
+        const uintmax_t size = e.file_size();
+        entities.push_back({
+            .name = std::move(filename), .ext = std::move(ext), .size = size, .type = type
+        });
+    }
+
+    std::ranges::sort(entities, [&query](const auto &a, const auto &b) {
+        return utils::entityLess(a, b, query);
+    });
+
+    ordered_json j = json::object();
+
+    const std::size_t esize = entities.size();
+    const std::size_t begin = std::min(query.offset, esize);
+    const std::size_t end = begin + std::min(
+        query.limit == 0 ? esize - begin : query.limit, esize - begin);
+
+    j["path"] = basePath;
+    j["total"] = esize;
+    j["offset"] = begin;
+    j["limit"] = query.limit;
+    j["entities"] = json::array();
+
+    for (std::size_t o = begin; o < end; o++) {
+        ordered_json t = json::object();
+        t["name"] = std::move(entities[o].name);
+        t["type"] = entities[o].typeString();
+        t["extension"] = std::move(entities[o].ext);
+        t["size"] = entities[o].size;
+        j["entities"].push_back(std::move(t));
+    }
+
+    return j;
 }
 
 static std::string generateId(const std::size_t t=16) {
@@ -586,6 +675,79 @@ int main (int argc, char **argv) {
 
         CROW_LOG_ERROR << logPrefix << "requested filepath is not a mount-point";
         return crow::response{ 500, "The requested path is not a mount-point" };
+    });
+
+    CROW_ROUTE(app, "/api/list-v2").methods("GET"_method)
+    ([&] (const crow::request &req){
+        using namespace rte;
+        using SortType = QueryList::SortType;
+
+        constexpr std::string_view logPrefix { "(api/list-v2): "};
+        try {
+            const char *path = req.url_params.get("path");
+            const char *limit = req.url_params.get("limit");
+            const char *offset = req.url_params.get("offset");
+            const char *sort = req.url_params.get("sort");
+            const char *asc = req.url_params.get("asc");
+
+            if (!limit) limit = "0";
+            if (!offset) offset = "0";
+
+            auto sortType { SortType::name };
+            if (sort) {
+                const auto p = utils::parseSortType(sort);
+                if (!p) return crow::response { 400, "Unknown sort column" };
+                sortType = *p;
+            }
+
+            bool ascending { true };
+            if (asc) {
+                const auto p = utils::parseBool(asc);
+                if (!p) return crow::response { 400, "asc is not a Boolean" };
+                ascending = *p;
+            }
+
+            if (path) {
+                if (!application.isMountPoint(path)) {
+                    CROW_LOG_ERROR << logPrefix << "requested filepath is not a mount-point";
+                    return crow::response { 403, "The requested path is not a mount-point" };
+                }
+                fs::path fpath;
+                {
+                    std::string spath = path;
+                    while (spath.ends_with('/'))
+                        spath.pop_back();
+                    fpath = std::move(spath);
+                }
+                if (fs::is_regular_file(fpath))
+                    fpath = fpath.parent_path();
+                const QueryList q {
+                    .offset = static_cast<std::size_t>(std::max(0, std::stoi(offset))),
+                    .limit = static_cast<std::size_t>(std::max(0, std::stoi(limit))),
+                    .ascending = ascending,
+                    .sort = sortType
+                };
+                crow::response res { buildDirectoryTree(fpath.string(), q).dump() };
+                res.set_header("Content-Type", "application/json");
+
+                return res;
+            }
+            if (!path) {
+                CROW_LOG_ERROR << logPrefix << "path is missing";
+                return crow::response { 400, "path is missing" };
+            }
+            return crow::response { 500 };
+        } catch (std::invalid_argument&) {
+            CROW_LOG_ERROR << logPrefix << "limit or offset is not a number";
+            return crow::response { 400, "limit or offset is not a number" };
+        } catch (std::out_of_range&) {
+            CROW_LOG_ERROR << logPrefix << "limit or offset is out of range";
+            return crow::response { 400, "limit or offset is out of range" };
+        } catch (std::exception &e) {
+            CROW_LOG_ERROR << logPrefix << e.what();
+            return crow::response { 500, "Something went wrong. Check logs." };
+        }
+
     });
 
     app.loglevel(logLevel);

@@ -32,6 +32,31 @@ namespace rte::utils {
         return (l.size() - i) < (r.size() - j);
     }
 
+    bool nameLess(const FileEntity &a, const FileEntity &b) {
+        if (naturalLess(a.name, b.name)) return true;
+        if (naturalLess(b.name, a.name)) return false;
+        return a.name < b.name;
+    }
+
+    bool entityLess(const FileEntity &a, const FileEntity &b, const QueryList &q) {
+        using SortType = QueryList::SortType;
+
+        // Folders always first
+        const bool ad = a.type == EntityType::directory;
+        const bool bd = b.type == EntityType::directory;
+
+        if (ad != bd) return ad;
+
+        constexpr auto cmp3 = [](auto x, auto y) { return x < y ? -1 : (y < x ? 1 : 0); };
+
+        int c = 0;
+        if (q.sort == SortType::size)      c = cmp3(a.size, b.size);
+        else if (q.sort == SortType::type) c = cmp3(a.type, b.type);
+
+        if (c != 0) return q.ascending ? c < 0 : c > 0;
+        return q.ascending ? nameLess(a, b) : nameLess(b, a);
+    }
+
     std::optional<bool> parseBool(std::string_view a) {
         std::string s(a);
         std::ranges::transform(s, s.begin(), [](const unsigned char c) {
@@ -40,6 +65,15 @@ namespace rte::utils {
 
         if (s == "true" || s == "1" || s == "yes" || s == "on") return true;
         if (s == "false" || s == "0" || s == "no" || s == "off") return false;
+
+        return std::nullopt;
+    }
+
+    std::optional<QueryList::SortType> parseSortType(std::string_view a) {
+        using SortType = QueryList::SortType;
+        if (a == "name") return SortType::name;
+        if (a == "size") return SortType::size;
+        if (a == "type") return SortType::type;
 
         return std::nullopt;
     }
