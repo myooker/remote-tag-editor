@@ -11,8 +11,11 @@ import { useApp } from "@/context/AppContext";
 import {
   usePrefs,
   clampConcurrency,
+  clampPageSize,
   MIN_CONCURRENCY,
   MAX_CONCURRENCY,
+  MIN_PAGE_SIZE,
+  MAX_PAGE_SIZE,
   TOAST_POSITIONS,
   type ToastPosition,
 } from "@/context/PrefsContext";
@@ -55,13 +58,19 @@ function ControlRow({
   );
 }
 
-/** Concurrency field, editable as free text so intermediate states can be typed. */
-function ConcurrencyInput({
+/** Numeric field, editable as free text so intermediate states can be typed. */
+function NumberInput({
   value,
+  min,
+  max,
+  clamp,
   disabled,
   onCommit,
 }: {
   value: number;
+  min: number;
+  max: number;
+  clamp: (n: number) => number;
   disabled: boolean;
   onCommit: (n: number) => void;
 }) {
@@ -72,7 +81,7 @@ function ConcurrencyInput({
 
   const commit = () => {
     const parsed = Number.parseInt(draft, 10);
-    const next = Number.isNaN(parsed) ? value : clampConcurrency(parsed);
+    const next = Number.isNaN(parsed) ? value : clamp(parsed);
     setDraft(String(next));
     onCommit(next);
   };
@@ -81,8 +90,8 @@ function ConcurrencyInput({
     <Input
       type="number"
       inputMode="numeric"
-      min={MIN_CONCURRENCY}
-      max={MAX_CONCURRENCY}
+      min={min}
+      max={max}
       value={draft}
       disabled={disabled}
       onChange={(e) => setDraft(e.target.value)}
@@ -150,10 +159,14 @@ export function SettingsDialog({
     writeConcurrency,
     showRawTags,
     toastPosition,
+    paginate,
+    pageSize,
     setParallelWrites,
     setWriteConcurrency,
     setShowRawTags,
     setToastPosition,
+    setPaginate,
+    setPageSize,
   } = usePrefs();
 
   return (
@@ -194,10 +207,44 @@ export function SettingsDialog({
                 label="Requests at a time"
                 hint={`${MIN_CONCURRENCY}–${MAX_CONCURRENCY}, multiplexed over one HTTP/2 connection.`}
               >
-                <ConcurrencyInput
+                <NumberInput
                   value={writeConcurrency}
+                  min={MIN_CONCURRENCY}
+                  max={MAX_CONCURRENCY}
+                  clamp={clampConcurrency}
                   disabled={!parallelWrites}
                   onCommit={setWriteConcurrency}
+                />
+              </ControlRow>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              File list
+            </span>
+            <div className="flex flex-col gap-1.5">
+              <ControlRow
+                label="Paginate"
+                hint="Off: one scrolling list — rows are virtualized, so folder size costs nothing. On: split into pages you can step through."
+              >
+                <Switch
+                  checked={paginate}
+                  onCheckedChange={setPaginate}
+                  aria-label="Paginate file list"
+                />
+              </ControlRow>
+              <ControlRow
+                label="Rows per page"
+                hint={`${MIN_PAGE_SIZE}–${MAX_PAGE_SIZE}. Sorting and search always cover the whole folder, not just the page.`}
+              >
+                <NumberInput
+                  value={pageSize}
+                  min={MIN_PAGE_SIZE}
+                  max={MAX_PAGE_SIZE}
+                  clamp={clampPageSize}
+                  disabled={!paginate}
+                  onCommit={setPageSize}
                 />
               </ControlRow>
             </div>

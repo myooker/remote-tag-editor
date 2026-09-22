@@ -9,9 +9,10 @@ import {
   relativeSegments,
   joinPath,
 } from "@/lib/paths";
-import { sortNodes, type SortColumn, type SortDirection } from "@/lib/sort";
+import type { SortColumn, SortDirection } from "@/lib/sort";
 import { basename } from "@/lib/utils";
 import { useApp } from "./AppContext";
+import { usePrefs } from "./PrefsContext";
 import { useSearch } from "./SearchContext";
 import { useToast } from "@/components/ui/toast";
 
@@ -28,10 +29,21 @@ interface ExplorerContextValue {
   tree: DirectoryTree | null;
   /** The path `tree`/`nodes` were actually loaded for (lags currentPath while loading). */
   loadedPath: string | null;
-  /** The sorted + search-filtered nodes actually shown; selection indices are relative to this. */
+  /** The nodes actually shown — one page when paging is on. Selection indices are relative to this. */
   nodes: FileNode[];
   loading: boolean;
   error: string | null;
+  // Paging (client-side: the whole directory is fetched, then sliced)
+  /** Whether the list is being split into pages at all. */
+  paginated: boolean;
+  /** Zero-based index of the visible page. */
+  page: number;
+  pageCount: number;
+  /** Absolute index of `nodes[0]` within the full filtered list. */
+  pageStart: number;
+  /** Entries after sort + search, across the whole directory. */
+  filteredCount: number;
+  setPage: (page: number) => void;
   // Navigation
   canGoBack: boolean;
   canGoForward: boolean;
@@ -51,11 +63,16 @@ interface ExplorerContextValue {
   selectedPaths: Set<string>;
   selectIndex: (index: number, opts: { ctrl: boolean; shift: boolean }) => void;
   moveSelection: (delta: number, shift: boolean) => void;
-  selectAllMusic: () => void;
+  selectAllMusic: () => Promise<void>;
   clearSelection: () => void;
   toFullPath: (node: FileNode) => string;
-  /** Absolute paths of every music file in the current directory (unfiltered). */
-  folderMusicPaths: string[];
+  /**
+   * Absolute paths of every music file in the current directory, unfiltered and
+   * across every page. Async because a paged response only carries one page —
+   * it fetches the full listing when it doesn't already have it, and caches it
+   * for the directory.
+   */
+  getFolderMusicPaths: () => Promise<string[]>;
 }
 
 const ExplorerContext = React.createContext<ExplorerContextValue | null>(null);
@@ -105,6 +122,36 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
   const canGoForward = histIdx < maxIdx;
   const canGoUp = segments.length > 0;
 
+  // --- Paging ---
+  // The backend has no search parameter, so a search can only be applied here.
+  // Filtering one page would only ever surface the matches that happened to
+  // land on it, so searching falls back to pulling the whole directory; paging
+  // then happens locally over the matches.
+  const { paginate, pageSize } = usePrefs();
+  const [page, setPageState] = React.useState(0);
+  const trimmedQuery = query.trim().toLowerCase();
+  const searching = trimmedQuery.length > 0;
+  const wantAll = !paginate || searching;
+  // Built from the raw page number, not the clamped one: the clamp depends on
+  // a total this request hasn't fetched yet. An out-of-range page corrects
+  // itself once the response lands.
+  const reqOffset = wantAll ? 0 : page * pageSize;
+  const reqLimit = wantAll ? 0 : pageSize;
+  // Set when an arrow key walks off the edge of a server-paged list: the
+  // neighbouring page has to arrive before there is a row to land on.
+  const pendingEdge = React.useRef<"first" | "last" | null>(null);
+
+  // --- Sorting ---
+  // Kept as one object so toggleSort is a single pure updater. (Calling
+  // setSortDirection inside a setSortColumn updater double-fired under
+  // StrictMode and cancelled the flip.)
+  const [sort, setSort] = React.useState<{
+    column: SortColumn;
+    direction: SortDirection;
+  }>({ column: "name", direction: "asc" });
+  const sortColumn = sort.column;
+  const sortDirection = sort.direction;
+
   // --- Directory data ---
   const [tree, setTree] = React.useState<DirectoryTree | null>(null);
   const [loadedPath, setLoadedPath] = React.useState<string | null>(null);
@@ -117,16 +164,26 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
   const [refreshToken, setRefreshToken] = React.useState(0);
   const loadToken = React.useRef(0);
 
+  // Selection is keyed by path, so it survives a page change or a re-sort —
+  // only moving to a different directory invalidates it.
+  React.useEffect(() => {
+    setSelection({ files: [], lastIndex: -1 });
+  }, [currentPath]);
+
   React.useEffect(() => {
     if (!currentPath) return;
     const token = ++loadToken.current;
     setLoading(true);
     setError(null);
-    setSelection({ files: [], lastIndex: -1 });
 
     const controller = new AbortController();
     api
-      .listDir(currentPath, controller.signal)
+      .listDir(currentPath, controller.signal, {
+        offset: reqOffset,
+        limit: reqLimit,
+        sort: sortColumn,
+        asc: sortDirection === "asc",
+      })
       .then((data) => {
         if (token !== loadToken.current) return;
         // A path pointing at a file is answered with its parent directory, so the
@@ -155,30 +212,71 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
 
     return () => controller.abort();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPath, refreshToken]);
+  }, [currentPath, refreshToken, reqOffset, reqLimit, sortColumn, sortDirection]);
 
-  // --- Sorting ---
-  // Kept as one object so toggleSort is a single pure updater. (Calling
-  // setSortDirection inside a setSortColumn updater double-fired under
-  // StrictMode and cancelled the flip.)
-  const [sort, setSort] = React.useState<{
-    column: SortColumn;
-    direction: SortDirection;
-  }>({ column: "name", direction: "asc" });
-  const sortColumn = sort.column;
-  const sortDirection = sort.direction;
+  React.useEffect(() => {
+    const edge = pendingEdge.current;
+    if (!edge || !tree || !currentPath) return;
+    pendingEdge.current = null;
+    const list = tree.content;
+    if (list.length === 0) return;
+    const index = edge === "first" ? 0 : list.length - 1;
+    setSelection({
+      files: [toSelectedFile(list[index], currentPath)],
+      lastIndex: index,
+    });
+  }, [tree, currentPath]);
 
-  const sortedNodes = React.useMemo(
-    () => (tree?.content ? sortNodes(tree.content, sortColumn, sortDirection) : []),
-    [tree, sortColumn, sortDirection],
+  // The response is already sorted by the backend, so only the search is left
+  // to apply — and `wantAll` guarantees the full directory is in hand when it
+  // runs.
+  const content = React.useMemo(() => tree?.content ?? [], [tree]);
+  const filteredNodes = React.useMemo(
+    () =>
+      searching
+        ? content.filter((n) =>
+            basename(n.name).toLowerCase().includes(trimmedQuery),
+          )
+        : content,
+    [content, searching, trimmedQuery],
   );
 
-  // Search filters the visible list; selection + keyboard nav operate on it.
-  const nodes = React.useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return sortedNodes;
-    return sortedNodes.filter((n) => basename(n.name).toLowerCase().includes(q));
-  }, [sortedNodes, query]);
+  // When the server paged for us, `tree.total` counts the whole directory and
+  // `content` is just this page. When we hold everything, the filtered length
+  // is the truth — it accounts for the search the backend can't do.
+  const filteredCount = wantAll ? filteredNodes.length : (tree?.total ?? 0);
+  const pageCount = paginate
+    ? Math.max(1, Math.ceil(filteredCount / pageSize))
+    : 1;
+  // A narrowing search, a delete or a smaller folder can strand us past the
+  // last page; render the clamped value rather than an empty list.
+  const safePage = Math.min(page, pageCount - 1);
+  React.useEffect(() => {
+    if (page !== safePage) setPageState(safePage);
+  }, [page, safePage]);
+
+  // Navigating, searching or re-sorting reorders everything, so the old page
+  // number no longer points at what the user was looking at.
+  React.useEffect(() => {
+    setPageState(0);
+  }, [currentPath, trimmedQuery, sortColumn, sortDirection]);
+
+  const pageStart = paginate ? safePage * pageSize : 0;
+
+  // Slice only when we fetched more than a page; a server-paged response IS
+  // the page.
+  const nodes = React.useMemo(
+    () =>
+      paginate && wantAll
+        ? filteredNodes.slice(pageStart, pageStart + pageSize)
+        : filteredNodes,
+    [filteredNodes, paginate, wantAll, pageStart, pageSize],
+  );
+
+  const setPage = React.useCallback(
+    (next: number) => setPageState(Math.max(0, next)),
+    [],
+  );
 
   const toggleSort = React.useCallback((column: SortColumn) => {
     setSort((prev) =>
@@ -210,6 +308,29 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
     if (segments.length > 0) navigate(segmentsToPathname(segments.slice(0, -1)));
   }, [navigate, segments]);
   const refresh = React.useCallback(() => setRefreshToken((t) => t + 1), []);
+
+  // Folder-wide actions ("apply to whole folder", "select all music") need
+  // every entry, but a server-paged response only carries one page. Fetch the
+  // full listing on demand and keep it for the directory, so a run of folder
+  // operations costs one extra request, not one per action.
+  const allCache = React.useRef<{ path: string; nodes: FileNode[] } | null>(null);
+  React.useEffect(() => {
+    allCache.current = null;
+  }, [currentPath, refreshToken]);
+
+  const fetchAllNodes = React.useCallback(async (): Promise<FileNode[]> => {
+    if (!currentPath) return [];
+    // Not paging, or searching: `content` already is the whole directory.
+    if (wantAll && loadedPath === currentPath) return content;
+    if (allCache.current?.path === currentPath) return allCache.current.nodes;
+    const data = await api.listDir(currentPath, undefined, {
+      limit: 0,
+      sort: sortColumn,
+      asc: sortDirection === "asc",
+    });
+    allCache.current = { path: currentPath, nodes: data.content };
+    return data.content;
+  }, [currentPath, wantAll, loadedPath, content, sortColumn, sortDirection, refreshToken]);
 
   // --- Selection ---
   const selectedPaths = React.useMemo(
@@ -260,38 +381,100 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
   const moveSelection = React.useCallback(
     (delta: number, shift: boolean) => {
       if (!currentPath || nodes.length === 0) return;
-      setSelection((prev) => {
-        let index = prev.lastIndex;
-        if (index === -1) {
-          index = delta > 0 ? 0 : nodes.length - 1;
-        } else {
-          index = Math.max(0, Math.min(nodes.length - 1, index + delta));
-        }
-        const node = nodes[index];
-        if (!node) return prev;
+
+      const commit = (node: FileNode, index: number) => {
         const asFile = toSelectedFile(node, currentPath);
-        if (!shift) return { files: [asFile], lastIndex: index };
-        const exists = prev.files.some((f) => f.path === asFile.path);
-        return {
-          files: exists ? prev.files : [...prev.files, asFile],
-          lastIndex: index,
-        };
-      });
+        setSelection((prev) => {
+          if (!shift) return { files: [asFile], lastIndex: index };
+          const exists = prev.files.some((f) => f.path === asFile.path);
+          return {
+            files: exists ? prev.files : [...prev.files, asFile],
+            lastIndex: index,
+          };
+        });
+      };
+
+      // Server-paged: only this page is in memory. Walking off either edge has
+      // to fetch the neighbouring page and land once it arrives.
+      if (!wantAll) {
+        const next =
+          selection.lastIndex === -1
+            ? delta > 0
+              ? 0
+              : nodes.length - 1
+            : selection.lastIndex + delta;
+
+        if (next < 0 && safePage > 0) {
+          pendingEdge.current = "last";
+          setPageState(safePage - 1);
+          return;
+        }
+        if (next >= nodes.length && safePage < pageCount - 1) {
+          pendingEdge.current = "first";
+          setPageState(safePage + 1);
+          return;
+        }
+        const index = Math.max(0, Math.min(nodes.length - 1, next));
+        const node = nodes[index];
+        if (node) commit(node, index);
+        return;
+      }
+
+      // Everything is in memory: walk absolute indices across the whole
+      // filtered list and flip the page locally if the target is on another.
+      const absPrev =
+        selection.lastIndex === -1 ? -1 : pageStart + selection.lastIndex;
+      const abs =
+        absPrev === -1
+          ? delta > 0
+            ? 0
+            : filteredNodes.length - 1
+          : Math.max(0, Math.min(filteredNodes.length - 1, absPrev + delta));
+
+      const node = filteredNodes[abs];
+      if (!node) return;
+
+      const targetPage = paginate ? Math.floor(abs / pageSize) : 0;
+      if (targetPage !== safePage) setPageState(targetPage);
+      commit(node, paginate ? abs - targetPage * pageSize : abs);
     },
-    [nodes, currentPath],
+    [
+      nodes,
+      filteredNodes,
+      currentPath,
+      selection.lastIndex,
+      wantAll,
+      paginate,
+      pageSize,
+      pageStart,
+      pageCount,
+      safePage,
+    ],
   );
 
-  const selectAllMusic = React.useCallback(() => {
+  const selectAllMusic = React.useCallback(async () => {
     if (!currentPath) return;
-    const music = nodes
-      .map((n, i) => ({ n, i }))
-      .filter(({ n }) => n.type === "music");
+    // Spans every page — selection is tracked by path, so it survives paging.
+    const all = await fetchAllNodes();
+    const pool = searching
+      ? all.filter((n) => basename(n.name).toLowerCase().includes(trimmedQuery))
+      : all;
+    const music = pool.filter((n) => n.type === "music");
     if (music.length === 0) return;
+    // The keyboard cursor can only anchor to a row that is on screen, so it
+    // takes the last music row of the visible page, or none.
+    let anchor = -1;
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      if (nodes[i].type === "music") {
+        anchor = i;
+        break;
+      }
+    }
     setSelection({
-      files: music.map(({ n }) => toSelectedFile(n, currentPath)),
-      lastIndex: music[music.length - 1].i,
+      files: music.map((n) => toSelectedFile(n, currentPath)),
+      lastIndex: anchor,
     });
-  }, [nodes, currentPath]);
+  }, [fetchAllNodes, nodes, currentPath, searching, trimmedQuery]);
 
   const clearSelection = React.useCallback(
     () => setSelection({ files: [], lastIndex: -1 }),
@@ -303,12 +486,13 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
     [currentPath],
   );
 
-  const folderMusicPaths = React.useMemo(() => {
-    if (!currentPath || !tree?.content) return [];
-    return tree.content
+  const getFolderMusicPaths = React.useCallback(async () => {
+    if (!currentPath) return [];
+    const all = await fetchAllNodes();
+    return all
       .filter((n) => n.type === "music")
       .map((n) => joinPath(currentPath, n.name));
-  }, [tree, currentPath]);
+  }, [fetchAllNodes, currentPath]);
 
   const value: ExplorerContextValue = {
     segments,
@@ -318,6 +502,12 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
     nodes,
     loading,
     error,
+    paginated: paginate,
+    page: safePage,
+    pageCount,
+    pageStart,
+    filteredCount,
+    setPage,
     canGoBack,
     canGoForward,
     canGoUp,
@@ -337,7 +527,7 @@ export function ExplorerProvider({ children }: { children: React.ReactNode }) {
     selectAllMusic,
     clearSelection,
     toFullPath,
-    folderMusicPaths,
+    getFolderMusicPaths,
   };
 
   return (

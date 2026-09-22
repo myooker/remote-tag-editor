@@ -32,17 +32,31 @@ export interface Prefs {
   showRawTags: boolean;
   /** Corner notifications slide in from. */
   toastPosition: ToastPosition;
+  /**
+   * Split the file list into fixed-size pages. Off by default: the list is
+   * virtualized, so a long folder costs nothing to render, and paging mainly
+   * helps when you want to move through a huge folder in countable chunks.
+   */
+  paginate: boolean;
+  /** Rows per page while `paginate` is on. */
+  pageSize: number;
 }
 
 export const MIN_CONCURRENCY = 2;
 export const MAX_CONCURRENCY = 16;
 export const DEFAULT_CONCURRENCY = 5;
 
+export const MIN_PAGE_SIZE = 10;
+export const MAX_PAGE_SIZE = 5000;
+export const DEFAULT_PAGE_SIZE = 100;
+
 const DEFAULTS: Prefs = {
   parallelWrites: false,
   writeConcurrency: DEFAULT_CONCURRENCY,
   showRawTags: false,
   toastPosition: "bottom-left",
+  paginate: false,
+  pageSize: DEFAULT_PAGE_SIZE,
 };
 
 const STORAGE_KEY = "rte.prefs";
@@ -58,6 +72,11 @@ export function clampConcurrency(n: number): number {
   return Math.min(MAX_CONCURRENCY, Math.max(MIN_CONCURRENCY, Math.trunc(n)));
 }
 
+export function clampPageSize(n: number): number {
+  if (!Number.isFinite(n)) return DEFAULT_PAGE_SIZE;
+  return Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, Math.trunc(n)));
+}
+
 function load(): Prefs {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -70,6 +89,8 @@ function load(): Prefs {
       ),
       showRawTags: parsed.showRawTags === true,
       toastPosition: parsePosition(parsed.toastPosition),
+      paginate: parsed.paginate === true,
+      pageSize: clampPageSize(parsed.pageSize ?? DEFAULT_PAGE_SIZE),
     };
   } catch {
     return DEFAULTS;
@@ -83,6 +104,8 @@ interface PrefsContextValue extends Prefs {
   setWriteConcurrency: (n: number) => void;
   setShowRawTags: (on: boolean) => void;
   setToastPosition: (pos: ToastPosition) => void;
+  setPaginate: (on: boolean) => void;
+  setPageSize: (n: number) => void;
 }
 
 const PrefsContext = React.createContext<PrefsContextValue | null>(null);
@@ -114,6 +137,8 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
         setPrefs((p) => ({ ...p, writeConcurrency: clampConcurrency(n) })),
       setShowRawTags: (on) => setPrefs((p) => ({ ...p, showRawTags: on })),
       setToastPosition: (pos) => setPrefs((p) => ({ ...p, toastPosition: pos })),
+      setPaginate: (on) => setPrefs((p) => ({ ...p, paginate: on })),
+      setPageSize: (n) => setPrefs((p) => ({ ...p, pageSize: clampPageSize(n) })),
     }),
     [prefs],
   );

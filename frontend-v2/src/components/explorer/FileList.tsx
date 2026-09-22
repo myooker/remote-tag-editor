@@ -2,6 +2,7 @@ import * as React from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { ArrowUp, ArrowDown, FolderOpen, Loader2, SearchX } from "lucide-react";
 import { FileIcon } from "./FileIcon";
+import { Pagination } from "./Pagination";
 import { useExplorer } from "@/context/ExplorerContext";
 import { useSearch } from "@/context/SearchContext";
 import { fileTypeLabel, type SortColumn } from "@/lib/sort";
@@ -50,6 +51,7 @@ export function FileList() {
     selectIndex,
     goInto,
     toFullPath,
+    page,
   } = useExplorer();
   const { query } = useSearch();
   const parentRef = React.useRef<HTMLDivElement>(null);
@@ -94,6 +96,23 @@ export function FileList() {
       restoringRef.current = false;
     };
   }, [currentPath, loadedPath]);
+
+  // A new page renders different files at the same offsets, so keeping the
+  // old scroll position would drop you in an arbitrary spot. Start at the top.
+  React.useEffect(() => {
+    const el = parentRef.current;
+    if (!el) return;
+    restoringRef.current = true;
+    el.scrollTop = 0;
+    if (activePathRef.current !== null) {
+      scrollPositions.current.set(activePathRef.current, 0);
+    }
+    const id = requestAnimationFrame(() => {
+      restoringRef.current = false;
+    });
+    return () => cancelAnimationFrame(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
 
   // Keep the keyboard-focused row in view.
   React.useEffect(() => {
@@ -182,6 +201,8 @@ export function FileList() {
           </div>
         )}
       </div>
+
+      <Pagination />
     </div>
   );
 }

@@ -51,7 +51,7 @@ export function SplitValueDialog({
   value: string;
   reload: () => void;
 }) {
-  const { folderMusicPaths } = useExplorer();
+  const { getFolderMusicPaths } = useExplorer();
   const { writeLimit } = usePrefs();
   const { tagIndex } = useApp();
   const { toast } = useToast();
@@ -97,8 +97,9 @@ export function SplitValueDialog({
         // Folder: split each file's OWN value(s) for this field. Files run up to
         // `writeLimit` at a time; the writes within one file stay sequential.
         let touched = 0;
+        const folderPaths = await getFolderMusicPaths();
         const failed = await forEachLimit(
-          folderMusicPaths,
+          folderPaths,
           writeLimit,
           async (path) => {
             const tags = await api.getTags(path);

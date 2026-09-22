@@ -19,7 +19,7 @@ import { useToast } from "@/components/ui/toast";
  * because a frame ID read off an mp3 means nothing to a flac.
  */
 export function useTagMutations(reload: () => void) {
-  const { folderMusicPaths } = useExplorer();
+  const { getFolderMusicPaths } = useExplorer();
   const { writeLimit } = usePrefs();
   const { tagIndex } = useApp();
   const { toast } = useToast();
@@ -41,12 +41,15 @@ export function useTagMutations(reload: () => void) {
     verb: string,
     op: (path: string) => Promise<unknown>,
   ): Promise<boolean> {
-    if (folderMusicPaths.length === 0) {
+    // Resolved per run rather than held in context: with paging on, the
+    // explorer only has the current page, so this may fetch the full listing.
+    const paths = await getFolderMusicPaths();
+    if (paths.length === 0) {
       toast("No music files in this folder", "error");
       return false;
     }
-    const failed = await forEachLimit(folderMusicPaths, writeLimit, op);
-    const total = folderMusicPaths.length;
+    const failed = await forEachLimit(paths, writeLimit, op);
+    const total = paths.length;
     if (failed === 0) toast(`${verb} ${total} file${total > 1 ? "s" : ""}`, "success");
     else toast(`${verb} ${total - failed}/${total}, ${failed} failed`, "error");
     reload();

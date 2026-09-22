@@ -2,9 +2,13 @@ import type {
   AppSettings,
   DirectoryTree,
   HistoryEntry,
+  ListV2Response,
+  NodeType,
   TagMap,
 } from "./types";
+import { basename } from "./utils";
 import type { TagAliasMap } from "./tagRegistry";
+import type { SortColumn } from "./sort";
 
 // Same-origin: nginx serves the static build and proxies /api to the backend.
 // In dev, Vite proxies /api to the backend (see vite.config.ts).
@@ -46,6 +50,33 @@ async function errorText(res: Response): Promise<string> {
   return msg;
 }
 
+/**
+ * list-v2 spells types the same way `NodeType` does, so this is a whitelist
+ * rather than a rename: anything unrecognised degrades to a plain file instead
+ * of leaking an unhandled string into `FileIcon`/`fileTypeLabel`.
+ */
+const NODE_TYPE: Record<string, NodeType> = {
+  directory: "directory",
+  music: "music",
+  picture: "picture",
+  file: "file",
+};
+
+function toDirectoryTree(res: ListV2Response): DirectoryTree {
+  return {
+    name: basename(res.path),
+    type: "directory",
+    path: res.path,
+    total: res.total,
+    content: res.entities.map((e) => ({
+      name: e.name,
+      type: NODE_TYPE[e.type] ?? "file",
+      extension: e.extension || undefined,
+      size: e.size,
+    })),
+  };
+}
+
 export const api = {
   getSettings: (signal?: AbortSignal) =>
     jsonGet<AppSettings>(`${API_BASE}/settings`, signal),
@@ -58,11 +89,33 @@ export const api = {
     return res.ok;
   },
 
-  listDir: (path: string, signal?: AbortSignal) =>
-    jsonGet<DirectoryTree>(
-      `${API_BASE}/list?path=${encodeURIComponent(path)}`,
+  /**
+   * List one directory via `/api/list-v2`.
+   *
+   * The backend owns the ordering: it sorts with a *total* order, so the same
+   * request always yields the same sequence and a page boundary can't drop or
+   * repeat an entry. `limit: 0` asks for the whole directory.
+   */
+  listDir: (
+    path: string,
+    signal?: AbortSignal,
+    opts: {
+      offset?: number;
+      limit?: number;
+      sort?: SortColumn;
+      asc?: boolean;
+    } = {},
+  ) => {
+    const params = new URLSearchParams({ path });
+    params.set("offset", String(Math.max(0, Math.trunc(opts.offset ?? 0))));
+    params.set("limit", String(Math.max(0, Math.trunc(opts.limit ?? 0))));
+    if (opts.sort) params.set("sort", opts.sort);
+    if (opts.asc !== undefined) params.set("asc", String(opts.asc));
+    return jsonGet<ListV2Response>(
+      `${API_BASE}/list-v2?${params}`,
       signal,
-    ),
+    ).then(toDirectoryTree);
+  },
 
   getTags: (path: string, signal?: AbortSignal) =>
     jsonGet<TagMap>(`${API_BASE}/tag?path=${encodeURIComponent(path)}`, signal),

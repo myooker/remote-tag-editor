@@ -57,15 +57,19 @@ function useRemoveScope(
   mut: Mutations,
 ) {
   const { confirm } = useDialogs();
-  const { folderMusicPaths } = useExplorer();
+  const { getFolderMusicPaths } = useExplorer();
   return React.useCallback(
     async (scope: "file" | "folder", value: string, onDone?: () => void) => {
+      // Only folder scope needs the count, and resolving it here keeps the
+      // number in the prompt honest when paging means we hold just one page.
+      const count =
+        scope === "folder" ? (await getFolderMusicPaths()).length : 0;
       const ok = await confirm({
         title: `Remove “${label}”?`,
         description:
           scope === "file"
             ? "This deletes the tag value from this file."
-            : `This deletes the tag value from all ${folderMusicPaths.length} music file(s) in this folder.`,
+            : `This deletes the tag value from all ${count} music file(s) in this folder.`,
         destructive: true,
         confirmLabel: "Remove",
       });
@@ -75,7 +79,7 @@ function useRemoveScope(
         ? await mut.removeFile(filePath, tagKey, value)
         : await mut.removeFolder(tagKey, value);
     },
-    [tagKey, label, filePath, mut, confirm, folderMusicPaths.length],
+    [tagKey, label, filePath, mut, confirm, getFolderMusicPaths],
   );
 }
 
