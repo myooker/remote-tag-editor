@@ -41,8 +41,8 @@ add_executable(web_tag_editor src/main.cpp
         src/format_handlers/oggSpeex.h
         src/tagMapping.cpp
         include/music.h
-        include/history.h
-        src/history.cpp
+        include/storage.h
+        src/storage.cpp
         include/utils.h
         src/utils.cpp
 )
