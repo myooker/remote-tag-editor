@@ -23,25 +23,26 @@ using json = nlohmann::json;
 using ordered_json = nlohmann::ordered_json;
 namespace fs = std::filesystem;
 
-static std::string fileExtensionToType(const std::string &ext) {
+static std::string fileExtensionToType(const std::string_view ext) {
+    const std::string a { ext };
     const static std::unordered_map<std::string, std::string> s_extensionsMap {
-        {".mp3", "music"},      // done
-        {".flac", "music"},     // done
-        {".m4a", "music"},      // done
-        {".ogg", "music"},      // done
-        {".opus", "music"},
-        {".aac", "music"},      // not implemented
-        {".wma", "music"},      // not implemented
-        {".wav", "music"},      // not implemented
-        {".aif", "music"},      // not implemented
-        {".aiff", "music"},     // not implemented
-        {".alac", "music"},     // not implemented
-        {".jpg", "picture"},
-        {".jpeg", "picture"},
-        {".png", "picture"}
+        {".mp3",    "music"},      // done
+        {".flac",   "music"},     // done
+        {".m4a",    "music"},      // done
+        {".ogg",    "music"},      // done
+        {".opus",   "music"},
+        {".aac",    "music"},      // not implemented
+        {".wma",    "music"},      // not implemented
+        {".wav",    "music"},      // not implemented
+        {".aif",    "music"},      // not implemented
+        {".aiff",   "music"},     // not implemented
+        {".alac",   "music"},     // not implemented
+        {".jpg",    "picture"},
+        {".jpeg",   "picture"},
+        {".png",    "picture"}
     };
 
-    if (const auto it = s_extensionsMap.find(ext); it != s_extensionsMap.end())
+    if (const auto it = s_extensionsMap.find(a); it != s_extensionsMap.end())
         return it->second;
 
     return "file";
