@@ -277,7 +277,7 @@ int main (int argc, char **argv) {
     ([&](const crow::request& req) {
         using namespace TagLib;
 
-        const std::string logPrefix { "(api/undo): " };
+        constexpr std::string_view logPrefix { "(api/undo): " };
         json j = json::parse(req.body);
 
         crow::response response { 500 };
@@ -414,7 +414,7 @@ int main (int argc, char **argv) {
     ([&](const crow::request &req) {
         using namespace TagLib;
 
-        const std::string logPrefix { "(api/edittag): " };
+        constexpr std::string_view logPrefix { "(api/edittag): " };
         const ordered_json body = json::parse(req.body);
 
         rte::TagModification tagStruct {
@@ -455,7 +455,7 @@ int main (int argc, char **argv) {
     ([&](const crow::request &req) {
         using namespace TagLib;
 
-        const std::string logPrefix { "(api/addfieldtag): " };
+        constexpr std::string_view logPrefix { "(api/addfieldtag): " };
         const ordered_json body = json::parse(req.body);
 
         rte::TagModification tagStruct {
@@ -494,7 +494,7 @@ int main (int argc, char **argv) {
     ([&](const crow::request &req) {
         using namespace TagLib;
 
-        const std::string logPrefix { "(api/removefieldtag): " };
+        constexpr std::string_view logPrefix { "(api/removefieldtag): " };
         const ordered_json body = json::parse(req.body);
 
         rte::TagModification tagStruct {
@@ -531,7 +531,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/store").methods("POST"_method)
     ([&](const crow::request &req) {
-        const std::string logPrefix { "(api/store): " };
+        constexpr std::string_view logPrefix { "(api/store): " };
         crow::multipart::message_view msg (req);
         const std::string_view *filepart { nullptr }; // Store binary data of a file
         std::string_view filepath {};
@@ -589,7 +589,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/rename").methods("POST"_method)
     ([&](const crow::request &req) {
-        const std::string logPrefix { "(api/rename): " };
+        constexpr std::string_view logPrefix { "(api/rename): " };
 
         const ordered_json root = json::parse(req.body);
         const std::string newdirname { "/" + root["newName"].get<std::string>() };
@@ -600,7 +600,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/mkdir").methods("POST"_method)
     ([&](const crow::request &req) {
-        const std::string logPrefix {"(api/mkdir): "};
+        constexpr std::string_view logPrefix {"(api/mkdir): "};
 
         const ordered_json body = json::parse(req.body);
         const std::string dir { body["path"].get<std::string>() + "/" + body["name"].get<std::string>() }; //ugly as fuck
@@ -614,7 +614,7 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/tag").methods("GET"_method)
     ([&](const crow::request &req) {
-        const std::string logPrefix { "(api/tag): " };
+        constexpr std::string_view logPrefix { "(api/tag): " };
 
         const std::string filePath = req.url_params.get("path");
         const std::string fileExtension = fs::path(filePath).extension().string();
@@ -639,7 +639,7 @@ int main (int argc, char **argv) {
         using namespace rte::music::tag;
         const auto map = getTagMap();
         if (!map)
-            return crow::response { 400 };
+            return crow::response { 400, "Tagmap has not been found" };
 
         crow::response res { map->aliases().dump() };
         res.set_header("Content-Type", "application/json");
@@ -648,12 +648,12 @@ int main (int argc, char **argv) {
 
     CROW_ROUTE(app, "/api/heartbeat")
     ([]() {
-        return crow::response{ 200, "OK"};
+        return crow::response{ 200 };
     });
 
     CROW_ROUTE(app, "/api/list").methods("GET"_method)
     ([&] (const crow::request &req){
-        const std::string logPrefix { "(api/list): "};
+        constexpr std::string_view logPrefix { "(api/list): "};
         std::string requestedPath = req.url_params.get("path");
 
         // Remove trailing slash for buildMainDirectoryTree
